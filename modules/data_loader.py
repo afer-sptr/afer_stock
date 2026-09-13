@@ -111,17 +111,27 @@ def fetch_stock_data(
             logger.warning(f"Gagal mengambil metadata untuk {ticker_clean}: {e}")
             info = {}
 
-        # Simpan fast_info real-time
+        # Ekstraksi atribut fast_info ke dalam tipe data standar yang aman dari pickle issue
         try:
             fast = stock.fast_info
-            if fast:
-                info["fast_info"] = fast
-                if getattr(fast, "last_price", None):
-                    info["realtime_last_price"] = float(fast.last_price)
-                if getattr(fast, "year_high", None):
-                    info["year_high"] = float(fast.year_high)
-                if getattr(fast, "year_low", None):
-                    info["year_low"] = float(fast.year_low)
+            if fast is not None:
+                from types import SimpleNamespace
+                fast_dict = {}
+                for attr in ["last_price", "year_high", "year_low", "day_high", "day_low", "previous_close", "open", "market_cap"]:
+                    try:
+                        val = getattr(fast, attr, None)
+                        if val is not None:
+                            fast_dict[attr] = float(val) if isinstance(val, (int, float)) else str(val)
+                    except Exception:
+                        pass
+                if fast_dict:
+                    info["fast_info"] = SimpleNamespace(**fast_dict)
+                    if "last_price" in fast_dict:
+                        info["realtime_last_price"] = float(fast_dict["last_price"])
+                    if "year_high" in fast_dict:
+                        info["year_high"] = float(fast_dict["year_high"])
+                    if "year_low" in fast_dict:
+                        info["year_low"] = float(fast_dict["year_low"])
         except Exception:
             pass
 

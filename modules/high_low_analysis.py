@@ -1,4 +1,4 @@
-﻿"""
+"""
 Modul Analisis High and Low Saham Indonesia (IDX).
 Mengevaluasi posisi harga terhadap 52-Week High/Low, Intraday Day High/Low,
 Breakout 20-Day Donchian Channel, dan Fibonacci Retracement Levels.
@@ -25,9 +25,11 @@ def evaluate_high_low_aspects(df: pd.DataFrame, fast_info: Any = None) -> Dict[s
     current_price = float(close.iloc[-1])
 
     # 1. Metrik 52-Week High & Low
-    if fast_info and getattr(fast_info, "year_high", None) and getattr(fast_info, "year_low", None):
-        year_high = float(fast_info.year_high)
-        year_low = float(fast_info.year_low)
+    yh = getattr(fast_info, "year_high", None) if fast_info else (fast_info.get("year_high") if isinstance(fast_info, dict) else None)
+    yl = getattr(fast_info, "year_low", None) if fast_info else (fast_info.get("year_low") if isinstance(fast_info, dict) else None)
+    if yh is not None and yl is not None:
+        year_high = float(yh)
+        year_low = float(yl)
     else:
         # Hitung dari 250 hari bursa terakhir (setara 1 tahun)
         last_250 = df.tail(250)
@@ -40,9 +42,11 @@ def evaluate_high_low_aspects(df: pd.DataFrame, fast_info: Any = None) -> Dict[s
     pos_52w_pct = round(((current_price - year_low) / range_52w) * 100, 1)
 
     # 2. Intraday Day High & Day Low
-    if fast_info and getattr(fast_info, "day_high", None) and getattr(fast_info, "day_low", None):
-        day_high = float(fast_info.day_high)
-        day_low = float(fast_info.day_low)
+    dh = getattr(fast_info, "day_high", None) if fast_info else (fast_info.get("day_high") if isinstance(fast_info, dict) else None)
+    dl = getattr(fast_info, "day_low", None) if fast_info else (fast_info.get("day_low") if isinstance(fast_info, dict) else None)
+    if dh is not None and dl is not None:
+        day_high = float(dh)
+        day_low = float(dl)
     else:
         day_high = float(high.iloc[-1])
         day_low = float(low.iloc[-1])
