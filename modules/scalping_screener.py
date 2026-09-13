@@ -261,10 +261,20 @@ def scan_top_10_scalping_stocks(
 
     for item in candidates_db:
         # Filter Tier
-        if tier_filter != "Semua":
-            tier_num = tier_filter.split()[1] if len(tier_filter.split()) > 1 else ""
-            if tier_num and tier_num not in item["tier"]:
-                continue
+        if tier_filter not in {"Semua", "Semua Tingkatan"}:
+            if "Gocap" in tier_filter or "Tidur" in tier_filter:
+                if not (item["price"] <= 100 or item.get("tier") == "Lapis 3"):
+                    continue
+            elif "Receh" in tier_filter or "Murah" in tier_filter:
+                if not (100 < item["price"] <= 1000 or item.get("tier") == "Lapis 2"):
+                    continue
+            elif "Premium" in tier_filter or "Blue Chip" in tier_filter:
+                if not (item["price"] > 2500 or item.get("tier") == "Lapis 1"):
+                    continue
+            elif "Lapis" in tier_filter:
+                tier_num = tier_filter.split()[1] if len(tier_filter.split()) > 1 else ""
+                if tier_num and tier_num not in item["tier"]:
+                    continue
 
         # Filter Syariah
         if syariah_filter == "☪️ Hanya Syariah (ISSI)" and not item["is_syariah"]:

@@ -11,49 +11,88 @@ from modules.idx_ticks import round_to_idx_tick, get_idx_tick_size, safe_int
 
 def evaluate_order_book_execution(
     snap: Dict[str, Any],
-    candle_info: Optional[Dict[str, Any]] = None
+    candle_info: Optional[Dict[str, Any]] = None,
+    tier_code: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Validasi eksekusi taktis HAKA/HAKI, kecepatan likuiditas keluar,
-    dan rekomendasi antrean bid vs hajar kanan (offer).
+    dan rekomendasi antrean bid vs hajar kanan (offer) terkalibrasi Tier saham.
     """
     pct_bid = float(snap.get("pct_bid", 50.0))
     pct_offer = float(snap.get("pct_offer", 50.0))
     rel_spread = float(snap.get("rel_spread", 0.5))
     bid = float(snap.get("bid", 1000.0))
     ask = float(snap.get("ask", 1005.0))
-    bid_size = float(snap.get("bid_size", 10000.0))
+    bid_size = float(snap.get("bid_size", 1000.0))
+    price = float(snap.get("price", bid))
+    turnover_idr = float(snap.get("turnover_idr", 0.0))
+
+    # Identifikasi Tier Saham
+    tier = (tier_code or snap.get("tier_code", "RECEH")).upper()
 
     # 1. HAKA Approval Logic
-    if pct_bid >= 65.0 and rel_spread < 1.5:
+    if pct_bid >= 62.0 and rel_spread < 2.0:
         haka_status = "APPROVED"
-        haka_desc = "🟢 HAKA APPROVED: Tekanan beli masif (% Bid >= 65%), antrean offer tipis."
-    elif 45.0 <= pct_bid < 65.0:
+        haka_badge = "🟢 HAKA APPROVED"
+        haka_desc = f"HAKA Disetujui: Tekanan beli dominan ({pct_bid:.1f}% Bid vs {pct_offer:.1f}% Offer) dengan spread rapat {rel_spread:.2f}%. Eksekusi Hajar Kanan aman."
+    elif 45.0 <= pct_bid < 62.0:
         haka_status = "BLOCKED"
-        haka_desc = "⛔ HAKA BLOCKED: Antre pasif di Best Bid, hindari mengejar offer."
+        haka_badge = "⛔ HAKA BLOCKED"
+        haka_desc = f"HAKA Ditahan: Order book berimbang ({pct_bid:.1f}% Bid vs {pct_offer:.1f}% Offer). Disarankan pasang antrean pasif di Best Bid Rp {bid:,.0f}."
     else:
         haka_status = "VETO"
-        haka_desc = "🚫 HAKA VETO: Offer tebal menahan kenaikan, potensi guyuran harga."
+        haka_badge = "🚫 HAKA VETO"
+        haka_desc = f"HAKA Ditolak: Antrean offer tebal ({pct_offer:.1f}% Offer) menahan kenaikan harga. Waspada tekanan jual & risiko guyuran."
 
     # 2. Emergency HAKI Logic
-    if pct_offer >= 65.0 or pct_bid < 35.0:
+    if pct_offer >= 62.0 or pct_bid < 38.0:
         emergency_haki = True
-        haki_desc = f"🚨 EMERGENCY HAKI: Tekanan offer masif ({pct_offer:.1f}% Offer)! Segera buang barang ke Best Bid."
+        haki_badge = "🚨 EMERGENCY HAKI"
+        haki_desc = f"Peringatan Jual Darurat: Tekanan offer masif ({pct_offer:.1f}% Offer). Disarankan segera buang barang ke Best Bid Rp {bid:,.0f}."
     else:
         emergency_haki = False
-        haki_desc = "🟡 NORMAL EXIT: Order book seimbang, pasang antrean pasif TP."
+        haki_badge = "🟡 NORMAL EXIT"
+        haki_desc = f"Keluar Teratur: Buku pesanan kondusif ({pct_bid:.1f}% Bid). Pasang antrean pasif bertahap pada target Take Profit."
 
-    # 3. Safe Exit Lot Size (20% dari volume Best Bid agar tidak merusak harga saat exit)
-    safe_exit_lot = max(1, safe_int(bid_size * 0.20, 100))
-    if safe_exit_lot >= 1000 and pct_bid >= 60.0:
-        exit_speed = "🟢 INSTAN (< 1 Menit)"
-        exit_tier = "Sangat Likuid"
-    elif safe_exit_lot >= 200:
-        exit_speed = "🟡 SEDANG (5–15 Menit)"
-        exit_tier = "Likuiditas Cukup"
+    # 3. Safe Exit Lot Size & Kecepatan Keluar Terkalibrasi Berdasarkan Tier
+    safe_exit_lot = max(1, safe_int(bid_size * 0.20, 10))
+    safe_exit_idr = float(safe_exit_lot * 100 * price)
+
+    if tier in {"PREMIUM", "L1"}:
+        # Saham Premium / Blue Chip (> Rp 5.000)
+        if safe_exit_lot >= 100 and pct_bid >= 55.0:
+            exit_speed = "🟢 INSTAN (< 1 Menit)"
+            exit_tier = "Sangat Likuid (Blue-Chip)"
+        elif safe_exit_lot >= 20:
+            exit_speed = "🟡 CEPAT (1–5 Menit)"
+            exit_tier = "Likuiditas Cukup"
+        else:
+            exit_speed = "🔴 HATI-HATI (> 15 Menit)"
+            exit_tier = "Antrean Tipis"
+    elif tier in {"GOCAP", "L3"}:
+        # Saham Gocap / Tidur (Rp 50 – Rp 100)
+        if turnover_idr < 250_000_000 or bid_size <= 50:
+            exit_speed = "🔴 RISIKO TERTIDUR (> 1 Jam)"
+            exit_tier = "Saham Tidur (Likuiditas Rendah)"
+            safe_exit_lot = min(safe_exit_lot, 50)
+            safe_exit_idr = float(safe_exit_lot * 100 * price)
+        elif safe_exit_lot >= 2000 and pct_bid >= 60.0:
+            exit_speed = "🟢 INSTAN (< 2 Menit)"
+            exit_tier = "Rally Aktif (Likuid)"
+        else:
+            exit_speed = "🟡 SEDANG (5–15 Menit)"
+            exit_tier = "Likuiditas Terbatas"
     else:
-        exit_speed = "🔴 LAMBAT / RISIKO SLIPPAGE (> 30 Menit)"
-        exit_tier = "Likuiditas Tipis"
+        # Saham Receh / Murah (Rp 100 – Rp 1.000)
+        if safe_exit_lot >= 300 and pct_bid >= 55.0:
+            exit_speed = "🟢 INSTAN (< 2 Menit)"
+            exit_tier = "Likuiditas Tinggi"
+        elif safe_exit_lot >= 50:
+            exit_speed = "🟡 SEDANG (5–10 Menit)"
+            exit_tier = "Likuiditas Cukup"
+        else:
+            exit_speed = "🔴 RISIKO SLIPPAGE (> 20 Menit)"
+            exit_tier = "Antrean Tipis"
 
     haka_entry = ask
     bid_entry = bid
@@ -71,10 +110,13 @@ def evaluate_order_book_execution(
 
     return {
         "haka_status": haka_status,
+        "haka_badge": haka_badge,
         "haka_desc": haka_desc,
         "emergency_haki": emergency_haki,
+        "haki_badge": haki_badge,
         "haki_desc": haki_desc,
         "safe_exit_lot": safe_exit_lot,
+        "safe_exit_idr": safe_exit_idr,
         "exit_speed": exit_speed,
         "exit_tier": exit_tier,
         "haka_entry": haka_entry,
@@ -89,6 +131,7 @@ def evaluate_order_book_execution(
         "pct_bid": pct_bid,
         "pct_offer": pct_offer,
         "rel_spread": rel_spread,
+        "tier_code": tier,
     }
 
 
