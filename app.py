@@ -450,7 +450,25 @@ with st.spinner(f"Menghubungkan ke Bursa Efek Indonesia untuk memuat data {ticke
 
 if err or df is None or df.empty:
     st.error(f"❌ Terjadi kesalahan saat memuat data {ticker_clean}: {err}")
-    st.info("💡 Pastikan kode ticker tepat 4 huruf yang tercatat aktif di Bursa Efek Indonesia.")
+    st.warning(f"⚠️ Emiten **{ticker_clean}** kemungkinan sedang dalam status suspensi bursa, delisting, atau belum memiliki data aktif di penyedia pasar Yahoo Finance.")
+    st.markdown("#### 🔄 Pulihkan Cepat ke Saham Aktif & Paling Likuid:")
+    rc1, rc2, rc3, rc4 = st.columns(4)
+    with rc1:
+        if st.button("🏛️ BBCA (Blue Chip)", key="rec_bbca", use_container_width=True):
+            st.session_state["selected_ticker"] = "BBCA"
+            st.rerun()
+    with rc2:
+        if st.button("🛵 GOTO (Gocap)", key="rec_goto", use_container_width=True):
+            st.session_state["selected_ticker"] = "GOTO"
+            st.rerun()
+    with rc3:
+        if st.button("⛏️ BUMI (Receh)", key="rec_bumi", use_container_width=True):
+            st.session_state["selected_ticker"] = "BUMI"
+            st.rerun()
+    with rc4:
+        if st.button("🪙 BRMS (Receh)", key="rec_brms", use_container_width=True):
+            st.session_state["selected_ticker"] = "BRMS"
+            st.rerun()
     st.stop()
 
 # 1. Analisis Teknikal Terpadu & MA Ribbon

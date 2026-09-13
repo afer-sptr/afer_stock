@@ -2226,13 +2226,6 @@
     "board": "Pengembangan"
   },
   {
-    "code": "FREN.JK",
-    "ticker": "FREN",
-    "name": "Smartfren Telecom Tbk.",
-    "sector": "Infrastructure",
-    "board": "Pemantauan Khusus"
-  },
-  {
     "code": "FUJI.JK",
     "ticker": "FUJI",
     "name": "Fuji Finance Indonesia Tbk.",
@@ -3766,13 +3759,6 @@
     "board": "Utama"
   },
   {
-    "code": "MASA.JK",
-    "ticker": "MASA",
-    "name": "Multistrada Arah Sarana Tbk.",
-    "sector": "Consumer Cyclicals",
-    "board": "Utama"
-  },
-  {
     "code": "MASB.JK",
     "ticker": "MASB",
     "name": "Bank Multiarta Sentosa Tbk.",
@@ -4865,13 +4851,6 @@
     "board": "Pengembangan"
   },
   {
-    "code": "POSA.JK",
-    "ticker": "POSA",
-    "name": "Bliss Properti Indonesia Tbk.",
-    "sector": "Properties & Real Estate",
-    "board": "Pemantauan Khusus"
-  },
-  {
     "code": "POWR.JK",
     "ticker": "POWR",
     "name": "Cikarang Listrindo Tbk.",
@@ -5906,13 +5885,6 @@
     "name": "Dana Brata Luhur Tbk.",
     "sector": "Energy",
     "board": "Utama"
-  },
-  {
-    "code": "TECH.JK",
-    "ticker": "TECH",
-    "name": "Indosterling Technomedia Tbk.",
-    "sector": "Technology",
-    "board": "Pemantauan Khusus"
   },
   {
     "code": "TELE.JK",

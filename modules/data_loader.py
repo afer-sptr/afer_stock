@@ -97,7 +97,18 @@ def fetch_stock_data(
         df = stock.history(period=period, interval=interval)
         
         if df is None or df.empty:
-            return None, None, f"Tidak ada data transaksi ditemukan untuk {ticker_clean}. Pastikan kode saham aktif di BEI."
+            for fallback_period in ["6mo", "3mo", "1mo", "5d"]:
+                if fallback_period != period:
+                    try:
+                        df_alt = stock.history(period=fallback_period, interval=interval)
+                        if df_alt is not None and not df_alt.empty:
+                            df = df_alt
+                            break
+                    except Exception:
+                        pass
+        
+        if df is None or df.empty:
+            return None, None, f"Tidak ada data transaksi ditemukan untuk {ticker_clean}. Kemungkinan saham berstatus suspensi atau delisting di BEI."
         
         df = df.dropna(subset=["Open", "High", "Low", "Close"])
         df.index = pd.to_datetime(df.index)

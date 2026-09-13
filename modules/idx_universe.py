@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import os
 from functools import lru_cache
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 # Pilihan Opsi Filter Tingkatan (Tier)
 TIER_OPTIONS: List[str] = [
@@ -34,11 +34,11 @@ PREMIUM_BLUE_CHIP_TICKERS: Set[str] = {
 
 # Ticker Acuan Saham Gocap / Saham Tidur (Rp 50 – Rp 100)
 GOCAP_TIDUR_TICKERS: Set[str] = {
-    "GOTO", "FREN", "BIPI", "ZINC", "POSA", "RIMO", "MYRX", "TECH", "POLA", "KREN",
-    "ENRG", "BUMI", "DOID", "DEWA", "IIKP", "ARMY", "TRIM", "MDIA", "BAPA", "NASA",
-    "KBAG", "CARE", "COAL", "ELTY", "LUCK", "MABA", "POOL", "PPRO", "PURE", "REAL",
-    "SIMA", "SUGI", "TELE", "UNIT", "VRNA", "WAPO", "WSKT", "WIFI", "ZBRA", "BBYB",
-    "BBKP", "KPIG", "BHIT", "BCAP", "BABP", "OASA", "TOOL", "SBMA", "BEBS"
+    "GOTO", "POLA", "GIAA", "BKSL", "LPKR", "ZATA", "MLPL", "SLIS", "JAST", "IKAN",
+    "GEMA", "VRNA", "MCOR", "BVIC", "LPPS", "CPRO", "HDFA", "BABP", "BIPI", "ZINC",
+    "ENRG", "BUMI", "DOID", "DEWA", "TRIM", "MDIA", "BAPA", "NASA", "KBAG", "CARE",
+    "COAL", "ELTY", "LUCK", "MABA", "PPRO", "PURE", "REAL", "WAPO", "WIFI", "ZBRA",
+    "BBYB", "BBKP", "KPIG", "BHIT", "BCAP", "OASA", "TOOL", "SBMA", "BEBS"
 }
 
 # Ticker Acuan Saham Receh / Saham Murah (Rp 100 – Rp 1.000)
