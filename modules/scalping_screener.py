@@ -192,15 +192,24 @@ def generate_scalp_trading_plan(
         catalyst_reasons.append(f"RRR Menarik (1:{rrr})")
     if not catalyst_reasons:
         catalyst_reasons.append("Momentum Breakout Intraday")
-    catalyst_text = " • ".join(catalyst_reasons)
+    # Tentukan label tingkatan berdasarkan harga nominal
+    if price > 5000.0:
+        actual_tier = "Saham Premium / Blue Chip (Di atas Rp5.000)"
+    elif 50.0 <= price <= 100.0:
+        actual_tier = "Saham Gocap / Saham Tidur (Rp50 – Rp100)"
+    elif 100.0 < price <= 1000.0:
+        actual_tier = "Saham Receh / Saham Murah (Rp100 – Rp1.000)"
+    else:
+        actual_tier = tier or "Saham Menengah (Rp1.000 – Rp5.000)"
 
+    catalyst_text = " • ".join(catalyst_reasons)
     clean_ticker = ticker.replace(".JK", "")
     return {
         "ticker": clean_ticker,
         "full_ticker": ticker if ticker.endswith(".JK") else f"{ticker}.JK",
         "company_name": get_stock_metadata(clean_ticker).get("name", clean_ticker),
         "sector": sector,
-        "tier": tier,
+        "tier": actual_tier,
         "is_syariah": is_syariah,
         "current_price": int(price),
         "entry_price": int(entry_price),
@@ -234,46 +243,90 @@ def scan_top_10_scalping_stocks(
     """
     results = []
 
-    # Database profil kandidat aktif BEI
-    # Dihitung dengan parameter pasar realistis terbaru
+    # Database profil kandidat aktif BEI yang dikelompokkan presisi menurut 3 Kategori Tingkatan
+    # Dilengkapi data likuiditas, volatilitas ATR harian, dan dominasi antrean buku pesanan
     candidates_db = [
-        {"ticker": "BBRI.JK", "price": 3320, "atr": 65, "pct_bid": 62.4, "vol": 145000000, "turnover": 480_000_000_000, "sector": "Keuangan (Bank)", "tier": "Lapis 1", "is_syariah": False},
-        {"ticker": "BMRI.JK", "price": 4900, "atr": 90, "pct_bid": 59.8, "vol": 85000000, "turnover": 415_000_000_000, "sector": "Keuangan (Bank)", "tier": "Lapis 1", "is_syariah": False},
-        {"ticker": "BBCA.JK", "price": 7250, "atr": 125, "pct_bid": 64.2, "vol": 60000000, "turnover": 435_000_000_000, "sector": "Keuangan (Bank)", "tier": "Lapis 1", "is_syariah": False},
-        {"ticker": "BUMI.JK", "price": 148, "atr": 6, "pct_bid": 68.5, "vol": 450000000, "turnover": 66_000_000_000, "sector": "Energi (Batubara)", "tier": "Lapis 2", "is_syariah": True},
-        {"ticker": "BRMS.JK", "price": 410, "atr": 18, "pct_bid": 66.0, "vol": 310000000, "turnover": 127_000_000_000, "sector": "Bahan Baku (Mineral Emas)", "tier": "Lapis 2", "is_syariah": True},
-        {"ticker": "MEDC.JK", "price": 1180, "atr": 45, "pct_bid": 58.2, "vol": 42000000, "turnover": 49_500_000_000, "sector": "Energi (Minyak & Gas)", "tier": "Lapis 1", "is_syariah": True},
-        {"ticker": "ANTM.JK", "price": 1420, "atr": 50, "pct_bid": 61.5, "vol": 58000000, "turnover": 82_000_000_000, "sector": "Bahan Baku (Nikel & Emas)", "tier": "Lapis 1", "is_syariah": True},
-        {"ticker": "ENRG.JK", "price": 268, "atr": 12, "pct_bid": 63.8, "vol": 95000000, "turnover": 25_000_000_000, "sector": "Energi (Migas)", "tier": "Lapis 2", "is_syariah": True},
-        {"ticker": "PSAB.JK", "price": 312, "atr": 16, "pct_bid": 65.2, "vol": 80000000, "turnover": 24_900_000_000, "sector": "Bahan Baku (Tambang Emas)", "tier": "Lapis 3", "is_syariah": True},
-        {"ticker": "RAJA.JK", "price": 1380, "atr": 55, "pct_bid": 59.4, "vol": 18000000, "turnover": 24_800_000_000, "sector": "Energi (Infrastruktur Gas)", "tier": "Lapis 3", "is_syariah": True},
-        {"ticker": "DEWA.JK", "price": 112, "atr": 5, "pct_bid": 64.7, "vol": 190000000, "turnover": 21_000_000_000, "sector": "Energi (Jasa Tambang)", "tier": "Lapis 3", "is_syariah": True},
-        {"ticker": "DOID.JK", "price": 498, "atr": 18, "pct_bid": 57.6, "vol": 38000000, "turnover": 18_900_000_000, "sector": "Energi (Kontraktor Tambang)", "tier": "Lapis 3", "is_syariah": True},
-        {"ticker": "PGAS.JK", "price": 1495, "atr": 35, "pct_bid": 56.5, "vol": 25000000, "turnover": 37_000_000_000, "sector": "Utilitas (Gas Bumi)", "tier": "Lapis 1", "is_syariah": True},
-        {"ticker": "ADRO.JK", "price": 3650, "atr": 80, "pct_bid": 60.1, "vol": 32000000, "turnover": 116_000_000_000, "sector": "Energi (Batubara)", "tier": "Lapis 1", "is_syariah": True},
-        {"ticker": "BRIS.JK", "price": 2840, "atr": 70, "pct_bid": 62.0, "vol": 28000000, "turnover": 79_500_000_000, "sector": "Keuangan (Bank Syariah)", "tier": "Lapis 1", "is_syariah": True},
-        {"ticker": "SSIA.JK", "price": 1050, "atr": 45, "pct_bid": 63.1, "vol": 22000000, "turnover": 23_100_000_000, "sector": "Properti & Kawasan Industri", "tier": "Lapis 2", "is_syariah": True},
-        {"ticker": "ELSA.JK", "price": 486, "atr": 15, "pct_bid": 58.7, "vol": 35000000, "turnover": 17_000_000_000, "sector": "Energi (Jasa Hulu Migas)", "tier": "Lapis 3", "is_syariah": True},
-        {"ticker": "KIJA.JK", "price": 172, "atr": 8, "pct_bid": 60.3, "vol": 88000000, "turnover": 15_100_000_000, "sector": "Properti (Kawasan Industri)", "tier": "Lapis 3", "is_syariah": True},
-        {"ticker": "PANI.JK", "price": 9550, "atr": 275, "pct_bid": 61.8, "vol": 12000000, "turnover": 114_000_000_000, "sector": "Properti (PIK2)", "tier": "Lapis 3", "is_syariah": True},
-        {"ticker": "CUAN.JK", "price": 7100, "atr": 220, "pct_bid": 59.0, "vol": 9000000, "turnover": 63_900_000_000, "sector": "Energi & Tambang", "tier": "Lapis 3", "is_syariah": True},
+        # === 1. TIER SAHAM GOCAP / SAHAM TIDUR (Rp50 – Rp100) ===
+        {"ticker": "GOTO.JK", "price": 52, "atr": 3, "pct_bid": 68.5, "vol": 850000000, "turnover": 44_200_000_000, "sector": "Teknologi (Ekosistem Digital)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "FREN.JK", "price": 50, "atr": 2, "pct_bid": 72.0, "vol": 320000000, "turnover": 16_000_000_000, "sector": "Telekomunikasi (Smartfren)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "BIPI.JK", "price": 68, "atr": 4, "pct_bid": 65.4, "vol": 210000000, "turnover": 14_280_000_000, "sector": "Energi (Infrastruktur Migas)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "ZINC.JK", "price": 50, "atr": 2, "pct_bid": 69.2, "vol": 180000000, "turnover": 9_000_000_000, "sector": "Bahan Baku (Kapuas Prima Coal)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "ENRG.JK", "price": 95, "atr": 5, "pct_bid": 66.8, "vol": 250000000, "turnover": 23_750_000_000, "sector": "Energi (Energi Mega Persada)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "BHIT.JK", "price": 50, "atr": 2, "pct_bid": 67.0, "vol": 160000000, "turnover": 8_000_000_000, "sector": "Keuangan (MNC Asia Holding)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": False},
+        {"ticker": "POLA.JK", "price": 62, "atr": 4, "pct_bid": 64.5, "vol": 110000000, "turnover": 6_820_000_000, "sector": "Konsumer Non-Primer", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "TECH.JK", "price": 75, "atr": 5, "pct_bid": 63.8, "vol": 95000000, "turnover": 7_125_000_000, "sector": "Teknologi (Software & IT)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "KREN.JK", "price": 50, "atr": 2, "pct_bid": 70.5, "vol": 140000000, "turnover": 7_000_000_000, "sector": "Keuangan (Kresna Graha)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": False},
+        {"ticker": "POSA.JK", "price": 50, "atr": 2, "pct_bid": 68.0, "vol": 85000000, "turnover": 4_250_000_000, "sector": "Properti & Konstruksi", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "BULL.JK", "price": 88, "atr": 5, "pct_bid": 64.0, "vol": 120000000, "turnover": 10_560_000_000, "sector": "Transportasi (Buana Lintas Lautan)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "IPTV.JK", "price": 53, "atr": 3, "pct_bid": 65.0, "vol": 115000000, "turnover": 6_095_000_000, "sector": "Telekomunikasi (MNC Vision)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": False},
+        {"ticker": "WIFI.JK", "price": 96, "atr": 6, "pct_bid": 67.5, "vol": 130000000, "turnover": 12_480_000_000, "sector": "Telekomunikasi (Solusi Sinergi Digital)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "COAL.JK", "price": 78, "atr": 5, "pct_bid": 66.2, "vol": 145000000, "turnover": 11_310_000_000, "sector": "Energi (Black Diamond Resources)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+
+        # === 2. TIER SAHAM RECEH / SAHAM MURAH (Rp100 – Rp1.000) ===
+        {"ticker": "BUMI.JK", "price": 148, "atr": 6, "pct_bid": 68.5, "vol": 450000000, "turnover": 66_000_000_000, "sector": "Energi (Batubara BUMI)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "BRMS.JK", "price": 410, "atr": 18, "pct_bid": 66.0, "vol": 310000000, "turnover": 127_000_000_000, "sector": "Bahan Baku (Mineral Emas BRMS)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "DEWA.JK", "price": 112, "atr": 5, "pct_bid": 64.7, "vol": 190000000, "turnover": 21_000_000_000, "sector": "Energi (Darma Henwa)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "PSAB.JK", "price": 312, "atr": 16, "pct_bid": 65.2, "vol": 80000000, "turnover": 24_900_000_000, "sector": "Bahan Baku (J Resources Emas)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "DOID.JK", "price": 498, "atr": 18, "pct_bid": 57.6, "vol": 38000000, "turnover": 18_900_000_000, "sector": "Energi (Delta Dunia Makmur)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "ELSA.JK", "price": 486, "atr": 15, "pct_bid": 58.7, "vol": 35000000, "turnover": 17_000_000_000, "sector": "Energi (Elnusa Hulu Migas)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "KIJA.JK", "price": 172, "atr": 8, "pct_bid": 60.3, "vol": 88000000, "turnover": 15_100_000_000, "sector": "Properti (Kawasan Industri Jababeka)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "BUKA.JK", "price": 120, "atr": 6, "pct_bid": 63.5, "vol": 150000000, "turnover": 18_000_000_000, "sector": "Teknologi (Bukalapak.com)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "ACES.JK", "price": 820, "atr": 25, "pct_bid": 61.2, "vol": 32000000, "turnover": 26_240_000_000, "sector": "Konsumer Siklikal (Aspirasi Hidup / ACE)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "ERAA.JK", "price": 440, "atr": 16, "pct_bid": 62.8, "vol": 45000000, "turnover": 19_800_000_000, "sector": "Konsumer Siklikal (Erajaya Swasembada)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "TINS.JK", "price": 985, "atr": 35, "pct_bid": 64.1, "vol": 52000000, "turnover": 51_220_000_000, "sector": "Bahan Baku (Timah Tbk.)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "MBMA.JK", "price": 530, "atr": 22, "pct_bid": 65.5, "vol": 75000000, "turnover": 39_750_000_000, "sector": "Bahan Baku (Merdeka Battery EV)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "ASRI.JK", "price": 185, "atr": 9, "pct_bid": 63.0, "vol": 60000000, "turnover": 11_100_000_000, "sector": "Properti (Alam Sutera Realty)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+        {"ticker": "MNCN.JK", "price": 320, "atr": 12, "pct_bid": 61.0, "vol": 42000000, "turnover": 13_440_000_000, "sector": "Media (Media Nusantara Citra)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": False},
+        {"ticker": "SMRA.JK", "price": 595, "atr": 20, "pct_bid": 62.4, "vol": 38000000, "turnover": 22_610_000_000, "sector": "Properti (Summarecon Agung)", "tier": "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "is_syariah": True},
+
+        # === 3. TIER SAHAM PREMIUM / BLUE CHIP (Di atas Rp5.000) ===
+        {"ticker": "BBCA.JK", "price": 7250, "atr": 125, "pct_bid": 64.2, "vol": 60000000, "turnover": 435_000_000_000, "sector": "Keuangan (Bank Central Asia)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": False},
+        {"ticker": "PANI.JK", "price": 9550, "atr": 275, "pct_bid": 61.8, "vol": 12000000, "turnover": 114_000_000_000, "sector": "Properti (Pantai Indah Kapuk 2)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "CUAN.JK", "price": 7100, "atr": 220, "pct_bid": 59.0, "vol": 9000000, "turnover": 63_900_000_000, "sector": "Energi & Tambang (Petrindo)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "UNTR.JK", "price": 26200, "atr": 550, "pct_bid": 63.5, "vol": 6500000, "turnover": 170_300_000_000, "sector": "Perindustrian (United Tractors)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "ITMG.JK", "price": 25500, "atr": 500, "pct_bid": 62.1, "vol": 4200000, "turnover": 107_100_000_000, "sector": "Energi (Indo Tambangraya Megah)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "ICBP.JK", "price": 11200, "atr": 200, "pct_bid": 61.5, "vol": 8000000, "turnover": 89_600_000_000, "sector": "Konsumer Primer (Indofood CBP)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "INDF.JK", "price": 6800, "atr": 125, "pct_bid": 60.8, "vol": 12500000, "turnover": 85_000_000_000, "sector": "Konsumer Primer (Indofood Sukses Makmur)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "GGRM.JK", "price": 15200, "atr": 350, "pct_bid": 58.4, "vol": 31000000, "turnover": 47_120_000_000, "sector": "Konsumer Non-Primer (Gudang Garam)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": False},
+        {"ticker": "CPIN.JK", "price": 5100, "atr": 110, "pct_bid": 62.0, "vol": 14000000, "turnover": 71_400_000_000, "sector": "Konsumer Primer (Charoen Pokphand)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "AMMN.JK", "price": 8550, "atr": 250, "pct_bid": 65.0, "vol": 28000000, "turnover": 239_400_000_000, "sector": "Bahan Baku (Amman Mineral Internasional)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "BYAN.JK", "price": 18200, "atr": 400, "pct_bid": 59.2, "vol": 2500000, "turnover": 45_500_000_000, "sector": "Energi (Bayan Resources)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "MLBI.JK", "price": 7850, "atr": 150, "pct_bid": 57.0, "vol": 1200000, "turnover": 9_420_000_000, "sector": "Konsumer Primer (Multi Bintang Indonesia)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": False},
+        {"ticker": "INKP.JK", "price": 7400, "atr": 175, "pct_bid": 63.0, "vol": 10500000, "turnover": 77_700_000_000, "sector": "Bahan Baku (Indah Kiat Pulp & Paper)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "TKIM.JK", "price": 6650, "atr": 160, "pct_bid": 61.7, "vol": 9200000, "turnover": 61_180_000_000, "sector": "Bahan Baku (Pabrik Kertas Tjiwi Kimia)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+
+        # === 4. SAHAM MENENGAH & LIQUID LAINNYA (Rp1.000 – Rp5.000) ===
+        {"ticker": "BBRI.JK", "price": 3320, "atr": 65, "pct_bid": 62.4, "vol": 145000000, "turnover": 480_000_000_000, "sector": "Keuangan (Bank Rakyat Indonesia)", "tier": "Saham Menengah (Rp1.000 – Rp5.000)", "is_syariah": False},
+        {"ticker": "BMRI.JK", "price": 4900, "atr": 90, "pct_bid": 59.8, "vol": 85000000, "turnover": 415_000_000_000, "sector": "Keuangan (Bank Mandiri)", "tier": "Saham Menengah (Rp1.000 – Rp5.000)", "is_syariah": False},
+        {"ticker": "MEDC.JK", "price": 1180, "atr": 45, "pct_bid": 58.2, "vol": 42000000, "turnover": 49_500_000_000, "sector": "Energi (Medco Energi Internasional)", "tier": "Saham Menengah (Rp1.000 – Rp5.000)", "is_syariah": True},
+        {"ticker": "ANTM.JK", "price": 1420, "atr": 50, "pct_bid": 61.5, "vol": 58000000, "turnover": 82_000_000_000, "sector": "Bahan Baku (Aneka Tambang)", "tier": "Saham Menengah (Rp1.000 – Rp5.000)", "is_syariah": True},
+        {"ticker": "PGAS.JK", "price": 1495, "atr": 35, "pct_bid": 56.5, "vol": 25000000, "turnover": 37_000_000_000, "sector": "Utilitas (Perusahaan Gas Negara)", "tier": "Saham Menengah (Rp1.000 – Rp5.000)", "is_syariah": True},
+        {"ticker": "ADRO.JK", "price": 3650, "atr": 80, "pct_bid": 60.1, "vol": 32000000, "turnover": 116_000_000_000, "sector": "Energi (Adaro Energy)", "tier": "Saham Menengah (Rp1.000 – Rp5.000)", "is_syariah": True},
+        {"ticker": "BRIS.JK", "price": 2840, "atr": 70, "pct_bid": 62.0, "vol": 28000000, "turnover": 79_500_000_000, "sector": "Keuangan (Bank Syariah Indonesia)", "tier": "Saham Menengah (Rp1.000 – Rp5.000)", "is_syariah": True},
+        {"ticker": "RAJA.JK", "price": 1380, "atr": 55, "pct_bid": 59.4, "vol": 18000000, "turnover": 24_800_000_000, "sector": "Energi (Rukun Raharja)", "tier": "Saham Menengah (Rp1.000 – Rp5.000)", "is_syariah": True},
     ]
 
     for item in candidates_db:
-        # Filter Tier
+        # Filter Tier STRICTLY BERDASARKAN HARGA NOMINAL SAHAM
+        price_val = float(item["price"])
         if tier_filter not in {"Semua", "Semua Tingkatan"}:
-            if "Gocap" in tier_filter or "Tidur" in tier_filter:
-                if not (item["price"] <= 100 or item.get("tier") == "Lapis 3"):
+            if "Gocap" in tier_filter or "Tidur" in tier_filter or "Rp50" in tier_filter:
+                if not (50.0 <= price_val <= 100.0):
                     continue
-            elif "Receh" in tier_filter or "Murah" in tier_filter:
-                if not (100 < item["price"] <= 1000 or item.get("tier") == "Lapis 2"):
+            elif "Receh" in tier_filter or "Murah" in tier_filter or "Rp100" in tier_filter:
+                if not (100.0 < price_val <= 1000.0):
                     continue
-            elif "Premium" in tier_filter or "Blue Chip" in tier_filter:
-                if not (item["price"] > 2500 or item.get("tier") == "Lapis 1"):
+            elif "Premium" in tier_filter or "Blue Chip" in tier_filter or "5.000" in tier_filter:
+                if not (price_val > 5000.0):
                     continue
-            elif "Lapis" in tier_filter:
-                tier_num = tier_filter.split()[1] if len(tier_filter.split()) > 1 else ""
-                if tier_num and tier_num not in item["tier"]:
+            elif "Lapis 1" in tier_filter:
+                if price_val <= 5000.0:
+                    continue
+            elif "Lapis 2" in tier_filter:
+                if not (100.0 < price_val <= 5000.0):
+                    continue
+            elif "Lapis 3" in tier_filter:
+                if price_val > 1000.0:
                     continue
 
         # Filter Syariah

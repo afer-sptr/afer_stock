@@ -95,6 +95,7 @@ def calculate_trading_levels(
     return {
         "buy_entry_min": buy_entry_min,
         "buy_entry_max": buy_entry_max,
+        "entry_range": f"Rp {buy_entry_min:,} s/d Rp {buy_entry_max:,}",
         "take_profit_1": tp1,
         "take_profit_2": tp2,
         "stop_loss": stop_loss,

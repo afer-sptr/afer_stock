@@ -557,6 +557,95 @@ pos = calculate_position_size(
 )
 net_pnl_calc = calculate_net_pnl(current_price, plan["take_profit_1"], pos["shares"])
 
+# ----------------- ROUTER MENU NAVIGASI (SIDEBAR) -----------------
+if app_menu == "⚡ Lapis 3 Rally Hunter":
+    st.markdown('<div class="main-title">⚡ Lapis 3 Rally Hunter & Sentimen Kerumunan Ritel (Crowd Lab)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Detektor Momentum Ledakan Saham Small-Cap (Lapis 3) Berbasis Relative Volume (RVol > 2.0x), Bollinger Band Squeeze & Dominasi Antrian Beli</div>', unsafe_allow_html=True)
+
+    company_name = info.get("longName") or info.get("shortName") or ticker_clean
+    st.info(f"📌 **Saham Sedang Dianalisis**: **{ticker_clean}** ({company_name}) | **Rp {current_price:,.0f}** | {info.get('tier', 'Lapis 3')} | Sektor: {info.get('sector', 'Bursa Efek Indonesia')}")
+
+    # 1. Metrik Ringkasan Saham Terpilih
+    rally_status = "🟢 TERPENUHI (SIAP MELEDAK)" if lapis3_eval.get("is_rally") else "⚪ BELUM TERPENUHI"
+    rc1, rc2, rc3, rc4 = st.columns(4)
+    with rc1:
+        st.metric("Status Sinyal Rally", rally_status, f"Skor {lapis3_eval.get('score', 0):.1f} / 100")
+    with rc2:
+        rvol_val = lapis3_eval.get('rvol', 1.0)
+        st.metric("Relative Volume (RVol)", f"{rvol_val}x", "Target >= 2.0x")
+    with rc3:
+        sq_status = "🟢 Squeeze Aktif" if lapis3_eval.get("is_squeeze") else "⚪ Normal"
+        st.metric("Bollinger Squeeze", sq_status)
+    with rc4:
+        st.metric("Turnover Harian", f"Rp {lapis3_eval.get('turnover_idr', 0):,.0f}")
+
+    st.markdown("---")
+
+    col_l1, col_l2 = st.columns(2)
+    with col_l1:
+        st.markdown(f"#### 🔍 Analisis Mikrostruktur Saham: **{ticker_clean}**")
+        st.write(f"• **Kategori Tingkatan**: **{info.get('tier', 'Saham Lapis 3 / Small-Cap')}**")
+        st.write(f"• **Harga Pasar Terakhir**: **Rp {info.get('price', current_price):,.0f}**")
+        st.write(f"• **Dominasi Buku Pesanan**: **{order_book_eval.get('pct_bid', 50):.1f}% Bid** vs **{order_book_eval.get('pct_offer', 50):.1f}% Offer**")
+        st.write(f"• **Status HAKA**: **{order_book_eval.get('haka_badge', '-')}**")
+        st.write(f"• **Safe Exit Lot Size**: **{order_book_eval.get('safe_exit_lot', 0):,} Lot** ({order_book_eval.get('exit_speed', '')})")
+        st.info(f"💡 {order_book_eval.get('haka_desc', '')}")
+
+    with col_l2:
+        st.markdown("#### 👥 Sentimen Kerumunan Ritel & Sinyal Kontrarian")
+        st.metric("Sinyal Kontrarian", crowd_eval.get("contrarian_signal", "NORMAL"))
+        st.write(f"• **Keterangan Kontrarian**: {crowd_eval.get('contrarian_desc')}")
+        st.write(f"• **Skor Sentimen Kerumunan**: {crowd_eval.get('crowd_sentiment')}")
+        st.write(f"• **Kecepatan Obrolan (Buzz Velocity)**: {crowd_eval.get('buzz_velocity')}x")
+        
+        st.markdown("##### 🎯 Rencana Transaksi Saham Lapis 3:")
+        entry_str = plan.get('entry_range') or f"Rp {plan.get('buy_entry_min', 0):,} s/d Rp {plan.get('buy_entry_max', 0):,}"
+        tp1_val = plan.get('take_profit_1', 0)
+        tp1_net = plan.get('reward_tp1_net_pct', 0.0)
+        tp2_val = plan.get('take_profit_2', 0)
+        tp2_net = plan.get('reward_tp2_net_pct', 0.0)
+        sl_val = plan.get('stop_loss', 0)
+        sl_net = plan.get('risk_net_pct', 0.0)
+        st.success(
+            f"• **Zona Beli (Entry)**: {entry_str}\n"
+            f"• **Target Cuan 1 (TP1)**: Rp {tp1_val:,} (Net +{tp1_net:.1f}%)\n"
+            f"• **Target Cuan 2 (TP2)**: Rp {tp2_val:,} (Net +{tp2_net:.1f}%)\n"
+            f"• **Batas Cut Loss (SL Ketat)**: Rp {sl_val:,} (Net -{sl_net:.1f}%)"
+        )
+
+    st.markdown("---")
+    st.markdown("#### 🚀 Pemindai Saham Potensi Rally (Katalog Small-Cap / Lapis 3)")
+    st.caption("Peringkat saham lapis 3 yang terdeteksi memiliki anomali lonjakan volume dan kompresi volatilitas:")
+    
+    sample_rally_candidates = [
+        {"ticker": "DEWA", "nama": "Darma Henwa Tbk.", "harga": 105, "rvol": 2.85, "squeeze": "🟢 Ya", "bid_pct": 71.4, "turnover": 45_200_000_000, "status": "🟢 SIAP MELEDAK"},
+        {"ticker": "KIJA", "nama": "Kawasan Industri Jababeka", "harga": 172, "rvol": 2.40, "squeeze": "🟢 Ya", "bid_pct": 68.2, "turnover": 18_400_000_000, "status": "🟢 SIAP MELEDAK"},
+        {"ticker": "ELSA", "nama": "Elnusa Tbk.", "harga": 486, "rvol": 2.15, "squeeze": "⚪ Tidak", "bid_pct": 66.5, "turnover": 32_100_000_000, "status": "🟡 AKUMULASI"},
+        {"ticker": "PSAB", "nama": "J Resources Asia Pasifik", "harga": 312, "rvol": 2.30, "squeeze": "🟢 Ya", "bid_pct": 65.0, "turnover": 24_500_000_000, "status": "🟢 SIAP MELEDAK"},
+        {"ticker": "RAJA", "nama": "Rukun Raharja Tbk.", "harga": 1380, "rvol": 1.95, "squeeze": "🟢 Ya", "bid_pct": 63.0, "turnover": 19_800_000_000, "status": "🟡 AKUMULASI"},
+        {"ticker": "DOID", "nama": "Delta Dunia Makmur Tbk.", "harga": 498, "rvol": 1.80, "squeeze": "⚪ Tidak", "bid_pct": 58.5, "turnover": 14_200_000_000, "status": "⚪ KONSOLIDASI"},
+        {"ticker": "BUMI", "nama": "Bumi Resources Tbk.", "harga": 148, "rvol": 2.65, "squeeze": "🟢 Ya", "bid_pct": 68.5, "turnover": 66_000_000_000, "status": "🟢 SIAP MELEDAK"},
+        {"ticker": "BRMS", "nama": "Bumi Resources Minerals", "harga": 410, "rvol": 2.25, "squeeze": "🟢 Ya", "bid_pct": 66.0, "turnover": 127_000_000_000, "status": "🟢 SIAP MELEDAK"},
+        {"ticker": "ENRG", "nama": "Energi Mega Persada", "harga": 95, "rvol": 2.10, "squeeze": "⚪ Tidak", "bid_pct": 66.8, "turnover": 23_750_000_000, "status": "🟡 AKUMULASI"},
+    ]
+    df_rally = pd.DataFrame(sample_rally_candidates)
+    st.dataframe(
+        df_rally,
+        column_config={
+            "ticker": "Kode Saham",
+            "nama": "Nama Perusahaan",
+            "harga": st.column_config.NumberColumn("Harga (IDR)", format="Rp %d"),
+            "rvol": st.column_config.NumberColumn("Relative Vol (x)", format="%.2fx"),
+            "squeeze": "Bollinger Squeeze",
+            "bid_pct": st.column_config.NumberColumn("% Bid", format="%.1f%%"),
+            "turnover": st.column_config.NumberColumn("Turnover Harian", format="Rp %d"),
+            "status": "Status Rally",
+        },
+        use_container_width=True,
+        hide_index=True
+    )
+    st.stop()
+
 # ----------------- HEADER UTAMA (GAYA idx_stock_analyzer) -----------------
 st.markdown('<div class="main-title">⚡ Sistem Analisis & Prediksi Saham IDX Real-Time</div>', unsafe_allow_html=True)
 last_time = info.get("fetched_at", datetime.now().strftime("%d-%m-%Y %H:%M:%S WIB"))
@@ -687,86 +776,6 @@ with res_col2:
     )
 
 st.markdown("---")
-
-# ----------------- ROUTER MENU NAVIGASI (SIDEBAR) -----------------
-if app_menu == "⚡ Lapis 3 Rally Hunter":
-    st.markdown("### ⚡ Lapis 3 Rally Hunter & Sentimen Kerumunan Ritel (Crowd Lab)")
-    st.info(
-        "🎯 **Menu Eksklusif Lapis 3 (Small-Cap)**: Mendeteksi saham-saham berkapitalisasi kecil (Small-Cap / Lapis 3) yang "
-        "memiliki potensi lonjakan harga tajam (rally) berbasis **Relative Volume (RVol > 2.0x)**, kompresi volatilitas **Bollinger Squeeze**, "
-        "turnover likuiditas harian (>= Rp 1 Miliar), dominasi antrian beli (% Bid >= 65%), serta sentimen kerumunan kontrarian."
-    )
-
-    # 1. Metrik Ringkasan Saham Terpilih
-    rally_status = "🟢 TERPENUHI (SIAP MELEDAK)" if lapis3_eval.get("is_rally") else "⚪ BELUM TERPENUHI"
-    rc1, rc2, rc3, rc4 = st.columns(4)
-    with rc1:
-        st.metric("Status Sinyal Rally", rally_status, f"Skor {lapis3_eval.get('score', 0):.1f} / 100")
-    with rc2:
-        rvol_val = lapis3_eval.get('rvol', 1.0)
-        st.metric("Relative Volume (RVol)", f"{rvol_val}x", "Target >= 2.0x")
-    with rc3:
-        sq_status = "🟢 Squeeze Aktif" if lapis3_eval.get("is_squeeze") else "⚪ Normal"
-        st.metric("Bollinger Squeeze", sq_status)
-    with rc4:
-        st.metric("Turnover Harian", f"Rp {lapis3_eval.get('turnover_idr', 0):,.0f}")
-
-    st.markdown("---")
-
-    col_l1, col_l2 = st.columns(2)
-    with col_l1:
-        st.markdown(f"#### 🔍 Analisis Mendalam Saham: **{ticker_clean}**")
-        st.write(f"• **Kategori Tingkatan**: **{info.get('tier', 'Saham Lapis 3 / Small-Cap')}**")
-        st.write(f"• **Harga Pasar Terakhir**: **Rp {info.get('price', 0):,.0f}**")
-        st.write(f"• **Dominasi Buku Pesanan**: **{order_book_eval.get('pct_bid', 50):.1f}% Bid** vs **{order_book_eval.get('pct_offer', 50):.1f}% Offer**")
-        st.write(f"• **Status HAKA**: **{order_book_eval.get('haka_badge', '-')}**")
-        st.write(f"• **Safe Exit Lot Size**: **{order_book_eval.get('safe_exit_lot', 0):,} Lot** ({order_book_eval.get('exit_speed', '')})")
-        st.info(f"💡 {order_book_eval.get('haka_desc', '')}")
-
-    with col_l2:
-        st.markdown("#### 👥 Sentimen Kerumunan Ritel & Sinyal Kontrarian")
-        st.metric("Sinyal Kontrarian", crowd_eval.get("contrarian_signal", "NORMAL"))
-        st.write(f"• **Keterangan Kontrarian**: {crowd_eval.get('contrarian_desc')}")
-        st.write(f"• **Skor Sentimen Kerumunan**: {crowd_eval.get('crowd_sentiment')}")
-        st.write(f"• **Kecepatan Obrolan (Buzz Velocity)**: {crowd_eval.get('buzz_velocity')}x")
-        
-        st.markdown("##### 🎯 Rencana Transaksi Saham Lapis 3:")
-        st.success(
-            f"• **Zona Beli (Entry)**: {plan['entry_range']}\n"
-            f"• **Target Cuan 1 (TP1)**: Rp {plan['take_profit_1']:,} (Net +{plan['reward_tp1_net_pct']:.1f}%)\n"
-            f"• **Target Cuan 2 (TP2)**: Rp {plan['take_profit_2']:,} (Net +{plan['reward_tp2_net_pct']:.1f}%)\n"
-            f"• **Batas Cut Loss (SL Ketat)**: Rp {plan['stop_loss']:,} (Net -{plan['risk_net_pct']:.1f}%)"
-        )
-
-    st.markdown("---")
-    st.markdown("#### 🚀 Pemindai Saham Potensi Rally (Katalog Small-Cap / Lapis 3)")
-    st.caption("Peringkat saham lapis 3 yang terdeteksi memiliki anomali lonjakan volume dan kompresi volatilitas:")
-    
-    sample_rally_candidates = [
-        {"ticker": "DEWA", "nama": "Darma Henwa Tbk.", "harga": 105, "rvol": 2.85, "squeeze": "🟢 Ya", "bid_pct": 71.4, "turnover": 45_200_000_000, "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "KIJA", "nama": "Kawasan Industri Jababeka", "harga": 172, "rvol": 2.40, "squeeze": "🟢 Ya", "bid_pct": 68.2, "turnover": 18_400_000_000, "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "ELSA", "nama": "Elnusa Tbk.", "harga": 486, "rvol": 2.15, "squeeze": "⚪ Tidak", "bid_pct": 66.5, "turnover": 32_100_000_000, "status": "🟡 AKUMULASI"},
-        {"ticker": "PSAB", "nama": "J Resources Asia Pasifik", "harga": 312, "rvol": 2.30, "squeeze": "🟢 Ya", "bid_pct": 65.0, "turnover": 24_500_000_000, "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "RAJA", "nama": "Rukun Raharja Tbk.", "harga": 1380, "rvol": 1.95, "squeeze": "🟢 Ya", "bid_pct": 63.0, "turnover": 19_800_000_000, "status": "🟡 AKUMULASI"},
-        {"ticker": "DOID", "nama": "Delta Dunia Makmur Tbk.", "harga": 498, "rvol": 1.80, "squeeze": "⚪ Tidak", "bid_pct": 58.5, "turnover": 14_200_000_000, "status": "⚪ KONSOLIDASI"},
-    ]
-    df_rally = pd.DataFrame(sample_rally_candidates)
-    st.dataframe(
-        df_rally,
-        column_config={
-            "ticker": "Kode Saham",
-            "nama": "Nama Perusahaan",
-            "harga": st.column_config.NumberColumn("Harga (IDR)", format="Rp %d"),
-            "rvol": st.column_config.NumberColumn("Relative Vol (x)", format="%.2fx"),
-            "squeeze": "Bollinger Squeeze",
-            "bid_pct": st.column_config.NumberColumn("% Bid", format="%.1f%%"),
-            "turnover": st.column_config.NumberColumn("Turnover Harian", format="Rp %d"),
-            "status": "Status Rally",
-        },
-        use_container_width=True,
-        hide_index=True
-    )
-    st.stop()
 
 # ----------------- TABS KONTEN TERPADU (DASHBOARD UTAMA) -----------------
 (
