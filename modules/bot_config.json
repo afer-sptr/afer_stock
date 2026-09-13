@@ -1,0 +1,14 @@
+{
+  "telegram_enabled": false,
+  "telegram_bot_token": "",
+  "telegram_chat_id": "",
+  "whatsapp_channel": "click_to_chat",
+  "wa_gateway_endpoint": "https://api.fonnte.com/send",
+  "wa_gateway_token": "",
+  "wa_target_phone": "6281234567890",
+  "wa_cloud_phone_number_id": "",
+  "wa_cloud_access_token": "",
+  "wa_cloud_recipient_phone": "",
+  "cooldown_minutes_per_ticker": 20,
+  "throttle_seconds_wa": 5.0
+}
