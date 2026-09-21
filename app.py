@@ -42,7 +42,11 @@ from modules.data_loader import (
     get_available_sectors,
     search_idx_stocks,
     clear_stock_cache,
+    fetch_intraday_data,
+    fetch_broker_summary_data,
+    fetch_l2_order_book_data,
 )
+from modules.broker_analyzer import render_broker_emiten_page
 from modules.candlestick_predictor import predict_candlestick_movement
 from modules.scalping_screener import scan_top_10_scalping_stocks, calculate_scalp_profit
 from modules.idx_ticks import get_idx_tick_size, round_to_idx_tick, safe_int
@@ -309,7 +313,7 @@ st.sidebar.caption(f"Semesta Emiten: **{len(ALL_IDX_STOCKS)} Saham BEI**")
 st.sidebar.markdown("---")
 app_menu = st.sidebar.radio(
     "📌 Navigasi Menu:",
-    ["📊 Dashboard Analisis Saham", "⚡ Lapis 3 Rally Hunter"],
+    ["📊 Dashboard Analisis Saham", "⚡ Lapis 3 Rally Hunter", "🏛️ Analisis Broker dan Emiten"],
     index=0
 )
 st.sidebar.markdown("---")
@@ -436,6 +440,18 @@ def get_cached_ai_suite(df_history: pd.DataFrame, news_titles: tuple, pct_bid: f
 @st.cache_data(ttl=30, show_spinner=False)
 def get_cached_scalping_picks(tier_filter: str, syariah_filter: str):
     return scan_top_10_scalping_stocks(tier_filter=tier_filter, syariah_filter=syariah_filter)
+
+@st.cache_data(ttl=15, show_spinner=False)
+def get_cached_intraday(ticker_symbol: str):
+    return fetch_intraday_data(ticker_symbol)
+
+@st.cache_data(ttl=15, show_spinner=False)
+def get_cached_broker_summary(ticker_symbol: str, current_price: float, volume: float):
+    return fetch_broker_summary_data(ticker_symbol, current_price=current_price, volume=volume)
+
+@st.cache_data(ttl=10, show_spinner=False)
+def get_cached_l2_order_book(ticker_symbol: str, current_price: float):
+    return fetch_l2_order_book_data(ticker_symbol, current_price=current_price)
 
 
 # ----------------- PROSES DATA PASAR -----------------
@@ -661,6 +677,23 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
         },
         use_container_width=True,
         hide_index=True
+    )
+    st.stop()
+
+elif app_menu == "🏛️ Analisis Broker dan Emiten":
+    intraday_df, _ = get_cached_intraday(ticker_clean)
+    bs_df = get_cached_broker_summary(ticker_clean, current_price, float(df_tech["Volume"].tail(10).sum()))
+    l2_df = get_cached_l2_order_book(ticker_clean, current_price)
+    news_titles_list = [a.get("title", "") for a in news_eval.get("articles", [])]
+
+    render_broker_emiten_page(
+        ticker=ticker_clean,
+        df_ohlcv=df_tech,
+        info=info,
+        news_titles=news_titles_list,
+        broker_summary_df=bs_df,
+        order_book_l2_df=l2_df,
+        intraday_1m_df=intraday_df
     )
     st.stop()
 
