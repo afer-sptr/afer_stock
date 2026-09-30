@@ -110,25 +110,21 @@ def fetch_stock_data(
         if df is None or df.empty:
             return None, None, f"Tidak ada data transaksi ditemukan untuk {ticker_clean}. Kemungkinan saham berstatus suspensi atau delisting di BEI."
         
-        df = df.dropna(subset=["Open", "High", "Low", "Close"])
-        df.index = pd.to_datetime(df.index)
-        
         info = {}
-        try:
-            raw_info = stock.info
-            if raw_info and isinstance(raw_info, dict):
-                info = raw_info
-        except Exception as e:
-            logger.warning(f"Gagal mengambil metadata untuk {ticker_clean}: {e}")
-            info = {}
+        fast_dict = {}
+        fast_last = None
+        fast_prev = None
+        fast_open = None
+        fast_high = None
+        fast_low = None
+        fast_vol = None
 
-        # Ekstraksi atribut fast_info ke dalam tipe data standar yang aman dari pickle issue
+        # 1. Ekstraksi data real-time seketika dari fast_info
         try:
             fast = stock.fast_info
             if fast is not None:
                 from types import SimpleNamespace
-                fast_dict = {}
-                for attr in ["last_price", "year_high", "year_low", "day_high", "day_low", "previous_close", "open", "market_cap"]:
+                for attr in ["last_price", "year_high", "year_low", "day_high", "day_low", "previous_close", "open", "market_cap", "last_volume"]:
                     try:
                         val = getattr(fast, attr, None)
                         if val is not None:
@@ -137,22 +133,92 @@ def fetch_stock_data(
                         pass
                 if fast_dict:
                     info["fast_info"] = SimpleNamespace(**fast_dict)
-                    if "last_price" in fast_dict:
-                        info["realtime_last_price"] = float(fast_dict["last_price"])
+                    fast_last = fast_dict.get("last_price")
+                    fast_prev = fast_dict.get("previous_close")
+                    fast_open = fast_dict.get("open")
+                    fast_high = fast_dict.get("day_high")
+                    fast_low = fast_dict.get("day_low")
+                    fast_vol = fast_dict.get("last_volume")
+                    if fast_last is not None:
+                        info["realtime_last_price"] = float(fast_last)
                     if "year_high" in fast_dict:
                         info["year_high"] = float(fast_dict["year_high"])
                     if "year_low" in fast_dict:
                         info["year_low"] = float(fast_dict["year_low"])
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Gagal mengambil fast_info untuk {ticker_clean}: {e}")
 
-        # Ekstraksi Level-1 Order Book & Turnover berbasis Data Riil Pasar
-        last_close = float(df["Close"].iloc[-1])
-        last_vol = float(df["Volume"].iloc[-1])
+        # 2. Metadata fundamental dari info
+        try:
+            raw_info = stock.info
+            if raw_info and isinstance(raw_info, dict):
+                info.update(raw_info)
+                if not fast_last and raw_info.get("regularMarketPrice"):
+                    fast_last = float(raw_info["regularMarketPrice"])
+                if not fast_last and raw_info.get("currentPrice"):
+                    fast_last = float(raw_info["currentPrice"])
+                if not fast_prev and raw_info.get("previousClose"):
+                    fast_prev = float(raw_info["previousClose"])
+        except Exception as e:
+            logger.warning(f"Gagal mengambil metadata untuk {ticker_clean}: {e}")
+
+        # 3. Sinkronisasi Bar Terakhir DataFrame dengan Harga Real-Time
+        # Jika bar terakhir berisi NaN (karena sesi berjalan/belum closing EOD final), isi dengan data fast_info
+        if fast_last is not None and fast_last > 0 and not df.empty:
+            last_idx = df.index[-1]
+            if pd.isna(df.loc[last_idx, "Close"]):
+                df.loc[last_idx, "Close"] = float(fast_last)
+                df.loc[last_idx, "Open"] = float(fast_open or fast_last)
+                df.loc[last_idx, "High"] = float(fast_high or max(fast_last, float(df.loc[last_idx, "Open"])))
+                df.loc[last_idx, "Low"] = float(fast_low or min(fast_last, float(df.loc[last_idx, "Open"])))
+                if fast_vol is not None and fast_vol > 0:
+                    df.loc[last_idx, "Volume"] = float(fast_vol)
+
+        df = df.dropna(subset=["Open", "High", "Low", "Close"])
+        df.index = pd.to_datetime(df.index)
+
+        # Jika setelah dropna bar terakhir belum merefleksikan harga real-time:
+        if fast_last is not None and fast_last > 0 and not df.empty:
+            if abs(df["Close"].iloc[-1] - fast_last) > 0.001:
+                today_date = datetime.now().date()
+                if df.index[-1].date() >= today_date:
+                    df.loc[df.index[-1], "Close"] = float(fast_last)
+                    if fast_high: df.loc[df.index[-1], "High"] = max(df.loc[df.index[-1], "High"], float(fast_high))
+                    if fast_low: df.loc[df.index[-1], "Low"] = min(df.loc[df.index[-1], "Low"], float(fast_low))
+                    if fast_vol: df.loc[df.index[-1], "Volume"] = max(df.loc[df.index[-1], "Volume"], float(fast_vol))
+                else:
+                    today_ts = pd.Timestamp.now().floor('D')
+                    if today_ts not in df.index:
+                        new_row = pd.DataFrame({
+                            "Open": [float(fast_open or fast_last)],
+                            "High": [float(fast_high or fast_last)],
+                            "Low": [float(fast_low or fast_last)],
+                            "Close": [float(fast_last)],
+                            "Volume": [float(fast_vol or (df["Volume"].iloc[-1] if not df.empty else 0))]
+                        }, index=[today_ts])
+                        df = pd.concat([df, new_row])
+                    else:
+                        df.loc[today_ts, "Close"] = float(fast_last)
+
+        # 4. Ekstraksi Level-1 Order Book & Turnover berbasis Data Riil Pasar
+        realtime_p = float(fast_last) if (fast_last is not None and fast_last > 0) else float(df["Close"].iloc[-1])
+        last_close = realtime_p
+        last_vol = float(fast_vol) if (fast_vol is not None and fast_vol > 0) else float(df["Volume"].iloc[-1])
         turnover_idr = last_close * last_vol
-        candle_open = float(df["Open"].iloc[-1])
-        candle_high = float(df["High"].iloc[-1])
-        candle_low = float(df["Low"].iloc[-1])
+        candle_open = float(fast_open) if (fast_open is not None and fast_open > 0) else float(df["Open"].iloc[-1])
+        candle_high = float(fast_high) if (fast_high is not None and fast_high > 0) else float(df["High"].iloc[-1])
+        candle_low = float(fast_low) if (fast_low is not None and fast_low > 0) else float(df["Low"].iloc[-1])
+
+        prev_close_val = float(fast_prev) if (fast_prev is not None and fast_prev > 0) else (float(df["Close"].iloc[-2]) if len(df) > 1 else last_close)
+        price_diff_val = last_close - prev_close_val
+        price_diff_pct_val = (price_diff_val / max(1.0, prev_close_val)) * 100.0
+
+        info["price"] = last_close
+        info["last_price"] = last_close
+        info["realtime_last_price"] = last_close
+        info["previous_close"] = prev_close_val
+        info["price_diff"] = price_diff_val
+        info["price_diff_pct"] = price_diff_pct_val
         
         # Klasifikasi Tier riil berdasarkan harga nominal pasar & status emiten
         from modules.idx_universe import classify_stock_tier

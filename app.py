@@ -551,10 +551,10 @@ tech_eval = evaluate_technical_score(df_tech)
 tech_suite = compute_technical_suite(df_tech)
 
 fast_info = info.get("fast_info")
-current_price = float(df_tech["Close"].iloc[-1])
-prev_close = float(df_tech["Close"].iloc[-2]) if len(df_tech) > 1 else current_price
-price_diff = current_price - prev_close
-price_diff_pct = (price_diff / prev_close) * 100 if prev_close > 0 else 0
+current_price = float(info.get("realtime_last_price") or info.get("price") or df_tech["Close"].iloc[-1])
+prev_close = float(info.get("previous_close") or (df_tech["Close"].iloc[-2] if len(df_tech) > 1 else current_price))
+price_diff = float(info.get("price_diff", current_price - prev_close))
+price_diff_pct = float(info.get("price_diff_pct", ((current_price - prev_close) / max(1.0, prev_close)) * 100.0))
 
 # 2. Analisis High & Low (52W, Intraday, Breakout, Fibonacci 7 Level)
 hl_eval = evaluate_high_low_aspects(df_tech, fast_info)
@@ -1092,32 +1092,46 @@ with tab_fv:
 
     st.markdown("##### 🔬 Rincian Model Perhitungan Harga Wajar:")
     m = fv_eval["models"]
-    models_table = pd.DataFrame([
+    model_rows = [
         {
             "Model Valuasi": "Formula Benjamin Graham (Graham Number)",
             "Rumus Utama": "V = √(22.5 × EPS × BVPS)",
-            "Estimasi Harga Wajar": f"Rp {m['graham_number']:,}" if m['graham_number'] else "N/A",
+            "Estimasi Harga Wajar": f"Rp {m['graham_number']:,}" if m.get('graham_number') else "N/A",
             "Keterangan": "Menilai proteksi nilai buku aset fisik dan kapasitas profitabilitas riil"
         },
         {
-            "Model Valuasi": "Justified PBV - ROE Model",
-            "Rumus Utama": "Fair PBV = ROE / Cost of Equity (11%)",
-            "Estimasi Harga Wajar": f"Rp {m['justified_pbv_price']:,}" if m['justified_pbv_price'] else "N/A",
-            "Keterangan": f"PBV Wajar dihitung {m.get('justified_pbv') or '-'}x berdasarkan efisiensi modal ROE"
+            "Model Valuasi": "Justified PBV - ROE / Tangible Asset Model",
+            "Rumus Utama": "Fair PBV × BVPS (Asset-Backed)",
+            "Estimasi Harga Wajar": f"Rp {m['justified_pbv_price']:,}" if m.get('justified_pbv_price') else "N/A",
+            "Keterangan": f"PBV Wajar dihitung {m.get('justified_pbv') or '-'}x berdasarkan efisiensi modal dan nilai proteksi aset fisik"
         },
         {
-            "Model Valuasi": "P/E Industry Multiplier (BEI Mean)",
-            "Rumus Utama": "V = EPS × 15.0x",
-            "Estimasi Harga Wajar": f"Rp {m['pe_multiple_price']:,}" if m['pe_multiple_price'] else "N/A",
-            "Keterangan": "Valuasi wajar berdasarkan penggali laba bersih rata-rata industri di BEI"
+            "Model Valuasi": "P/E Industry Multiplier (Historical & Forward)",
+            "Rumus Utama": "V = EPS × Multiplier (atau P/S)",
+            "Estimasi Harga Wajar": f"Rp {m['pe_multiple_price']:,}" if m.get('pe_multiple_price') else "N/A",
+            "Keterangan": "Valuasi wajar berdasarkan penggali laba bersih industri di BEI / estimasi pemulihan laba (turnaround)"
         },
         {
             "Model Valuasi": "Dividend Discount Model (Gordon Growth)",
             "Rumus Utama": "V = DPS × (1 + g) / (r - g)",
-            "Estimasi Harga Wajar": f"Rp {m['ddm_price']:,}" if m['ddm_price'] else "N/A",
+            "Estimasi Harga Wajar": f"Rp {m['ddm_price']:,}" if m.get('ddm_price') else "N/A",
             "Keterangan": "Nilai tunai dari seluruh arus dividen masa depan yang didiskontokan ke saat ini"
+        },
+        {
+            "Model Valuasi": "Target Konsensus Analis Institusional",
+            "Rumus Utama": "Median Target Riset Sekuritas Resmi",
+            "Estimasi Harga Wajar": f"Rp {m['analyst_target_price']:,}" if m.get('analyst_target_price') else "N/A",
+            "Keterangan": "Konsensus target harga 12 bulan dari konsorsium analis riset institusi pasar modal"
         }
-    ])
+    ]
+    if m.get("equilibrium_price"):
+        model_rows.append({
+            "Model Valuasi": "Nilai Keseimbangan Pasar Historis",
+            "Rumus Utama": "Equilibrium (High 52W + Low 52W + 2×VWAP) / 4",
+            "Estimasi Harga Wajar": f"Rp {m['equilibrium_price']:,}",
+            "Keterangan": "Titik temu rata-rata volume transaksi wajar pelaku pasar modal selama 1 tahun"
+        })
+    models_table = pd.DataFrame(model_rows)
     st.dataframe(models_table, use_container_width=True, hide_index=True)
 
     st.info(
