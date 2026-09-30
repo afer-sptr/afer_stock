@@ -710,17 +710,21 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
     st.caption("Memetakan karakteristik sekuritas pengendali transaksi pada saham lapis 3 dan proyeksi arah pergerakan harganya:")
     col_br1, col_br2 = st.columns(2)
     with col_br1:
+        lead_b_display = promoter_eval.get('top_buyers', ['Broker Penggerak Terdeteksi'])[0]
+        lead_b_arch = promoter_eval.get('top_buyer_archetype', 'Smart Money & Penggerak Likuiditas')
+        lead_b_behav = promoter_eval.get('top_buyer_behavior', 'Akumulasi bertahap dengan pengawalan likuiditas di pasar reguler.')
         st.info(
             f"**🏛️ Profil Broker Penggerak Utama {ticker_clean}:**\n\n"
-            f"• **Broker Terdeteksi**: {promoter_eval.get('top_buyers', ['MG (PT Semesta Indovest Sekuritas)'])[0]}\n"
-            f"• **Arketipe / Karakter**: Bandar Scalper Kilat & Momentum Maker\n"
-            f"• **Sifat Transaksi**: Agresif menyapu antrean offer (HAKA) di awal sesi dan memasang bid tebal sebagai pancingan."
+            f"• **Broker Terdeteksi**: {lead_b_display}\n"
+            f"• **Arketipe / Karakter**: {lead_b_arch}\n"
+            f"• **Sifat Transaksi**: {lead_b_behav}"
         )
     with col_br2:
+        lead_b_impact = promoter_eval.get('top_buyer_impact', 'Potensi penguatan harga bertahap didukung akumulasi terukur.')
         st.success(
             f"**🔮 Proyeksi Arah Harga Masa Depan {ticker_clean}:**\n\n"
             f"• **Status Bandarmologi**: {promoter_eval.get('bandar_status', '🟢 Akumulasi Bertahap')}\n"
-            f"• **Proyeksi Arah**: **VOLATILITAS TINGGI / POTENSI BREAKOUT INTRADAY**. Jika Relative Volume bertahan > 2.0x, target TP1 berpeluang tercapai kilat."
+            f"• **Proyeksi Arah**: **{lead_b_impact}**"
         )
 
     st.markdown("---")

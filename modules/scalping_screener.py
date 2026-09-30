@@ -180,18 +180,6 @@ def generate_scalp_trading_plan(
 
     scalp_score = int(min(98.0, max(60.0, liquidity_score + bid_dominance_score + vol_score + rrr_score)))
 
-    # Alasan / Katalis Scalping
-    catalyst_reasons = []
-    if pct_bid >= 55.0:
-        catalyst_reasons.append(f"Dominasi Bid Kuat ({pct_bid:.1f}%)")
-    if turnover_idr >= 10_000_000_000:
-        catalyst_reasons.append(f"Turnover Masif (> Rp 10 M)")
-    if vol_pct >= 2.0:
-        catalyst_reasons.append(f"Volatilitas Cuan Tinggi (ATR {vol_pct:.1f}%)")
-    if rrr >= 1.5:
-        catalyst_reasons.append(f"RRR Menarik (1:{rrr})")
-    if not catalyst_reasons:
-        catalyst_reasons.append("Momentum Breakout Intraday")
     # Tentukan label tingkatan berdasarkan harga nominal
     if price > 5000.0:
         actual_tier = "Saham Premium / Blue Chip (Di atas Rp5.000)"
@@ -202,29 +190,74 @@ def generate_scalp_trading_plan(
     else:
         actual_tier = tier or "Saham Menengah (Rp1.000 – Rp5.000)"
 
-    # Tentukan broker penggerak utama & proyeksi arah harga
+    # Tentukan broker penggerak utama & proyeksi arah harga secara otentik
     try:
-        from modules.broker_analyzer import get_broker_info
+        from modules.broker_analyzer import get_broker_info, get_ticker_lead_broker
     except ImportError:
         try:
-            from broker_analyzer import get_broker_info
+            from broker_analyzer import get_broker_info, get_ticker_lead_broker
         except ImportError:
             def get_broker_info(c):
                 return {"code": c, "name": f"Sekuritas {c}", "category": "Broker BEI", "archetype": "Partisipan", "behavior": "Transaksi reguler", "future_price_impact": "Netral"}
+            def get_ticker_lead_broker(t, p=0, s=""):
+                return get_broker_info("CC")
 
-    if price > 5000.0:
-        lead_code = "BK"
-    elif price <= 100.0:
-        lead_code = "MG" if pct_bid >= 65.0 else "YP"
-    elif price <= 1000.0:
-        lead_code = "MG" if rrr >= 1.5 else "CC"
+    clean_ticker = ticker.replace(".JK", "").upper().strip()
+    lead_b = get_ticker_lead_broker(clean_ticker, price=price, sector=sector)
+    lead_code = lead_b["code"]
+
+    # Alasan & Katalis Scalping Cuan Realistis & Otentik per Emiten
+    catalyst_reasons = []
+
+    # 1. Katalis Sektor & Profil Fundamental Riil
+    sec_lower = sector.lower()
+    t_clean = clean_ticker
+    if any(k in sec_lower for k in ["energi", "batubara", "minyak", "gas", "tambang", "mineral", "emas", "nikel", "tembaga", "timah"]) or t_clean in {"BUMI", "BRMS", "ENRG", "DEWA", "PSAB", "ELSA", "ANTM", "TINS", "ADRO", "AADI", "MEDC", "MBMA", "CUAN", "PTRO", "BYAN", "ITMG"}:
+        catalyst_reasons.append("Supercycle Komoditas & Akumulasi Sektor Energi/Tambang")
+    elif any(k in sec_lower for k in ["keuangan", "bank", "finance", "leasing"]) or t_clean in {"BBCA", "BBRI", "BMRI", "BBNI", "BRIS", "BTPS", "POLA", "MCOR", "BVIC", "VRNA", "HDFA", "BABP", "LPPS"}:
+        catalyst_reasons.append("Dukungan Permintaan Sektor Finansial & Valuasi Diskon")
+    elif any(k in sec_lower for k in ["teknologi", "tech", "digital", "ecommerce"]) or t_clean in {"GOTO", "BUKA", "ARTO", "WIFI", "JAST", "MTDL"}:
+        catalyst_reasons.append("Rebound Momentum Saham Digital & Ekosistem Teknologi")
+    elif any(k in sec_lower for k in ["properti", "real estate", "kawasan industri"]) or t_clean in {"BKSL", "LPKR", "SMRA", "ASRI", "PANI", "KIJA", "CTRA", "PWON", "BSDE", "MKPI", "RDTX"}:
+        catalyst_reasons.append("Sentimen Ekspansi Properti & Penjualan Residensial")
+    elif any(k in sec_lower for k in ["konsumer", "retail", "consumer", "makanan", "minuman", "ayam", "unggas", "rokok"]) or t_clean in {"ICBP", "INDF", "UNTR", "ERAA", "ACES", "ZATA", "IKAN", "CPRO", "STTP", "CPIN", "GGRM", "MLBI"}:
+        catalyst_reasons.append("Penguatan Daya Beli Konsumen & Margin Penjualan Riil")
+    elif any(k in sec_lower for k in ["transportasi", "logistik", "aviasi"]) or t_clean in {"GIAA", "TMAS", "SMDR"}:
+        catalyst_reasons.append("Peningkatan Mobilitas Bisnis & Restrukturisasi Efisiensi")
     else:
-        lead_code = "AK"
+        catalyst_reasons.append("Momentum Akumulasi & Reversal Tren")
 
-    lead_b = get_broker_info(lead_code)
+    # 2. Karakteristik Antrean Order Book (Bid vs Offer)
+    if pct_bid >= 65.0:
+        catalyst_reasons.append(f"Dominasi Bid Solid ({pct_bid:.1f}%) — Tahanan Bawah Kuat")
+    elif pct_bid >= 55.0:
+        catalyst_reasons.append(f"Akumulasi Antrean Beli ({pct_bid:.1f}% Bid)")
+    else:
+        catalyst_reasons.append("Likuiditas Order Book Seimbang & Stabil")
+
+    # 3. Skala Likuiditas / Turnover Harian
+    if turnover_idr >= 50_000_000_000:
+        catalyst_reasons.append(f"Likuiditas Jumbo (Turnover Rp {turnover_idr/1_000_000_000:,.0f} M)")
+    elif turnover_idr >= 10_000_000_000:
+        catalyst_reasons.append(f"Turnover Masif (Rp {turnover_idr/1_000_000_000:,.1f} M)")
+    elif turnover_idr >= 1_000_000_000:
+        catalyst_reasons.append(f"Volume Likuid (Turnover Rp {turnover_idr/1_000_000_000:,.1f} M)")
+    else:
+        catalyst_reasons.append(f"Perputaran Lot Aktif (Rp {turnover_idr/1_000_000:,.0f} Jt)")
+
+    # 4. Potensi Volatilitas Scalping & Risk-Reward
+    if vol_pct >= 4.0:
+        catalyst_reasons.append(f"Volatilitas Cuan Agresif (ATR {vol_pct:.1f}%)")
+    elif vol_pct >= 2.0:
+        catalyst_reasons.append(f"Volatilitas Cuan Ideal (ATR {vol_pct:.1f}%)")
+    elif rrr >= 1.5:
+        catalyst_reasons.append(f"Risk-Reward Unggul (1:{rrr})")
+
+    # 5. Pengawalan Broker Spesifik
+    short_broker_name = lead_b["name"].replace("PT ", "").replace(" Sekuritas Indonesia", "").replace(" Sekuritas Tbk.", "").replace(" Sekuritas", "")
+    catalyst_reasons.append(f"Pengawalan Transaksi oleh {short_broker_name}")
 
     catalyst_text = " • ".join(catalyst_reasons)
-    clean_ticker = ticker.replace(".JK", "")
     return {
         "ticker": clean_ticker,
         "full_ticker": ticker if ticker.endswith(".JK") else f"{ticker}.JK",

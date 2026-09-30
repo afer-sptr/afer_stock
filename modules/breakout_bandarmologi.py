@@ -69,9 +69,51 @@ CONGLOMERATE_MAP: Dict[str, Dict[str, Any]] = {
     },
     "Adaro Group": {
         "promoter": "Boy Thohir & Konsorsium Adaro",
-        "tickers": {"ADRO", "ADMR"},
+        "tickers": {"ADRO", "ADMR", "AADI"},
         "profile": "Raksasa batubara termal dan transisi ke smelter aluminium hijau. Pembagi dividen sangat royal.",
         "footprint": "Diakumulasi oleh dividend hunter dan foreign long-only funds.",
+    },
+    "MNC Group": {
+        "promoter": "Hary Tanoesoedibjo",
+        "tickers": {"MNCN", "BMTR", "BABP", "BHIT", "KPIG", "MSIN"},
+        "profile": "Konglomerasi media terintegrasi, jasa keuangan, dan perhotelan/resor.",
+        "footprint": "Sangat dipengaruhi oleh ekosistem sekuritas internal (EP / MNC Sekuritas) dan pergerakan ritel.",
+    },
+    "Lippo Group": {
+        "promoter": "Keluarga Riady (Mochtar & James Riady)",
+        "tickers": {"LPKR", "LPPS", "MLPL", "MPPA", "SILO"},
+        "profile": "Konglomerasi properti hunian, rumah sakit modern (Siloam), dan ritel konsumsi.",
+        "footprint": "Sering mengakumulasi di area diskon dan aktif dalam restrukturisasi korporasi.",
+    },
+    "Emtek Group": {
+        "promoter": "Eddy Kusnadi Sariaatmadja",
+        "tickers": {"EMTK", "SCMA", "BUKA"},
+        "profile": "Konglomerasi media penyiaran nasional dan ekosistem investasi teknologi digital.",
+        "footprint": "Memiliki likuiditas tinggi dengan dukungan investor institusi swasta nasional dan asing.",
+    },
+    "Panin Group": {
+        "promoter": "Keluarga Gunawan (Mu'min Ali Gunawan)",
+        "tickers": {"PNBN", "PNIN", "PNLF", "PNBS"},
+        "profile": "Grup jasa keuangan independen tertua dengan rasio kecukupan modal (CAR) perbankan sangat tinggi.",
+        "footprint": "Karakter transaksi khas value investing defensif dikawal oleh Panin Sekuritas (GR).",
+    },
+    "Saratoga & Merdeka Group": {
+        "promoter": "Edwin Soeryadjaya & Sandiaga Uno",
+        "tickers": {"SRTG", "MDKA", "MBMA"},
+        "profile": "Perusahaan investasi aktif berfokus pada infrastruktur, hilirisasi emas, tembaga, dan nikel baterai EV.",
+        "footprint": "Menarik aliran dana asing (foreign inflow) yang sensitif terhadap pergerakan harga emas dan nikel dunia.",
+    },
+    "Medco Group": {
+        "promoter": "Keluarga Panigoro (Arifin Panigoro)",
+        "tickers": {"MEDC"},
+        "profile": "Pelopor perusahaan eksplorasi migas dan tambang tembaga swasta nasional terkemuka.",
+        "footprint": "Didukung institusi regional dan asing, bergerak dinamis mengikuti tren harga minyak mentah dan tembaga.",
+    },
+    "Bayan Resources": {
+        "promoter": "Low Tuck Kwong",
+        "tickers": {"BYAN"},
+        "profile": "Produsen batubara berbiaya terendah di Indonesia dengan konsesi tambang raksasa di Kalimantan.",
+        "footprint": "Free-float terbatas dengan kontrol kepemilikan sangat terkonsentrasi oleh pendiri.",
     },
 }
 
@@ -315,29 +357,50 @@ def analyze_promoter_and_broker_footprint(
 
     # 2. Estimasi Broker Utama & Dominasi Transaksi
     try:
-        from modules.broker_analyzer import get_broker_info
+        from modules.broker_analyzer import get_broker_info, get_ticker_lead_broker
     except ImportError:
         try:
-            from broker_analyzer import get_broker_info
+            from broker_analyzer import get_broker_info, get_ticker_lead_broker
         except ImportError:
             def get_broker_info(c):
                 return {"code": c, "name": f"Sekuritas {c}", "category": "Broker BEI", "archetype": "Partisipan", "behavior": "Transaksi reguler", "future_price_impact": "Netral"}
+            def get_ticker_lead_broker(t, p=0, s=""):
+                return get_broker_info("CC")
 
-    if clean_t in {"BBCA", "BBRI", "BMRI", "TLKM", "ASII", "BREN", "TPIA"}:
-        buyer_codes = ["AK", "BK", "CC"]
-        seller_codes = ["ZP", "CS", "YP"]
-        foreign_dominance = 68.5
-        retail_dominance = 31.5
-    elif clean_t in {"BUMI", "BRMS", "ENRG", "DEWA", "GOTO", "POLA"}:
-        buyer_codes = ["MG", "YP", "CC"]
-        seller_codes = ["XC", "PD", "XL"]
-        foreign_dominance = 25.0
-        retail_dominance = 75.0
+    # Dapatkan broker penggerak utama spesifik emiten
+    lead_b = get_ticker_lead_broker(clean_t, price=price)
+    lead_code = lead_b["code"]
+    h = abs(hash(clean_t))
+
+    # Tentukan mitra beli (buyer_codes) dan penjual (seller_codes) realistis
+    if "Asing" in lead_b["category"]:
+        # Institusi asing: didampingi sesama broker global / BUMN
+        sub_buyers = ["BK", "AK", "ZP", "CS", "KZ"]
+        buyer_codes = [lead_code] + [b for b in sub_buyers if b != lead_code][:2]
+        seller_codes = ["YP", "PD", "XC"]
+        foreign_dominance = round(64.0 + ((h % 8) * 1.5), 1)
+        retail_dominance = round(100.0 - foreign_dominance, 1)
+    elif "BUMN" in lead_b["category"]:
+        # Saham BUMN / Sovereign
+        sub_buyers = ["CC", "OD", "NI", "DX"]
+        buyer_codes = [lead_code] + [b for b in sub_buyers if b != lead_code][:2]
+        seller_codes = ["YP", "XC", "XL"]
+        foreign_dominance = round(44.0 + ((h % 7) * 1.8), 1)
+        retail_dominance = round(100.0 - foreign_dominance, 1)
+    elif "Bandar" in lead_b["category"] or "Pemula" in lead_b["category"] or lead_code in {"MG", "AG"}:
+        # Fast momentum / scalper
+        sub_buyers = ["AZ", "YP", "CP", "AI"]
+        buyer_codes = [lead_code] + [b for b in sub_buyers if b != lead_code][:2]
+        seller_codes = ["PD", "XC", "XL"]
+        foreign_dominance = round(14.0 + ((h % 6) * 1.5), 1)
+        retail_dominance = round(100.0 - foreign_dominance, 1)
     else:
-        buyer_codes = ["CC", "YP", "PD"]
-        seller_codes = ["XC", "NI", "AK"]
-        foreign_dominance = 42.0
-        retail_dominance = 58.0
+        # Swasta domestik / Komunitas / Sektoral
+        sub_buyers = ["AZ", "AI", "DR", "CP", "LG", "KI", "DH", "GR"]
+        buyer_codes = [lead_code] + [b for b in sub_buyers if b != lead_code][:2]
+        seller_codes = ["XC", "YP", "PD"]
+        foreign_dominance = round(32.0 + ((h % 9) * 1.4), 1)
+        retail_dominance = round(100.0 - foreign_dominance, 1)
 
     top_buyers = [f"{c} ({get_broker_info(c)['name']})" for c in buyer_codes]
     top_sellers = [f"{c} ({get_broker_info(c)['name']})" for c in seller_codes]
@@ -349,11 +412,11 @@ def analyze_promoter_and_broker_footprint(
     obi = (pct_bid - pct_offer) / 100.0  # -1 s.d. +1
     if obi > 0.30 and daily_turnover > 5_000_000_000:
         bandar_status = "🟢 AKUMULASI MASIF (Big Money Inflow)"
-        bandar_action = "Broker institusi sedang menyerap antrean offer dan menahan harga di bid."
+        bandar_action = f"Broker {lead_b['name']} sedang menyerap antrean offer dan menahan harga di bid."
         position_likelihood = "Peluang Pengawalan Harga Naik (Markup Phase): 82%"
     elif obi > 0.10:
         bandar_status = "🟢 Akumulasi Ringan / Normal"
-        bandar_action = "Terjadi akumulasi senyap secara berkala tanpa memicu lonjakan harga."
+        bandar_action = f"Terjadi akumulasi senyap secara berkala oleh {lead_b['name']} tanpa memicu lonjakan harga berlebihan."
         position_likelihood = "Peluang Akumulasi Bertahap: 68%"
     elif obi < -0.30:
         bandar_status = "🔴 DISTRIBUSI MASIF (Smart Money Outflow)"
@@ -371,6 +434,11 @@ def analyze_promoter_and_broker_footprint(
         "promoter": promoter_info,
         "promoter_profile": promoter_profile,
         "promoter_footprint": footprint_info,
+        "lead_broker_code": lead_code,
+        "lead_broker_name": lead_b["name"],
+        "top_buyer_archetype": lead_b["archetype"],
+        "top_buyer_behavior": lead_b["behavior"],
+        "top_buyer_impact": lead_b["future_price_impact"],
         "top_buyers": top_buyers,
         "top_sellers": top_sellers,
         "top_buyers_detail": top_buyers_detail,

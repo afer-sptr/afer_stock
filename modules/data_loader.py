@@ -318,7 +318,7 @@ def fetch_intraday_data(
 def fetch_broker_summary_data(ticker: str, current_price: float = 1000.0, volume: float = 500000.0) -> pd.DataFrame:
     """Mengambil atau mensimulasikan data Broker Summary harian BEI."""
     from modules.broker_analyzer import generate_synthetic_broker_summary
-    return generate_synthetic_broker_summary(current_price=current_price, total_volume=volume)
+    return generate_synthetic_broker_summary(current_price=current_price, total_volume=volume, ticker=ticker)
 
 
 def fetch_l2_order_book_data(ticker: str, current_price: float = 1000.0) -> pd.DataFrame:
