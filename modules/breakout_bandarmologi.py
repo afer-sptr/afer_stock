@@ -314,21 +314,36 @@ def analyze_promoter_and_broker_footprint(
             break
 
     # 2. Estimasi Broker Utama & Dominasi Transaksi
+    try:
+        from modules.broker_analyzer import get_broker_info
+    except ImportError:
+        try:
+            from broker_analyzer import get_broker_info
+        except ImportError:
+            def get_broker_info(c):
+                return {"code": c, "name": f"Sekuritas {c}", "category": "Broker BEI", "archetype": "Partisipan", "behavior": "Transaksi reguler", "future_price_impact": "Netral"}
+
     if clean_t in {"BBCA", "BBRI", "BMRI", "TLKM", "ASII", "BREN", "TPIA"}:
-        top_buyers = ["AK (UBS)", "BK (JP Morgan)", "CC (Mandiri Sekuritas)"]
-        top_sellers = ["ZP (Maybank)", "CS (Credit Suisse)", "YP (Mirae)"]
+        buyer_codes = ["AK", "BK", "CC"]
+        seller_codes = ["ZP", "CS", "YP"]
         foreign_dominance = 68.5
         retail_dominance = 31.5
-    elif clean_t in {"BUMI", "BRMS", "ENRG", "DEWA"}:
-        top_buyers = ["MG (Semesta)", "YP (Mirae)", "PD (Indo Premier)"]
-        top_sellers = ["XC (Ajaib)", "CC (Mandiri)", "XL (Stockbit)"]
+    elif clean_t in {"BUMI", "BRMS", "ENRG", "DEWA", "GOTO", "POLA"}:
+        buyer_codes = ["MG", "YP", "CC"]
+        seller_codes = ["XC", "PD", "XL"]
         foreign_dominance = 25.0
         retail_dominance = 75.0
     else:
-        top_buyers = ["CC (Mandiri Sekuritas)", "YP (Mirae)", "PD (IPOT)"]
-        top_sellers = ["XC (Ajaib)", "NI (BNI)", "AK (UBS)"]
+        buyer_codes = ["CC", "YP", "PD"]
+        seller_codes = ["XC", "NI", "AK"]
         foreign_dominance = 42.0
         retail_dominance = 58.0
+
+    top_buyers = [f"{c} ({get_broker_info(c)['name']})" for c in buyer_codes]
+    top_sellers = [f"{c} ({get_broker_info(c)['name']})" for c in seller_codes]
+
+    top_buyers_detail = [get_broker_info(c) for c in buyer_codes]
+    top_sellers_detail = [get_broker_info(c) for c in seller_codes]
 
     # 3. Status Akumulasi / Distribusi Bandar
     obi = (pct_bid - pct_offer) / 100.0  # -1 s.d. +1
@@ -358,6 +373,8 @@ def analyze_promoter_and_broker_footprint(
         "promoter_footprint": footprint_info,
         "top_buyers": top_buyers,
         "top_sellers": top_sellers,
+        "top_buyers_detail": top_buyers_detail,
+        "top_sellers_detail": top_sellers_detail,
         "foreign_dominance_pct": foreign_dominance,
         "retail_dominance_pct": retail_dominance,
         "bandar_status": bandar_status,

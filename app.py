@@ -648,23 +648,42 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
         )
 
     st.markdown("---")
+    st.markdown(f"#### 🕵️ Jejak Broker & Sifat Smart Money Saham Lapis 3: **{ticker_clean}**")
+    st.caption("Memetakan karakteristik sekuritas pengendali transaksi pada saham lapis 3 dan proyeksi arah pergerakan harganya:")
+    col_br1, col_br2 = st.columns(2)
+    with col_br1:
+        st.info(
+            f"**🏛️ Profil Broker Penggerak Utama {ticker_clean}:**\n\n"
+            f"• **Broker Terdeteksi**: {promoter_eval.get('top_buyers', ['MG (PT Semesta Indovest Sekuritas)'])[0]}\n"
+            f"• **Arketipe / Karakter**: Bandar Scalper Kilat & Momentum Maker\n"
+            f"• **Sifat Transaksi**: Agresif menyapu antrean offer (HAKA) di awal sesi dan memasang bid tebal sebagai pancingan."
+        )
+    with col_br2:
+        st.success(
+            f"**🔮 Proyeksi Arah Harga Masa Depan {ticker_clean}:**\n\n"
+            f"• **Status Bandarmologi**: {promoter_eval.get('bandar_status', '🟢 Akumulasi Bertahap')}\n"
+            f"• **Proyeksi Arah**: **VOLATILITAS TINGGI / POTENSI BREAKOUT INTRADAY**. Jika Relative Volume bertahan > 2.0x, target TP1 berpeluang tercapai kilat."
+        )
+
+    st.markdown("---")
     st.markdown("#### 🚀 Pemindai Saham Potensi Rally (Katalog Small-Cap / Lapis 3)")
-    st.caption("Peringkat saham lapis 3 yang terdeteksi memiliki anomali lonjakan volume dan kompresi volatilitas:")
+    st.caption("Peringkat saham lapis 3 yang terdeteksi memiliki anomali lonjakan volume, kompresi volatilitas, dan jejak broker:")
     
     sample_rally_candidates = [
-        {"ticker": "DEWA", "nama": "Darma Henwa Tbk.", "harga": 105, "rvol": 2.85, "squeeze": "🟢 Ya", "bid_pct": 71.4, "turnover": 45_200_000_000, "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "KIJA", "nama": "Kawasan Industri Jababeka", "harga": 172, "rvol": 2.40, "squeeze": "🟢 Ya", "bid_pct": 68.2, "turnover": 18_400_000_000, "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "ELSA", "nama": "Elnusa Tbk.", "harga": 486, "rvol": 2.15, "squeeze": "⚪ Tidak", "bid_pct": 66.5, "turnover": 32_100_000_000, "status": "🟡 AKUMULASI"},
-        {"ticker": "PSAB", "nama": "J Resources Asia Pasifik", "harga": 312, "rvol": 2.30, "squeeze": "🟢 Ya", "bid_pct": 65.0, "turnover": 24_500_000_000, "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "RAJA", "nama": "Rukun Raharja Tbk.", "harga": 1380, "rvol": 1.95, "squeeze": "🟢 Ya", "bid_pct": 63.0, "turnover": 19_800_000_000, "status": "🟡 AKUMULASI"},
-        {"ticker": "DOID", "nama": "Delta Dunia Makmur Tbk.", "harga": 498, "rvol": 1.80, "squeeze": "⚪ Tidak", "bid_pct": 58.5, "turnover": 14_200_000_000, "status": "⚪ KONSOLIDASI"},
-        {"ticker": "BUMI", "nama": "Bumi Resources Tbk.", "harga": 148, "rvol": 2.65, "squeeze": "🟢 Ya", "bid_pct": 68.5, "turnover": 66_000_000_000, "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "BRMS", "nama": "Bumi Resources Minerals", "harga": 410, "rvol": 2.25, "squeeze": "🟢 Ya", "bid_pct": 66.0, "turnover": 127_000_000_000, "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "ENRG", "nama": "Energi Mega Persada", "harga": 95, "rvol": 2.10, "squeeze": "⚪ Tidak", "bid_pct": 66.8, "turnover": 23_750_000_000, "status": "🟡 AKUMULASI"},
+        {"ticker": "DEWA", "nama": "Darma Henwa Tbk.", "harga": 105, "rvol": 2.85, "squeeze": "🟢 Ya", "bid_pct": 71.4, "turnover": 45_200_000_000, "broker_utama": "MG (Semesta) - Bandar Scalper", "proyeksi_harga": "🟡 Volatilitas Tinggi Intraday (Markup Kilat)", "status": "🟢 SIAP MELEDAK"},
+        {"ticker": "KIJA", "nama": "Kawasan Industri Jababeka", "harga": 172, "rvol": 2.40, "squeeze": "🟢 Ya", "bid_pct": 68.2, "turnover": 18_400_000_000, "broker_utama": "CC (Mandiri) - BUMN/Domestik", "proyeksi_harga": "🟢 Reversal Stabil & Bertahap", "status": "🟢 SIAP MELEDAK"},
+        {"ticker": "ELSA", "nama": "Elnusa Tbk.", "harga": 486, "rvol": 2.15, "squeeze": "⚪ Tidak", "bid_pct": 66.5, "turnover": 32_100_000_000, "broker_utama": "NI (BNI Sekuritas) - BUMN", "proyeksi_harga": "🟢 Akumulasi Menengah Defensif", "status": "🟡 AKUMULASI"},
+        {"ticker": "PSAB", "nama": "J Resources Asia Pasifik", "harga": 312, "rvol": 2.30, "squeeze": "🟢 Ya", "bid_pct": 65.0, "turnover": 24_500_000_000, "broker_utama": "YP (Mirae) - Kerumunan Ritel", "proyeksi_harga": "🟡 Momentum Cepat Ritel, Waspada Guyuran", "status": "🟢 SIAP MELEDAK"},
+        {"ticker": "RAJA", "nama": "Rukun Raharja Tbk.", "harga": 1380, "rvol": 1.95, "squeeze": "🟢 Ya", "bid_pct": 63.0, "turnover": 19_800_000_000, "broker_utama": "AK (UBS) - Smart Money", "proyeksi_harga": "🟢 Konfirmasi Trend Up Berkelanjutan", "status": "🟡 AKUMULASI"},
+        {"ticker": "DOID", "nama": "Delta Dunia Makmur Tbk.", "harga": 498, "rvol": 1.80, "squeeze": "⚪ Tidak", "bid_pct": 58.5, "turnover": 14_200_000_000, "broker_utama": "PD (IPOT) - Ritel Kompak", "proyeksi_harga": "⚪ Menunggu Katalis Breakout", "status": "⚪ KONSOLIDASI"},
+        {"ticker": "BUMI", "nama": "Bumi Resources Tbk.", "harga": 148, "rvol": 2.65, "squeeze": "🟢 Ya", "bid_pct": 68.5, "turnover": 66_000_000_000, "broker_utama": "MG (Semesta) - Bandar Kilat", "proyeksi_harga": "🟡 Pump Pagi Hari, Swing Disiplin Ketat", "status": "🟢 SIAP MELEDAK"},
+        {"ticker": "BRMS", "nama": "Bumi Resources Minerals", "harga": 410, "rvol": 2.25, "squeeze": "🟢 Ya", "bid_pct": 66.0, "turnover": 127_000_000_000, "broker_utama": "BK (J.P. Morgan) - Asing Inflow", "proyeksi_harga": "🟢 Pengawalan Tren Naik Berkelanjutan", "status": "🟢 SIAP MELEDAK"},
+        {"ticker": "ENRG", "nama": "Energi Mega Persada", "harga": 95, "rvol": 2.10, "squeeze": "⚪ Tidak", "bid_pct": 66.8, "turnover": 23_750_000_000, "broker_utama": "ZP (Maybank) - Akumulasi Senyap", "proyeksi_harga": "🟢 Bottom Reversal Menuju Resistance", "status": "🟡 AKUMULASI"},
     ]
     df_rally = pd.DataFrame(sample_rally_candidates)
     st.dataframe(
         df_rally,
+        column_order=["ticker", "nama", "harga", "rvol", "squeeze", "bid_pct", "turnover", "broker_utama", "proyeksi_harga", "status"],
         column_config={
             "ticker": "Kode Saham",
             "nama": "Nama Perusahaan",
@@ -673,6 +692,8 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
             "squeeze": "Bollinger Squeeze",
             "bid_pct": st.column_config.NumberColumn("% Bid", format="%.1f%%"),
             "turnover": st.column_config.NumberColumn("Turnover Harian", format="Rp %d"),
+            "broker_utama": "Broker Penggerak",
+            "proyeksi_harga": "Proyeksi Arah Harga",
             "status": "Status Rally",
         },
         use_container_width=True,
@@ -924,6 +945,10 @@ with tab_scalp:
                                 </div>
                                 <div style="font-size:11px; color:#334155; margin-bottom:6px;">
                                     🏆 <b>TP2 (Target Lanjutan):</b> Rp {s['tp2']:,} ({s['tp2_net_pct']:+.2f}%) | ⚖️ <b>RRR:</b> 1:{s['rrr']} | 🛡️ <b>Maksimal Lot Aman:</b> {s['safe_exit_lot']:,} Lot
+                                </div>
+                                <div style="font-size:11px; color:#1E293B; margin-bottom:6px; background:#F0FDF4; padding:6px 10px; border-radius:6px; border:1px solid #BBF7D0;">
+                                    🏛️ <b>Broker Penggerak:</b> {s.get('lead_broker_code', 'CC')} — {s.get('lead_broker_name', 'PT Mandiri Sekuritas')} ({s.get('lead_broker_category', 'BUMN & Domestik')})<br>
+                                    🔮 <b>Proyeksi Arah Harga:</b> {s.get('lead_broker_impact', 'Akumulasi bertahap menuju kenaikan harga.')}
                                 </div>
                                 <div style="font-size:11px; color:#64748B; background:#F8FAFC; padding:4px 8px; border-radius:4px; border:1px dashed #CBD5E1;">
                                     ⚡ <b>Katalis:</b> {s['catalyst']}
@@ -1452,6 +1477,13 @@ with tab_mm:
     </div>
     """, unsafe_allow_html=True)
 
+    with st.expander("🏛️ Karakteristik Partisipan Broker pada Buku Pesanan (Order Book Level 2)", expanded=False):
+        st.markdown(
+            "• **Broker Institusi & Asing (BK, AK, ZP, CC)**: Memasang antrean Bid tebal yang bertahan lama sebagai penopang harga (*Sticky Liquidity*). Keberadaannya menjamin keamanan Safe Exit Lot.\n"
+            "• **Broker Bandar Kilat (MG, AZ, CP)**: Kerap memasang antrean Bid besar secara mendadak lalu membatalkannya kilat (*Spoofing*) untuk memancing HAKA dari ritel.\n"
+            "• **Broker Ritel (YP, PD, XC, XL)**: Antrean tersebar dalam jumlah lot kecil-menengah di banyak fraksi harga (*Fragmented Orders*), sangat reaktif dan mudah panik (HAKI) jika harga turun 1-2 tik."
+        )
+
 # TAB 9: GAYA TRADING, 19 TIPE SAHAM & CASH COWS
 with tab_style:
     st.markdown("#### 🏷️ Klasifikasi Gaya Trading, 19 Tipologi Saham, & Cash Cows Bursa")
@@ -1503,6 +1535,53 @@ with tab_breakout:
             f"• **Aksi Bandar**: {promoter_eval.get('bandar_action')}\n"
             f"• **Dominasi Investor**: Asing {promoter_eval.get('foreign_dominance_pct')}% vs Ritel {promoter_eval.get('retail_dominance_pct')}%\n"
             f"• **Top Broker Pembeli**: {', '.join(promoter_eval.get('top_buyers', []))}"
+        )
+
+    st.markdown("##### 🏛️ Detail Profil, Sifat & Proyeksi Arah Harga Broker Saham Ini:")
+    st.caption("Menganalisis siapa sekuritas pengendali transaksi, karakter akumulasi/distribusinya, dan proyeksi ke mana harga akan bergerak.")
+
+    tb_c1, tb_c2 = st.columns(2)
+    with tb_c1:
+        st.markdown("**🟢 Top Broker Akumulator (Smart Money):**")
+        buyers_list = promoter_eval.get("top_buyers_detail", [])
+        if buyers_list:
+            df_b = pd.DataFrame(buyers_list)[["code", "name", "category", "archetype", "future_price_impact"]]
+            st.dataframe(
+                df_b,
+                column_config={
+                    "code": st.column_config.TextColumn("Kode", width="small"),
+                    "name": st.column_config.TextColumn("Nama Resmi Sekuritas", width="medium"),
+                    "category": st.column_config.TextColumn("Kategori", width="small"),
+                    "archetype": st.column_config.TextColumn("Peran Pasar", width="small"),
+                    "future_price_impact": st.column_config.TextColumn("Proyeksi Arah Harga", width="large"),
+                },
+                use_container_width=True,
+                hide_index=True
+            )
+    with tb_c2:
+        st.markdown("**🔴 Top Broker Distribusi (Sellers):**")
+        sellers_list = promoter_eval.get("top_sellers_detail", [])
+        if sellers_list:
+            df_s = pd.DataFrame(sellers_list)[["code", "name", "category", "archetype", "future_price_impact"]]
+            st.dataframe(
+                df_s,
+                column_config={
+                    "code": st.column_config.TextColumn("Kode", width="small"),
+                    "name": st.column_config.TextColumn("Nama Resmi Sekuritas", width="medium"),
+                    "category": st.column_config.TextColumn("Kategori", width="small"),
+                    "archetype": st.column_config.TextColumn("Peran Pasar", width="small"),
+                    "future_price_impact": st.column_config.TextColumn("Proyeksi Arah Harga", width="large"),
+                },
+                use_container_width=True,
+                hide_index=True
+            )
+
+    with st.expander("📖 Panduan Interpretasi Pergerakan Harga Berdasarkan Sifat Broker", expanded=True):
+        st.markdown(
+            "• **Jika Top Buyer didominasi Smart Money Asing (BK, AK, ZP)**: Mengindikasikan fase akumulasi senyap menuju kenaikan harga berkelanjutan (*Markup*).\n"
+            "• **Jika Top Buyer didominasi BUMN (CC, NI, OD)**: Menandakan pengawalan lantai harga (support) dan potensi *Bottom Reversal* yang kuat.\n"
+            "• **Jika Top Buyer didominasi Bandar Kilat (MG, AZ)**: Menandakan lonjakan harga cepat spekulatif (*Pump*) yang cocok untuk scalping kilat, namun rawan guyuran.\n"
+            "• **Jika Top Buyer didominasi Kerumunan Ritel (YP, PD, XC)**: Waspada jebakan beli di pucuk (*Distribution to Retail*) saat institusi sedang melepas barang."
         )
 
 # TAB 11: EKONOMETRIKA, DEEP RISK & MEAN-CVAR

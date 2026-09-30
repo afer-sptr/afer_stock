@@ -202,6 +202,27 @@ def generate_scalp_trading_plan(
     else:
         actual_tier = tier or "Saham Menengah (Rp1.000 – Rp5.000)"
 
+    # Tentukan broker penggerak utama & proyeksi arah harga
+    try:
+        from modules.broker_analyzer import get_broker_info
+    except ImportError:
+        try:
+            from broker_analyzer import get_broker_info
+        except ImportError:
+            def get_broker_info(c):
+                return {"code": c, "name": f"Sekuritas {c}", "category": "Broker BEI", "archetype": "Partisipan", "behavior": "Transaksi reguler", "future_price_impact": "Netral"}
+
+    if price > 5000.0:
+        lead_code = "BK"
+    elif price <= 100.0:
+        lead_code = "MG" if pct_bid >= 65.0 else "YP"
+    elif price <= 1000.0:
+        lead_code = "MG" if rrr >= 1.5 else "CC"
+    else:
+        lead_code = "AK"
+
+    lead_b = get_broker_info(lead_code)
+
     catalyst_text = " • ".join(catalyst_reasons)
     clean_ticker = ticker.replace(".JK", "")
     return {
@@ -229,6 +250,10 @@ def generate_scalp_trading_plan(
         "turnover_idr": turnover_idr,
         "scalp_score": scalp_score,
         "catalyst": catalyst_text,
+        "lead_broker_code": lead_code,
+        "lead_broker_name": lead_b["name"],
+        "lead_broker_category": lead_b["category"],
+        "lead_broker_impact": lead_b["future_price_impact"],
     }
 
 

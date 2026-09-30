@@ -398,9 +398,18 @@ def detect_silent_institutional_accumulation(
 
     is_stagnant = volatility_pct <= volatility_thresh
 
-    # Jika data broker summary tidak disediakan, buat simulasi realistis berdasarkan ticker/volume
     if broker_summary_df is None or broker_summary_df.empty:
         broker_summary_df = generate_synthetic_broker_summary(close_last, sub_df["Volume"].tail(window).sum())
+    else:
+        broker_summary_df = broker_summary_df.copy()
+        if "broker_name" not in broker_summary_df.columns:
+            broker_summary_df["broker_name"] = broker_summary_df["broker_code"].apply(lambda c: get_broker_info(c)["name"])
+        if "category" not in broker_summary_df.columns:
+            broker_summary_df["category"] = broker_summary_df["broker_code"].apply(lambda c: get_broker_info(c)["category"])
+        if "archetype" not in broker_summary_df.columns:
+            broker_summary_df["archetype"] = broker_summary_df["broker_code"].apply(lambda c: get_broker_info(c)["archetype"])
+        if "future_price_impact" not in broker_summary_df.columns:
+            broker_summary_df["future_price_impact"] = broker_summary_df["broker_code"].apply(lambda c: get_broker_info(c)["future_price_impact"])
 
     # Analisis Net Buy Institusi vs Net Sell Ritel
     inst_df = broker_summary_df[broker_summary_df["broker_code"].isin(INSTITUTIONAL_BROKERS)]
@@ -625,11 +634,18 @@ def predict_short_term_trajectory(
     if broker_summary_df is None or broker_summary_df.empty:
         broker_summary_df = generate_synthetic_broker_summary(curr_close, df["Volume"].tail(5).sum())
 
-    top10_buy_lots = float(broker_summary_df.nlargest(10, "buy_vol")["buy_vol"].sum())
-    top10_sell_lots = float(broker_summary_df.nlargest(10, "sell_vol")["sell_vol"].sum())
+    top10_buy_df = broker_summary_df.nlargest(10, "buy_vol")
+    top10_sell_df = broker_summary_df.nlargest(10, "sell_vol")
+    top10_buy_lots = float(top10_buy_df["buy_vol"].sum())
+    top10_sell_lots = float(top10_sell_df["sell_vol"].sum())
     net_order_flow = top10_buy_lots - top10_sell_lots
     total_top10 = top10_buy_lots + top10_sell_lots + 1e-6
     order_flow_ratio = (top10_buy_lots - top10_sell_lots) / total_top10  # -1.0 s/d +1.0
+
+    lead_buy_code = str(top10_buy_df.iloc[0]["broker_code"]) if len(top10_buy_df) > 0 else "CC"
+    lead_sell_code = str(top10_sell_df.iloc[0]["broker_code"]) if len(top10_sell_df) > 0 else "YP"
+    lead_buy_info = get_broker_info(lead_buy_code)
+    lead_sell_info = get_broker_info(lead_sell_code)
 
     # 4. PENGAMBILAN KEPUTUSAN TERPADU
     w_tech, w_sent, w_of = weights
@@ -674,6 +690,8 @@ def predict_short_term_trajectory(
             "top10_sell_lots": int(top10_sell_lots),
             "net_order_flow_lots": int(net_order_flow),
             "order_flow_score": round(order_flow_ratio, 3),
+            "lead_buyer": lead_buy_info,
+            "lead_seller": lead_sell_info,
         },
         "recommendation": {
             "target_price": tp_price,
@@ -947,6 +965,12 @@ def detect_wash_trading(
     df["dominance_pct"] = (df["gross_vol"] / total_market_gross) * 100.0
     df["net_to_gross_pct"] = (df["net_vol"].abs() / (df["gross_vol"] + 1e-6)) * 100.0
 
+    # Pastikan seluruh baris memiliki metadata nama perusahaan sekuritas, kategori, arketipe, dan implikasi harga
+    df["broker_name"] = df["broker_code"].apply(lambda c: get_broker_info(c)["name"])
+    df["category"] = df["broker_code"].apply(lambda c: get_broker_info(c)["category"])
+    df["archetype"] = df["broker_code"].apply(lambda c: get_broker_info(c)["archetype"])
+    df["future_price_impact"] = df["broker_code"].apply(lambda c: get_broker_info(c)["future_price_impact"])
+
     flagged_brokers = []
     for _, row in df.iterrows():
         b_code = row["broker_code"]
@@ -1197,12 +1221,15 @@ def render_broker_emiten_page(
             if silent_res["top_institutional_buyers"]:
                 st.dataframe(
                     pd.DataFrame(silent_res["top_institutional_buyers"]),
+                    column_order=["broker_code", "broker_name", "category", "net_vol", "buy_vol", "sell_vol", "future_price_impact"],
                     column_config={
-                        "broker_code": "Kode",
-                        "broker_name": "Nama Perusahaan Sekuritas",
-                        "category": "Kategori",
+                        "broker_code": st.column_config.TextColumn("Kode", width="small"),
+                        "broker_name": st.column_config.TextColumn("Nama Resmi Sekuritas", width="medium"),
+                        "category": st.column_config.TextColumn("Kategori", width="small"),
                         "net_vol": st.column_config.NumberColumn("Net Lot", format="%d"),
-                        "future_price_impact": "Implikasi Arah Harga",
+                        "buy_vol": st.column_config.NumberColumn("Beli (Lot)", format="%d"),
+                        "sell_vol": st.column_config.NumberColumn("Jual (Lot)", format="%d"),
+                        "future_price_impact": st.column_config.TextColumn("Implikasi Arah Harga Masa Depan", width="large"),
                     },
                     use_container_width=True,
                     hide_index=True
@@ -1214,18 +1241,46 @@ def render_broker_emiten_page(
             if silent_res["top_retail_sellers"]:
                 st.dataframe(
                     pd.DataFrame(silent_res["top_retail_sellers"]),
+                    column_order=["broker_code", "broker_name", "category", "net_vol", "buy_vol", "sell_vol", "future_price_impact"],
                     column_config={
-                        "broker_code": "Kode",
-                        "broker_name": "Nama Perusahaan Sekuritas",
-                        "category": "Kategori",
+                        "broker_code": st.column_config.TextColumn("Kode", width="small"),
+                        "broker_name": st.column_config.TextColumn("Nama Resmi Sekuritas", width="medium"),
+                        "category": st.column_config.TextColumn("Kategori", width="small"),
                         "net_vol": st.column_config.NumberColumn("Net Lot", format="%d"),
-                        "future_price_impact": "Implikasi Arah Harga",
+                        "buy_vol": st.column_config.NumberColumn("Beli (Lot)", format="%d"),
+                        "sell_vol": st.column_config.NumberColumn("Jual (Lot)", format="%d"),
+                        "future_price_impact": st.column_config.TextColumn("Implikasi Arah Harga Masa Depan", width="large"),
                     },
                     use_container_width=True,
                     hide_index=True
                 )
             else:
                 st.info("Tidak ada distribusi ritel yang dominan.")
+
+        # Kartu Penjelasan Sifat Broker & Analisis Arah Harga Masa Depan
+        with st.expander("💡 Penjelasan Sifat Broker & Analisis Arah Harga Masa Depan (Smart Money vs Kerumunan)", expanded=True):
+            st.markdown("##### 📌 Karakteristik & Prediksi Arah Harga Broker Teratas:")
+            col_b1, col_b2 = st.columns(2)
+            with col_b1:
+                st.markdown("**🏛️ Institusi Pembeli Teratas (Smart Money):**")
+                for item in silent_res["top_institutional_buyers"]:
+                    b_inf = get_broker_info(item["broker_code"])
+                    st.info(
+                        f"**{item['broker_code']} — {b_inf['name']}**\n\n"
+                        f"• **Kategori / Peran**: {b_inf['category']} ({b_inf['archetype']})\n"
+                        f"• **Sifat Transaksi**: {b_inf['behavior']}\n"
+                        f"• **Proyeksi Arah Harga**: **{b_inf['future_price_impact']}**"
+                    )
+            with col_b2:
+                st.markdown("**👥 Ritel / Penjual Teratas (Kerumunan):**")
+                for item in silent_res["top_retail_sellers"]:
+                    b_inf = get_broker_info(item["broker_code"])
+                    st.warning(
+                        f"**{item['broker_code']} — {b_inf['name']}**\n\n"
+                        f"• **Kategori / Peran**: {b_inf['category']} ({b_inf['archetype']})\n"
+                        f"• **Sifat Transaksi**: {b_inf['behavior']}\n"
+                        f"• **Proyeksi Arah Harga**: **{b_inf['future_price_impact']}**"
+                    )
 
     # --------------------------------------------------------------------------
     # TAB 2: PREDIKSI 3 PILAR (TEKNIKAL + HOLT-WINTERS, NLP VADER, ORDER FLOW)
@@ -1339,6 +1394,10 @@ def render_broker_emiten_page(
                 st.write(f"• Top 10 Net Sell: **{of['top10_sell_lots']:,} Lot**")
                 st.write(f"• Net Order Flow: **{of['net_order_flow_lots']:,} Lot**")
                 st.write(f"• Skor Order Flow: **{of['order_flow_score']}**")
+                if "lead_buyer" in of:
+                    l_b = of["lead_buyer"]
+                    st.write(f"• Broker Akumulasi Utama: **{l_b['code']} — {l_b['name']}** ({l_b['category']})")
+                    st.caption(f"  └ *Proyeksi*: {l_b['future_price_impact']}")
 
     # --------------------------------------------------------------------------
     # TAB 3: DETEKSI PUMP AND DUMP
@@ -1370,6 +1429,13 @@ def render_broker_emiten_page(
             )
         else:
             st.success(f"✅ Tidak terdeteksi anomali Pump and Dump agresif pada {ticker}. Pergerakan harga dan volume dalam batas wajar.")
+
+        with st.expander("💡 Peran & Karakteristik Broker dalam Skema Pump & Dump", expanded=False):
+            st.markdown(
+                "• **Broker Penggerak Pump (Bandar Kilat / Scalper)**: Kerap dipicu oleh broker agresif seperti **MG (PT Semesta Indovest Sekuritas)**, **AZ (PT Sucor Sekuritas)**, atau **CP (PT KB Valbury Sekuritas)** yang memompa likuiditas dan menyapu antrean offer (HAKA) di awal sesi.\n"
+                "• **Broker Penerima Dump (Kerumunan Ritel)**: Ritel pengguna broker **YP (Mirae Asset Sekuritas)**, **PD (Indo Premier Sekuritas)**, **XC (Ajaib Sekuritas)**, dan **XL (Stockbit Sekuritas)** kerap menjadi pihak yang menyerap barang di pucuk (*FOMO*) karena tergiur rumor media sosial.\n"
+                "• **Proyeksi Arah Harga**: Saham yang mengalami Pump tanpa katalis fundamental hampir selalu diikuti oleh **DISTRIBUSI MASIF & PENURUNAN HARGA TAJAM (Anjlok)** dalam 1 hingga 3 hari bursa berikutnya."
+            )
 
     # --------------------------------------------------------------------------
     # TAB 4: SPOOFING DAN LAYERING ORDER BOOK LEVEL 2
@@ -1423,6 +1489,13 @@ def render_broker_emiten_page(
         if spoof_res["spoof_details"]:
             st.markdown("#### 🚨 Tabel Bukti Aktivitas Spoofing & Layering:")
             st.dataframe(pd.DataFrame(spoof_res["spoof_details"]), use_container_width=True, hide_index=True)
+
+        with st.expander("💡 Peran & Karakteristik Broker dalam Spoofing & Layering", expanded=False):
+            st.markdown(
+                "• **Mekanisme Manipulasi Antrean**: Market maker memasang tebal antrean Bid palsu untuk menciptakan persepsi semu bahwa ada institusi besar yang siap menampung harga (*Artificial Demand*).\n"
+                "• **Pembatalan Mendadak**: Begitu kerumunan ritel terpancing melakukan HAKA di atasnya, antrean raksasa tersebut dibatalkan kilat (< 5 detik) dan pelaku melakukan HAKI (buang barang) ke antrean ritel di bawahnya.\n"
+                "• **Proyeksi Arah Harga**: Keberadaan spoofing menandakan **ARAH HARGA AKAN BERBALIK TURUN (False Breakout)** segera setelah ritel kehabisan daya beli."
+            )
 
     # --------------------------------------------------------------------------
     # TAB 5: MARKING THE CLOSE (DATA INTRADAY 1 MENIT)
@@ -1480,6 +1553,12 @@ def render_broker_emiten_page(
         )
         st.plotly_chart(fig_mtc, use_container_width=True)
 
+        with st.expander("💡 Peran & Karakteristik Broker dalam Marking the Close", expanded=False):
+            st.markdown(
+                "• **Motif Penutupan Sesi (Pre-Closing 15:50 - 16:00 WIB)**: Broker institusi atau manajer investasi kerap mengeksekusi order masif di sesi pre-closing untuk mempercantik nilai portofolio (*Window Dressing*) menjelang akhir bulan/kuartal.\n"
+                "• **Proyeksi Arah Harga Masa Depan**: Jika harga penutupan diangkat/diturunkan tanpa volume transaksi yang organik sepanjang sesi siang, harga hampir pasti akan **REVERT (KOREKSI KEMBALI KE HARGA VWAP)** pada pembukaan sesi perdagangan esok hari (H+1)."
+            )
+
     # --------------------------------------------------------------------------
     # TAB 6: DETEKSI WASH TRADING
     # --------------------------------------------------------------------------
@@ -1506,21 +1585,46 @@ def render_broker_emiten_page(
         st.markdown("#### 📊 Rekapitulasi Broker Summary Lengkap:")
         st.dataframe(
             pd.DataFrame(wash_res["broker_summary_table"]),
+            column_order=[
+                "broker_code",
+                "broker_name",
+                "category",
+                "buy_vol",
+                "sell_vol",
+                "gross_vol",
+                "net_vol",
+                "dominance_pct",
+                "net_to_gross_pct",
+                "future_price_impact"
+            ],
             column_config={
-                "broker_code": "Kode",
-                "broker_name": "Nama Perusahaan Sekuritas",
-                "category": "Kategori",
-                "buy_vol": st.column_config.NumberColumn("Beli (Lot)", format="%d"),
-                "sell_vol": st.column_config.NumberColumn("Jual (Lot)", format="%d"),
+                "broker_code": st.column_config.TextColumn("Kode", width="small"),
+                "broker_name": st.column_config.TextColumn("Nama Resmi Sekuritas", width="medium"),
+                "category": st.column_config.TextColumn("Kategori", width="small"),
+                "buy_vol": st.column_config.NumberColumn("Volume Beli (Lot)", format="%d"),
+                "sell_vol": st.column_config.NumberColumn("Volume Jual (Lot)", format="%d"),
                 "gross_vol": st.column_config.NumberColumn("Total Kotor (Lot)", format="%d"),
                 "net_vol": st.column_config.NumberColumn("Net Volume (Lot)", format="%d"),
                 "dominance_pct": st.column_config.NumberColumn("Dominasi Pasar", format="%.2f%%"),
                 "net_to_gross_pct": st.column_config.NumberColumn("Rasio Net/Gross", format="%.2f%%"),
-                "future_price_impact": "Implikasi Arah Harga",
+                "future_price_impact": st.column_config.TextColumn("Implikasi Arah Pergerakan Harga Masa Depan", width="large"),
             },
             use_container_width=True,
             hide_index=True
         )
+
+        with st.expander("💡 Penjelasan Karakteristik Broker & Proyeksi Pasar dari Tabel Broker Summary", expanded=True):
+            st.markdown("##### 📌 Rangkuman Sifat Broker & Proyeksi Arah Harga Saham:")
+            top_active = wash_res["broker_summary_table"][:6]
+            for row in top_active:
+                b_info = get_broker_info(row["broker_code"])
+                st.info(
+                    f"**{row['broker_code']} — {b_info['name']}** ({b_info['category']})\n\n"
+                    f"• **Peran Pasar**: {b_info['archetype']}\n"
+                    f"• **Dominasi Transaksi**: {row.get('dominance_pct', 0):.2f}% dari total volume bursa\n"
+                    f"• **Sifat & Karakter Transaksi**: {b_info['behavior']}\n"
+                    f"• **Proyeksi Arah Harga Masa Depan**: **{b_info['future_price_impact']}**"
+                )
 
     # --------------------------------------------------------------------------
     # TAB 7: PROFIL & SIFAT BROKER (SMART MONEY GUIDE)
