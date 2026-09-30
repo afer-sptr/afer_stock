@@ -449,8 +449,10 @@ if st.sidebar.button("🔒 Kunci / Keluar (Logout)", use_container_width=True):
     st.rerun()
 
 # ----------------- FUNGSI CACHING AKSELERASI KECEPATAN TINGGI -----------------
+CACHE_VERSION_KEY = "v5_strict_ojk_2026_09_30"
+
 @st.cache_data(ttl=15, show_spinner=False)
-def get_cached_stock_data(ticker_symbol: str, period: str):
+def get_cached_stock_data(ticker_symbol: str, period: str, _ver: str = CACHE_VERSION_KEY):
     return fetch_stock_data(ticker_symbol, period=period)
 
 @st.cache_data(ttl=180, show_spinner=False)
@@ -478,7 +480,7 @@ def get_cached_ai_suite(df_history: pd.DataFrame, news_titles: tuple, pct_bid: f
     )
 
 @st.cache_data(ttl=30, show_spinner=False)
-def get_cached_scalping_picks(tier_filter: str, syariah_filter: str):
+def get_cached_scalping_picks(tier_filter: str, syariah_filter: str, _ver: str = CACHE_VERSION_KEY):
     return scan_top_10_scalping_stocks(tier_filter=tier_filter, syariah_filter=syariah_filter)
 
 @st.cache_data(ttl=15, show_spinner=False)
@@ -503,6 +505,22 @@ if btn_manual_refresh:
 
 with st.spinner(f"Menghubungkan ke Bursa Efek Indonesia untuk memuat data {ticker_clean}..."):
     df, info, err = get_cached_stock_data(ticker_clean, period=period_choice)
+
+# Kalibrasi Otoritatif Metadata Saham dari idx_universe
+from modules.idx_universe import get_stock_metadata
+meta_live = get_stock_metadata(ticker_clean)
+if info is not None:
+    info["is_syariah"] = meta_live.get("is_syariah", False)
+    info["syariah_label"] = meta_live.get("syariah_label", "⚪ Non-Syariah" if not meta_live.get("is_syariah") else "☪️ Syariah (ISSI)")
+    info["tier"] = meta_live.get("tier", info.get("tier"))
+    info["tier_code"] = meta_live.get("tier_code", info.get("tier_code"))
+    info["tier_short"] = meta_live.get("tier_short", info.get("tier_short"))
+    if not info.get("sector") or info["sector"] in {"Lainnya", "Bursa Efek Indonesia", "Umum"}:
+        info["sector"] = meta_live.get("sector", "Financials" if not meta_live.get("is_syariah") else "Umum")
+    if not info.get("longName") or info.get("longName") == ticker_clean:
+        info["longName"] = meta_live.get("name", ticker_clean)
+    if not info.get("shortName") or info.get("shortName") == ticker_clean:
+        info["shortName"] = meta_live.get("name", ticker_clean)
 
 if err or df is None or df.empty:
     st.error(f"❌ Terjadi kesalahan saat memuat data {ticker_clean}: {err}")
@@ -764,10 +782,10 @@ last_time = info.get("fetched_at", datetime.now().strftime("%d-%m-%Y %H:%M:%S WI
 st.markdown(f'<span class="live-badge">🟢 REAL-TIME DATA FEED: Diperbarui {last_time}</span>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">Perhitungan Harga Wajar, Kalender Dividen, Sentimen FinBERT, Price Action, Order Book, Ekonometrika & Machine Learning</div>', unsafe_allow_html=True)
 
-company_name = info.get("longName") or info.get("shortName") or ticker_clean
-sector_name = info.get("sector") or "Bursa Efek Indonesia"
-tier_badge = info.get("tier", "Lapis 2 (Mid-Cap)")
-syariah_badge = info.get("syariah_label", "☪️ Syariah (ISSI)")
+company_name = meta_live.get("name") or info.get("longName") or info.get("shortName") or ticker_clean
+sector_name = meta_live.get("sector") or info.get("sector") or "Bursa Efek Indonesia"
+tier_badge = meta_live.get("tier") or info.get("tier", "Saham Gocap / Saham Tidur (Rp50 – Rp100)")
+syariah_badge = meta_live.get("syariah_label") or ("☪️ Syariah (ISSI)" if meta_live.get("is_syariah") else "⚪ Non-Syariah")
 
 top_c1, top_c2, top_c3, top_c4, top_c5 = st.columns([3, 2, 2, 2, 2])
 with top_c1:

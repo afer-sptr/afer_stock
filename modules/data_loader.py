@@ -240,8 +240,14 @@ def fetch_stock_data(
         info["tier"] = real_tier
         info["tier_code"] = real_tier_code
         info["tier_short"] = real_tier_short
-        info["is_syariah"] = meta.get("is_syariah", True)
-        info["syariah_label"] = meta.get("syariah_label", "☪️ Syariah (ISSI)")
+        info["is_syariah"] = meta.get("is_syariah", False)
+        info["syariah_label"] = meta.get("syariah_label", "⚪ Non-Syariah" if not meta.get("is_syariah") else "☪️ Syariah (ISSI)")
+        if not info.get("sector") or info.get("sector") in {"Lainnya", "Bursa Efek Indonesia", "Umum"}:
+            info["sector"] = meta.get("sector", "Financials" if not meta.get("is_syariah") else "Umum")
+        if not info.get("longName") or info.get("longName") == ticker_clean:
+            info["longName"] = meta.get("name", ticker_clean)
+        if not info.get("shortName") or info.get("shortName") == ticker_clean:
+            info["shortName"] = meta.get("name", ticker_clean)
         # Simpan ke in-memory cache
         _STOCK_CACHE[cache_key] = (now, df.copy(), copy.deepcopy(info))
         return df, info, None
