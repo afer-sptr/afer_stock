@@ -273,7 +273,7 @@ def scan_top_10_scalping_stocks(
     candidates_db = [
         # === 1. TIER SAHAM GOCAP / SAHAM TIDUR (Rp50 – Rp100) — VERIFIKASI AKTIF BEI ===
         {"ticker": "GOTO.JK", "price": 50, "atr": 3, "pct_bid": 68.5, "vol": 250000000, "turnover": 12_500_000_000, "sector": "Teknologi (GoTo Gojek Tokopedia)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
-        {"ticker": "POLA.JK", "price": 76, "atr": 5, "pct_bid": 65.0, "vol": 210000000, "turnover": 15_960_000_000, "sector": "Konsumer Non-Primer (Pool Advista)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "POLA.JK", "price": 78, "atr": 5, "pct_bid": 65.0, "vol": 210000000, "turnover": 15_960_000_000, "sector": "Keuangan (Pool Advista Finance)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": False},
         {"ticker": "GIAA.JK", "price": 64, "atr": 4, "pct_bid": 67.2, "vol": 102000000, "turnover": 6_528_000_000, "sector": "Transportasi (Garuda Indonesia)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
         {"ticker": "BKSL.JK", "price": 71, "atr": 4, "pct_bid": 66.5, "vol": 95000000, "turnover": 6_745_000_000, "sector": "Properti (Sentul City)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
         {"ticker": "LPKR.JK", "price": 61, "atr": 4, "pct_bid": 64.0, "vol": 78000000, "turnover": 4_758_000_000, "sector": "Properti (Lippo Karawaci)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
@@ -286,7 +286,7 @@ def scan_top_10_scalping_stocks(
         {"ticker": "VRNA.JK", "price": 91, "atr": 4, "pct_bid": 62.0, "vol": 3000000, "turnover": 273_000_000, "sector": "Keuangan (Mizuho Leasing)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": False},
         {"ticker": "MCOR.JK", "price": 69, "atr": 3, "pct_bid": 61.5, "vol": 1900000, "turnover": 131_100_000, "sector": "Keuangan (Bank China Construction)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": False},
         {"ticker": "BVIC.JK", "price": 95, "atr": 4, "pct_bid": 61.0, "vol": 1700000, "turnover": 161_500_000, "sector": "Keuangan (Bank Victoria)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": False},
-        {"ticker": "LPPS.JK", "price": 82, "atr": 4, "pct_bid": 61.2, "vol": 1600000, "turnover": 131_200_000, "sector": "Properti (Lippo Securities)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
+        {"ticker": "LPPS.JK", "price": 82, "atr": 4, "pct_bid": 61.2, "vol": 1600000, "turnover": 131_200_000, "sector": "Keuangan (Lenox Pasifik Investama)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": False},
         {"ticker": "CPRO.JK", "price": 50, "atr": 2, "pct_bid": 67.0, "vol": 5000000, "turnover": 250_000_000, "sector": "Konsumer Primer (Central Proteina)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": True},
         {"ticker": "HDFA.JK", "price": 100, "atr": 5, "pct_bid": 62.8, "vol": 1200000, "turnover": 120_000_000, "sector": "Keuangan (Radana Finance)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": False},
         {"ticker": "BABP.JK", "price": 50, "atr": 2, "pct_bid": 65.0, "vol": 1500000, "turnover": 75_000_000, "sector": "Keuangan (Bank MNC Internasional)", "tier": "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "is_syariah": False},
@@ -312,10 +312,10 @@ def scan_top_10_scalping_stocks(
         {"ticker": "UNTR.JK", "price": 26300, "atr": 550, "pct_bid": 63.5, "vol": 6500000, "turnover": 170_300_000_000, "sector": "Perindustrian (United Tractors)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
         {"ticker": "ITMG.JK", "price": 26100, "atr": 500, "pct_bid": 62.1, "vol": 4200000, "turnover": 107_100_000_000, "sector": "Energi (Indo Tambangraya Megah)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
         {"ticker": "MKPI.JK", "price": 21750, "atr": 450, "pct_bid": 60.5, "vol": 1500000, "turnover": 32_625_000_000, "sector": "Properti (Metropolitan Kentjana)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
-        {"ticker": "SMMA.JK", "price": 20025, "atr": 420, "pct_bid": 61.2, "vol": 1200000, "turnover": 24_030_000_000, "sector": "Keuangan (Sinar Mas Multiartha)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "SMMA.JK", "price": 20025, "atr": 420, "pct_bid": 61.2, "vol": 1200000, "turnover": 24_030_000_000, "sector": "Keuangan (Sinar Mas Multiartha)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": False},
         {"ticker": "GGRM.JK", "price": 19375, "atr": 350, "pct_bid": 58.4, "vol": 31000000, "turnover": 47_120_000_000, "sector": "Konsumer Non-Primer (Gudang Garam)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": False},
         {"ticker": "RDTX.JK", "price": 13225, "atr": 300, "pct_bid": 60.8, "vol": 800000, "turnover": 10_580_000_000, "sector": "Properti (Roda Vivatex)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
-        {"ticker": "LIFE.JK", "price": 12725, "atr": 280, "pct_bid": 60.0, "vol": 900000, "turnover": 11_452_500_000, "sector": "Keuangan (Asuransi Jiwa Sinarmas)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
+        {"ticker": "LIFE.JK", "price": 12725, "atr": 280, "pct_bid": 60.0, "vol": 900000, "turnover": 11_452_500_000, "sector": "Keuangan (Asuransi Jiwa Sinarmas)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": False},
         {"ticker": "BYAN.JK", "price": 12350, "atr": 320, "pct_bid": 59.2, "vol": 2500000, "turnover": 45_500_000_000, "sector": "Energi (Bayan Resources)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
         {"ticker": "AADI.JK", "price": 12225, "atr": 300, "pct_bid": 64.0, "vol": 5000000, "turnover": 61_125_000_000, "sector": "Energi (Adaro Andalan)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
         {"ticker": "STTP.JK", "price": 9450, "atr": 220, "pct_bid": 61.5, "vol": 1100000, "turnover": 10_395_000_000, "sector": "Konsumer Primer (Siantar Top)", "tier": "Saham Premium / Blue Chip (Di atas Rp5.000)", "is_syariah": True},
@@ -342,47 +342,62 @@ def scan_top_10_scalping_stocks(
     ]
 
     for item in candidates_db:
-        # Filter Tier STRICTLY BERDASARKAN HARGA NOMINAL SAHAM
-        price_val = float(item["price"])
+        # SELALU KALIBRASI ULANG DENGAN METADATA OTORITATIF RESMI BEI & OJK DARI idx_universe
+        clean_code = item["ticker"].replace(".JK", "").upper().strip()
+        meta = get_stock_metadata(clean_code)
+
+        # 1. Update harga nominal riil
+        if meta.get("price") and meta["price"] > 0:
+            price_val = float(meta["price"])
+        else:
+            price_val = float(item["price"])
+
+        # 2. Ambil status Syariah, Tier, dan Sektor RESMI dari idx_universe
+        is_syariah = bool(meta.get("is_syariah", False))
+        tier_label = meta.get("tier", "Saham Receh / Saham Murah (Rp100 – Rp1.000)")
+        tier_code = meta.get("tier_code", "RECEH")
+        sector_label = f"{meta.get('sector', 'Umum')} ({meta.get('name', clean_code)[:22]})"
+
+        # 3. Filter Tier STRICTLY BERDASARKAN TIER RESMI & HARGA NOMINAL SAHAM
         if tier_filter not in {"Semua", "Semua Tingkatan"}:
             if "Gocap" in tier_filter or "Tidur" in tier_filter or "Rp50" in tier_filter:
-                if not (50.0 <= price_val <= 100.0):
+                if tier_code != "GOCAP" and not (50.0 <= price_val <= 100.0):
                     continue
             elif "Receh" in tier_filter or "Murah" in tier_filter or "Rp100" in tier_filter:
-                if not (100.0 < price_val <= 1000.0):
+                if tier_code != "RECEH" and not (100.0 < price_val <= 1000.0):
                     continue
             elif "Premium" in tier_filter or "Blue Chip" in tier_filter or "5.000" in tier_filter:
-                if not (price_val > 5000.0):
+                if tier_code != "PREMIUM" and not (price_val > 5000.0):
                     continue
             elif "Lapis 1" in tier_filter:
-                if price_val <= 5000.0:
+                if tier_code != "PREMIUM":
                     continue
             elif "Lapis 2" in tier_filter:
-                if not (100.0 < price_val <= 5000.0):
+                if tier_code != "RECEH":
                     continue
             elif "Lapis 3" in tier_filter:
-                if price_val > 1000.0:
+                if tier_code != "GOCAP":
                     continue
 
-        # Filter Syariah Fleksibel (Mendukung semua format label UI)
+        # 4. Filter Syariah Fleksibel (Mendukung semua format label UI)
         if syariah_filter not in {"Semua", "Semua Status"}:
             if "Non-Syariah" in syariah_filter:
-                if item["is_syariah"]:
+                if is_syariah:
                     continue
             elif "Syariah" in syariah_filter:
-                if not item["is_syariah"]:
+                if not is_syariah:
                     continue
 
         plan = generate_scalp_trading_plan(
             ticker=item["ticker"],
-            last_price=item["price"],
+            last_price=price_val,
             atr=item["atr"],
             pct_bid=item["pct_bid"],
             volume=item["vol"],
             turnover_idr=item["turnover"],
-            sector=item["sector"],
-            tier=item["tier"],
-            is_syariah=item["is_syariah"],
+            sector=sector_label,
+            tier=tier_label,
+            is_syariah=is_syariah,
         )
 
         if plan["scalp_score"] >= min_score:
