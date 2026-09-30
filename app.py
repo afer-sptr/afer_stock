@@ -360,25 +360,64 @@ filtered_stocks = search_idx_stocks(
 )
 
 mode_input = st.sidebar.radio("Pilih Saham:", ["Pilih dari Katalog", "Ketik Manual Ticker"], index=0)
-current_target_ticker = str(st.session_state.get("selected_ticker", "BBCA")).replace(".JK", "").upper()
+current_target_ticker = str(st.session_state.get("selected_ticker", "BBCA")).replace(".JK", "").upper().strip()
 
 if mode_input == "Pilih dari Katalog":
     if filtered_stocks:
         stock_labels = [s["display_label"] for s in filtered_stocks]
-        default_idx = 0
+        matching_idx = None
         for idx, s in enumerate(filtered_stocks):
             if s["ticker"] == current_target_ticker:
-                default_idx = idx
+                matching_idx = idx
                 break
-        selected_stock_label = st.sidebar.selectbox("Katalog Saham Terfilter:", stock_labels, index=default_idx)
-        selected_ticker = selected_stock_label.split(" - ")[0]
+        
+        # Jika emiten yang aktif saat ini tidak ada di kombinasi filter (misal user ubah filter tier),
+        # sisipkan emiten aktif di urutan pertama agar tidak ter-reset secara paksa ke saham lain
+        if matching_idx is None:
+            active_meta = get_stock_metadata(current_target_ticker)
+            active_label = f"📌 [Aktif] {active_meta['display_label']}"
+            stock_labels.insert(0, active_label)
+            selected_idx = 0
+        else:
+            selected_idx = matching_idx
+
+        def _on_catalog_change():
+            chosen_val = st.session_state.get("catalog_stock_selector")
+            if chosen_val:
+                clean_t = chosen_val.replace("📌 [Aktif] ", "").split(" - ")[0].strip().upper()
+                st.session_state["selected_ticker"] = clean_t
+
+        selected_stock_label = st.sidebar.selectbox(
+            "Katalog Saham Terfilter:",
+            stock_labels,
+            index=selected_idx,
+            key="catalog_stock_selector",
+            on_change=_on_catalog_change
+        )
+        selected_ticker = selected_stock_label.replace("📌 [Aktif] ", "").split(" - ")[0].strip().upper()
         st.session_state["selected_ticker"] = selected_ticker
     else:
         st.sidebar.warning("Tidak ada saham yang cocok dengan kombinasi filter.")
         selected_ticker = current_target_ticker
 else:
-    selected_ticker = st.sidebar.text_input("Ketik Kode Ticker (contoh: BBCA, BBRI, BREN, BRMS):", value=current_target_ticker).strip()
-    st.session_state["selected_ticker"] = selected_ticker
+    # Menggunakan st.form agar saat user mengetik ticker (misal 4 huruf: B-B-R-I),
+    # Streamlit TIDAK melakukan refresh 4x berturut-turut pada setiap ketikan tombol!
+    with st.sidebar.form(key="manual_ticker_search_form"):
+        manual_input = st.text_input(
+            "Ketik Kode Ticker (contoh: BBCA, BBRI, BREN, BRMS, BUMI):",
+            value=current_target_ticker,
+            help="Ketik 4 huruf kode saham BEI, lalu tekan Enter atau klik tombol Tampilkan Saham."
+        ).strip().upper()
+        btn_search_manual = st.form_submit_button("🔍 Tampilkan Saham", type="primary", use_container_width=True)
+        if btn_search_manual and manual_input:
+            clean_man = manual_input.replace(".JK", "").strip()
+            if len(clean_man) >= 2:
+                st.session_state["selected_ticker"] = clean_man
+                current_target_ticker = clean_man
+                st.rerun()
+            else:
+                st.sidebar.warning("⚠️ Masukkan minimal 2-4 huruf kode emiten BEI.")
+    selected_ticker = st.session_state.get("selected_ticker", current_target_ticker)
 
 period_choice = st.sidebar.selectbox("Rentang Data Historis:", ["1y", "2y", "5y", "6mo"], index=0)
 

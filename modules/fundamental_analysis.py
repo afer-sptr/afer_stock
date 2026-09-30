@@ -96,18 +96,22 @@ def evaluate_fundamental_score(info: Dict[str, Any]) -> Dict[str, Any]:
             score -= 5
             insights.append(f"Net Profit Margin {npm_pct:.1f}%: Marjin laba bersih tipis")
 
-    # 4. Solvabilitas & Insolvency Veto (DER > 400% / 4.0x)
+    # 4. Solvabilitas & Insolvency Veto Terkalibrasi
     der_val = float(der) if der is not None else 80.0
     insolvency_veto = False
     if not is_financial:
-        if der_val > 400.0 or (roe is not None and roe < -0.20):
+        # Insolvency Veto aktif jika ekuitas negatif atau rasio utang ekstrem (>5.0x) dengan krisis likuiditas
+        is_equity_negative = (pbv is not None and pbv < 0)
+        is_extreme_debt_crisis = (der_val > 500.0 and curr_ratio is not None and curr_ratio < 0.6)
+        
+        if is_equity_negative or is_extreme_debt_crisis:
             insolvency_veto = True
             score -= 30
-            insights.append(f"🚨 INSOLVENCY VETO: DER mencapai {der_val:.1f}% (> 4.0x)! Risiko gagal bayar utang ekstrem.")
-        elif der_val > 200.0:
-            score -= 15
-            insights.append(f"DER {der_val:.1f}%: Beban hutang tinggi (Risiko Solvabilitas)")
-        elif der_val < 80.0:
+            insights.append(f"🚨 INSOLVENCY VETO: Defisit ekuitas atau krisis utang ekstrem (DER {der_val:.1f}%). Risiko gagal bayar utang tinggi.")
+        elif der_val > 250.0:
+            score -= 12
+            insights.append(f"DER {der_val:.1f}%: Beban hutang di atas rata-rata industri")
+        elif der_val < 100.0:
             score += 10
             insights.append(f"DER {der_val:.1f}%: Beban hutang rendah & neraca sangat sehat")
 

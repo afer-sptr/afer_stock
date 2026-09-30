@@ -4,9 +4,12 @@ idx_universe.py
 Modul Pengelola Semesta Seluruh Emiten Terdaftar di Bursa Efek Indonesia (BEI / IDX)
 Menyediakan:
   1. Katalog lengkap 900+ emiten terdaftar (kode, nama, sektor, papan pencatatan)
-  2. Klasifikasi Tingkatan Emiten (Lapis 1 / Blue-Chip, Lapis 2 / Mid-Cap, Lapis 3 / Small-Cap)
-  3. Klasifikasi Syariah (Daftar Efek Syariah / ISSI / JII) vs Non-Syariah
-  4. Fungsi filter & pencarian multi-kriteria untuk screener dan bot dispatcher
+  2. Klasifikasi Tingkatan Emiten Presisi Tinggi berbasis harga pasar nominal riil:
+     - Saham Gocap / Saham Tidur (Rp50 – Rp100) [GOCAP]
+     - Saham Receh / Saham Murah (Rp100 – Rp1.000) [RECEH]
+     - Saham Premium / Blue Chip (Di atas Rp5.000) [PREMIUM]
+  3. Klasifikasi Syariah Resmi Kriteria OJK / DSN-MUI (Daftar Efek Syariah / ISSI) vs Non-Syariah
+  4. Fungsi filter & pencarian multi-kriteria untuk screener, bot dispatcher, dan UI
 """
 
 from __future__ import annotations
@@ -24,52 +27,86 @@ TIER_OPTIONS: List[str] = [
     "Saham Premium / Blue Chip (Di atas Rp5.000)",
 ]
 
-# Ticker Acuan Saham Premium / Blue Chip (Harga pasar nominal > Rp 5.000)
-PREMIUM_BLUE_CHIP_TICKERS: Set[str] = {
-    "BBCA", "BMRI", "UNTR", "ITMG", "ICBP", "INDF", "GGRM", "SMMA", "BYAN", "CPIN",
-    "AMMN", "BREN", "TPIA", "DSSA", "BDMN", "MLBI", "TCPI", "INKP", "TKIM", "ASII",
-    "KLBF", "ADRO", "EXCL", "ISAT", "MIKA", "HEAL", "CMRY", "STTP", "AALI", "ABMM",
-    "GEMS", "MBAP", "PTBA", "BBNI", "BBRI", "BRIS", "MEGA", "NISP", "BNGA"
+# Saham Induk Blue Chip & LQ45 Institusional BEI (Lapis 1 / Core Index Anchors)
+BLUE_CHIP_TICKERS: Set[str] = {
+    "BBCA", "BMRI", "BBNI", "BBRI", "ASII", "TLKM", "UNTR", "ITMG", "ICBP", "INDF",
+    "BYAN", "CPIN", "AMMN", "BREN", "TPIA", "DSSA", "ADRO", "PTBA", "BRIS", "BRPT",
+    "PGAS", "EXCL", "ISAT", "MDKA", "INKP", "TKIM", "JSMR", "SMGR", "MEDC", "ANTM",
+    "GEMS", "MBAP", "STTP", "AALI", "ABMM", "TCPI", "BDMN", "BNGA", "NISP", "MEGA"
 }
 
-# Ticker Acuan Saham Gocap / Saham Tidur (Rp 50 – Rp 100)
-GOCAP_TIDUR_TICKERS: Set[str] = {
-    "GOTO", "POLA", "GIAA", "BKSL", "LPKR", "ZATA", "MLPL", "SLIS", "JAST", "IKAN",
-    "GEMA", "VRNA", "MCOR", "BVIC", "LPPS", "CPRO", "HDFA", "BABP", "BIPI", "ZINC",
-    "ENRG", "BUMI", "DOID", "DEWA", "TRIM", "MDIA", "BAPA", "NASA", "KBAG", "CARE",
-    "COAL", "ELTY", "LUCK", "MABA", "PPRO", "PURE", "REAL", "WAPO", "WIFI", "ZBRA",
-    "BBYB", "BBKP", "KPIG", "BHIT", "BCAP", "OASA", "TOOL", "SBMA", "BEBS"
-}
-
-# Ticker Acuan Saham Receh / Saham Murah (Rp 100 – Rp 1.000)
-RECEH_MURAH_TICKERS: Set[str] = {
-    "BRMS", "KIJA", "ELSA", "RAJA", "PSAB", "MBMA", "SSIA", "ARTO", "ACES", "MAPA",
-    "BUKA", "EMTK", "WIKA", "ADHI", "PTPP", "TOTL", "NRCA", "SIDO", "CLEO", "AUTO",
-    "DRMA", "SMSM", "PWON", "CTRA", "BSDE", "SMRA", "ERAA", "NCKL", "VKTR", "CUAN",
-    "PGEO", "SILO", "SSMS", "DSNG", "BTPS", "JPFA", "MAIN", "WOOD", "MARK", "CITA",
-    "HRUM", "INDY", "TAPG", "ULTJ", "AVIA", "ARNA", "ESSA", "SCMA", "MNCN", "BMTR",
-    "PGAS", "ANTM", "MEDC", "MAPI", "BBTN", "MDKA", "SMGR", "AMRT", "MYOR", "BRPT"
-}
-
-# Backward compatibility alias
-TIER_1_TICKERS = PREMIUM_BLUE_CHIP_TICKERS
-TIER_2_TICKERS = RECEH_MURAH_TICKERS
-TIER_3_TICKERS = GOCAP_TIDUR_TICKERS
-
-# Sektor & Emiten Non-Syariah Berdasarkan Kriteria OJK / DSN-MUI:
-NON_SHARIA_TICKERS: Set[str] = {
+# Sektor & Emiten Non-Syariah Berdasarkan Kriteria Resmi OJK / DSN-MUI:
+# 1. Bank Konvensional
+CONVENTIONAL_BANKS: Set[str] = {
     "BBCA", "BBRI", "BMRI", "BBNI", "BBTN", "BDMN", "BNGA", "BNII", "BBKP", "BTPN",
     "NOBU", "BABP", "MAYA", "AGRO", "BCIC", "BVIC", "INPC", "NISP", "MEGA", "PNBN",
     "BJBR", "BJTM", "BSIM", "BACA", "BGTG", "BINA", "DNAR", "MASB", "AMAR", "BKSW",
-    "MCOR", "BEKS", "BAPO", "BBYB", "ARTO", "GGRM", "HMSP", "WIIM", "ITIC", "MLBI",
-    "DLTA", "BFIN", "ADMF", "CFIN", "MFIN", "WOMF", "TRUS", "ASRM", "AMAG", "ASDM",
-    "LPGI", "MREI", "PNIN", "PANS", "TRIM", "YULE", "HDFA", "VRNA", "BBLD", "TIFA"
+    "MCOR", "BEKS", "BAPO", "BBYB", "ARTO", "AMOR", "BNLI", "BCAP"
 }
 
+# 2. Asuransi Konvensional
+CONVENTIONAL_INSURANCE: Set[str] = {
+    "ASRM", "AMAG", "ASDM", "LPGI", "MREI", "PNIN", "ASJT", "AHAP", "ASBI",
+    "LIFE", "MTWI", "VINS", "ABDA"
+}
+
+# 3. Multifinance & Leasing Konvensional
+CONVENTIONAL_FINANCE: Set[str] = {
+    "BFIN", "ADMF", "CFIN", "MFIN", "WOMF", "TRUS", "VRNA", "BBLD", "TIFA",
+    "HDFA", "BPFI", "IMFI", "FINN", "DEFI", "VTNY", "POLA"
+}
+
+# 4. Sekuritas & Holding Investasi Konvensional
+CONVENTIONAL_SECURITIES: Set[str] = {
+    "PANS", "TRIM", "YULE", "APIC", "KREN", "RELI", "KBLM", "BHIT"
+}
+
+# 5. Produsen Rokok & Tembakau
+TOBACCO_TICKERS: Set[str] = {
+    "HMSP", "GGRM", "WIIM", "ITIC", "RMBA"
+}
+
+# 6. Minuman Beralkohol
+ALCOHOL_TICKERS: Set[str] = {
+    "MLBI", "DLTA"
+}
+
+# Bank Syariah yang Sah Sesuai Kriteria Syariah OJK
+ISLAMIC_FINANCIAL_TICKERS: Set[str] = {
+    "BRIS", "BTPS", "BANK"
+}
+
+# Seluruh Ticker Non-Syariah Tergabung
+NON_SHARIA_TICKERS: Set[str] = (
+    CONVENTIONAL_BANKS |
+    CONVENTIONAL_INSURANCE |
+    CONVENTIONAL_FINANCE |
+    CONVENTIONAL_SECURITIES |
+    TOBACCO_TICKERS |
+    ALCOHOL_TICKERS
+)
+
 _DATA_PATH = os.path.join(os.path.dirname(__file__), "idx_stocks.json")
+_PRICES_PATH = os.path.join(os.path.dirname(__file__), "idx_prices.json")
 
 
-def classify_stock_tier(ticker: str, board: str = "Utama") -> Tuple[str, str, str]:
+@lru_cache(maxsize=1)
+def load_idx_prices() -> Dict[str, float]:
+    """Memuat database harga pasar penutupan riil seluruh saham BEI."""
+    if os.path.exists(_PRICES_PATH):
+        try:
+            with open(_PRICES_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def classify_stock_tier(
+    ticker: str,
+    price: Optional[float] = None,
+    board: str = "Utama"
+) -> Tuple[str, str, str]:
     """
     Mengklasifikasikan saham ke dalam salah satu dari 3 Tingkatan (Tier) resmi:
     1. Saham Gocap / Saham Tidur (Rp50 – Rp100) [GOCAP]
@@ -77,19 +114,42 @@ def classify_stock_tier(ticker: str, board: str = "Utama") -> Tuple[str, str, st
     3. Saham Premium / Blue Chip (Di atas Rp5.000) [PREMIUM]
     """
     clean = ticker.upper().strip()
-    if clean in PREMIUM_BLUE_CHIP_TICKERS:
-        return "Saham Premium / Blue Chip (Di atas Rp5.000)", "PREMIUM", "Premium >5k"
-    elif clean in GOCAP_TIDUR_TICKERS or board in {"Pemantauan Khusus", "Akselerasi"}:
+    
+    # Ambil harga dari parameter atau lookup dari database harga riil
+    current_p = price
+    if current_p is None:
+        prices = load_idx_prices()
+        current_p = prices.get(clean)
+
+    if current_p is not None and current_p > 0:
+        if current_p <= 100.0:
+            return "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "GOCAP", "Gocap 50-100"
+        elif 100.0 < current_p <= 1000.0:
+            return "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "RECEH", "Receh 100-1k"
+        elif current_p > 5000.0:
+            return "Saham Premium / Blue Chip (Di atas Rp5.000)", "PREMIUM", "Premium >5k"
+        else:
+            # Harga antara Rp 1.000 - Rp 5.000:
+            # Jika merupakan saham induk LQ45/Institusi, masukkan ke kategori Blue Chip
+            if clean in BLUE_CHIP_TICKERS:
+                return "Saham Premium / Blue Chip (Di atas Rp5.000)", "PREMIUM", "Blue Chip"
+            else:
+                return "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "RECEH", "Mid-Cap 1k-5k"
+
+    # Fallback jika harga belum tercatat di database harga
+    if board in {"Pemantauan Khusus", "Akselerasi"}:
         return "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "GOCAP", "Gocap 50-100"
+    elif clean in BLUE_CHIP_TICKERS:
+        return "Saham Premium / Blue Chip (Di atas Rp5.000)", "PREMIUM", "Blue Chip"
     else:
         return "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "RECEH", "Receh 100-1k"
 
 
 def classify_tier_by_price(price: float) -> Tuple[str, str, str]:
-    """Mengklasifikasikan tier berdasarkan harga nominal riil saat ini."""
+    """Mengklasifikasikan tier secara instan berdasarkan nilai nominal riil."""
     if price > 5000.0:
         return "Saham Premium / Blue Chip (Di atas Rp5.000)", "PREMIUM", "Premium >5k"
-    elif 50.0 <= price <= 100.0:
+    elif price <= 100.0:
         return "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "GOCAP", "Gocap 50-100"
     else:
         return "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "RECEH", "Receh 100-1k"
@@ -117,24 +177,35 @@ def load_raw_idx_stocks() -> List[Dict[str, Any]]:
 def get_all_idx_stocks_enriched() -> List[Dict[str, Any]]:
     """
     Mengembalikan seluruh data saham BEI yang telah diperkaya dengan:
-    - Tier (Saham Gocap / Tidur, Saham Receh / Murah, Saham Premium / Blue Chip)
-    - Status Syariah (☪️ Syariah vs ⚪ Non-Syariah)
+    - Tier Riil (Saham Gocap / Tidur, Saham Receh / Murah, Saham Premium / Blue Chip)
+    - Status Syariah Akurat OJK (☪️ Syariah ISSI vs ⚪ Non-Syariah)
+    - Harga Terakhir Tercatat
     """
     raw = load_raw_idx_stocks()
+    prices = load_idx_prices()
     enriched = []
 
     for item in raw:
-        ticker = item.get("ticker", "").upper()
+        ticker = item.get("ticker", "").upper().strip()
         code = item.get("code") or f"{ticker}.JK"
         name = item.get("name", "")
         sector = item.get("sector", "Lainnya")
         board = item.get("board", "Utama")
+        price = prices.get(ticker, 0.0)
 
-        # 1. Klasifikasi Tingkatan (Tier)
-        tier, tier_code, tier_short = classify_stock_tier(ticker, board=board)
+        # 1. Klasifikasi Tingkatan (Tier) berbasis harga pasar riil
+        tier, tier_code, tier_short = classify_stock_tier(ticker, price=price, board=board)
 
-        # 2. Klasifikasi Syariah vs Non-Syariah
-        is_syariah = ticker not in NON_SHARIA_TICKERS
+        # 2. Klasifikasi Syariah Presisi OJK / DSN-MUI
+        if ticker in ISLAMIC_FINANCIAL_TICKERS:
+            is_syariah = True
+        elif sector == "Financials":
+            is_syariah = False
+        elif ticker in NON_SHARIA_TICKERS:
+            is_syariah = False
+        else:
+            is_syariah = True
+
         syariah_label = "☪️ Syariah (ISSI)" if is_syariah else "⚪ Non-Syariah"
 
         enriched.append({
@@ -143,6 +214,7 @@ def get_all_idx_stocks_enriched() -> List[Dict[str, Any]]:
             "name": name,
             "sector": sector,
             "board": board,
+            "price": price,
             "tier": tier,
             "tier_code": tier_code,
             "tier_short": tier_short,
@@ -178,12 +250,6 @@ def filter_idx_stocks(
             elif "Premium" in tier_filter or "Blue Chip" in tier_filter:
                 if s["tier_code"] != "PREMIUM":
                     continue
-            elif "Lapis 1" in tier_filter and s["tier_code"] != "PREMIUM":
-                continue
-            elif "Lapis 2" in tier_filter and s["tier_code"] != "RECEH":
-                continue
-            elif "Lapis 3" in tier_filter and s["tier_code"] != "GOCAP":
-                continue
 
         # Filter Syariah
         if syariah_filter != "Semua":
@@ -218,14 +284,24 @@ def get_stock_metadata(ticker_or_code: str) -> Dict[str, Any]:
             return s
 
     # Fallback jika emiten baru / belum ada di katalog
-    is_syariah = clean_ticker not in NON_SHARIA_TICKERS
-    tier, tier_code, tier_short = classify_stock_tier(clean_ticker)
+    prices = load_idx_prices()
+    p = prices.get(clean_ticker, 0.0)
+    tier, tier_code, tier_short = classify_stock_tier(clean_ticker, price=p)
+
+    if clean_ticker in ISLAMIC_FINANCIAL_TICKERS:
+        is_syariah = True
+    elif clean_ticker in NON_SHARIA_TICKERS:
+        is_syariah = False
+    else:
+        is_syariah = True
+
     return {
         "code": f"{clean_ticker}.JK",
         "ticker": clean_ticker,
         "name": clean_ticker,
         "sector": "Umum",
         "board": "Utama",
+        "price": p,
         "tier": tier,
         "tier_code": tier_code,
         "tier_short": tier_short,
@@ -243,3 +319,9 @@ def get_all_sectors() -> List[str]:
 
 
 get_all_idx_stocks = get_all_idx_stocks_enriched
+TIER_1_TICKERS = BLUE_CHIP_TICKERS
+PREMIUM_BLUE_CHIP_TICKERS = BLUE_CHIP_TICKERS
+TIER_2_TICKERS = {s["ticker"] for s in get_all_idx_stocks_enriched() if s["tier_code"] == "RECEH"}
+RECEH_MURAH_TICKERS = TIER_2_TICKERS
+TIER_3_TICKERS = {s["ticker"] for s in get_all_idx_stocks_enriched() if s["tier_code"] == "GOCAP"}
+GOCAP_TIDUR_TICKERS = TIER_3_TICKERS

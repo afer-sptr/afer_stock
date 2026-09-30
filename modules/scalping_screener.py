@@ -364,11 +364,14 @@ def scan_top_10_scalping_stocks(
                 if price_val > 1000.0:
                     continue
 
-        # Filter Syariah
-        if syariah_filter == "☪️ Hanya Syariah (ISSI)" and not item["is_syariah"]:
-            continue
-        elif syariah_filter == "⚪ Non-Syariah" and item["is_syariah"]:
-            continue
+        # Filter Syariah Fleksibel (Mendukung semua format label UI)
+        if syariah_filter not in {"Semua", "Semua Status"}:
+            if "Non-Syariah" in syariah_filter:
+                if item["is_syariah"]:
+                    continue
+            elif "Syariah" in syariah_filter:
+                if not item["is_syariah"]:
+                    continue
 
         plan = generate_scalp_trading_plan(
             ticker=item["ticker"],

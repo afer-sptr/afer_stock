@@ -154,9 +154,9 @@ def fetch_stock_data(
         candle_high = float(df["High"].iloc[-1])
         candle_low = float(df["Low"].iloc[-1])
         
-        # Klasifikasi Tier riil berdasarkan harga nominal pasar
-        from modules.idx_universe import classify_tier_by_price
-        real_tier, real_tier_code, real_tier_short = classify_tier_by_price(last_close)
+        # Klasifikasi Tier riil berdasarkan harga nominal pasar & status emiten
+        from modules.idx_universe import classify_stock_tier
+        real_tier, real_tier_code, real_tier_short = classify_stock_tier(ticker_clean, price=last_close)
 
         # Hitung fraksi resmi BEI
         bid_tick = get_idx_tick_size(last_close)
