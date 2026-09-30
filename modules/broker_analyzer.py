@@ -43,13 +43,319 @@ except Exception:
     _vader_analyzer = None
     HAS_VADER = False
 
+# ==============================================================================
+# DIREKTORI PROFIL, SIFAT & IMPLIKASI HARGA BROKER BEI
+# ==============================================================================
+IDX_BROKER_DIRECTORY: Dict[str, Dict[str, str]] = {
+    "ZP": {
+        "code": "ZP",
+        "name": "PT Maybank Sekuritas Indonesia",
+        "category": "🏛️ Asing & Institusi Global",
+        "archetype": "Smart Money / Akumulasi Senyap",
+        "behavior": "Sering mengeksekusi akumulasi bertahap dalam senyap (silent accumulation) dengan volume masif tanpa menimbulkan lonjakan harga di pasar reguler. Berorientasi pada valuasi jangka menengah hingga panjang.",
+        "future_price_impact": "🟢 BULLISH JANGKA MENENGAH: Jika ZP konsisten Net Buy saat harga sideways, menandakan fondasi kuat menuju markup harga berkelanjutan."
+    },
+    "BK": {
+        "code": "BK",
+        "name": "PT J.P. Morgan Sekuritas Indonesia",
+        "category": "🏛️ Smart Money Asing (Tier 1 Global)",
+        "archetype": "Global Big Fund & Sovereign Flow",
+        "behavior": "Menyalurkan aliran dana manajer investasi raksasa dan sovereign/hedge fund global. Sangat selektif pada saham-saham likuid berkapitalisasi besar (Blue Chip) dengan fundamental prima.",
+        "future_price_impact": "🟢 TREN NAIK BERKELANJUTAN: Net Buy konsisten dari BK menandakan arus dana asing masuk (foreign inflow) yang solid; tren harga cenderung stabil naik dan tahan terhadap koreksi sesaat."
+    },
+    "CS": {
+        "code": "CS",
+        "name": "PT Credit Suisse Sekuritas Indonesia",
+        "category": "🏛️ Smart Money Asing (Tier 1)",
+        "archetype": "Institutional Portfolio Rebalancing",
+        "behavior": "Eksekutor institusi global yang sangat disiplin terhadap level target harga dan manajemen risiko portofolio internasional.",
+        "future_price_impact": "🟢 SINYAL AWAL RALLY: Akumulasi masif CS sering menjadi pemicu rally harga saham lapis 1 dan lapis 2 di bursa."
+    },
+    "MS": {
+        "code": "MS",
+        "name": "PT Morgan Stanley Sekuritas Indonesia",
+        "category": "🏛️ Smart Money Asing (Tier 1 Global)",
+        "archetype": "MSCI Index & Macro Rebalancer",
+        "behavior": "Kerap menjadi eksekutor utama penyesuaian bobot saham dalam indeks global (MSCI/FTSE). Transaksinya sering terjadi pada sesi crossing atau menit-menit akhir bursa.",
+        "future_price_impact": "🟢 VOLATILITAS BESAR & INFLOW: Net Buy masif MS menjelang penyesuaian indeks menjamin lonjakan likuiditas dan kenaikan target harga di masa depan."
+    },
+    "AK": {
+        "code": "AK",
+        "name": "PT UBS Sekuritas Indonesia",
+        "category": "🏛️ Institusi Global & Private Wealth",
+        "archetype": "Discreet Institutional Accumulator",
+        "behavior": "Akumulasi terukur tanpa memicu kepanikan beli di pasar. Membeli di area support dan menahan posisi untuk jangka panjang.",
+        "future_price_impact": "🟢 PROYEKSI HARGA NAIK: Kehadiran AK di pucuk Net Buy saat volume transaksi meningkat merupakan sinyal konfirmasi bahwa fase penurunan (downtrend) telah berakhir."
+    },
+    "RX": {
+        "code": "RX",
+        "name": "PT Macquarie Sekuritas Indonesia",
+        "category": "🏛️ Institusi Asing & Market Maker Waran",
+        "archetype": "Structured Warrant Issuer & Arbitrageur",
+        "behavior": "Penerbit utama Waran Terstruktur di BEI dan penyedia likuiditas lindung nilai (hedging). Juga memfasilitasi transaksi block trade institusi asing.",
+        "future_price_impact": "⚪ NETRAL / 🟢 AKUMULASI ASING: Jika transaksinya murni Net Buy tanpa posisi waran terstruktur, menjadi sinyal akumulasi saham induk."
+    },
+    "KZ": {
+        "code": "KZ",
+        "name": "PT CLSA Sekuritas Indonesia",
+        "category": "🏛️ Riset Unggulan & Institusi Regional",
+        "archetype": "Institutional Research Driven",
+        "behavior": "Didukung divisi riset yang disegani di kawasan Asia-Pasifik. Transaksinya sering mendahului laporan riset positif institusi.",
+        "future_price_impact": "🟢 SINYAL PERTUMBUHAN HARGA: Akumulasi KZ biasanya mengonfirmasi bahwa katalis pertumbuhan laba emiten akan segera direspons positif oleh pasar."
+    },
+    "CC": {
+        "code": "CC",
+        "name": "PT Mandiri Sekuritas",
+        "category": "🏦 BUMN & Institusi Domestik / HNW Terbesar",
+        "archetype": "National Flagship / Domestic Big Fund",
+        "behavior": "Broker pelat merah terbesar. Menampung dana institusi domestik (BPJS Ketenagakerjaan, Taspen, Asuransi, Dana Pensiun) serta nasabah ritel mapan (High Net Worth).",
+        "future_price_impact": "🟢 DUKUNGAN LANTAI HARGA (SUPPORT KUAT): Jika CC melakukan Net Buy masif pada saat pasar terkoreksi, ini menandakan intervensi pasar domestik (stabilisasi harga) yang mencegah harga turun lebih dalam."
+    },
+    "NI": {
+        "code": "NI",
+        "name": "PT BNI Sekuritas",
+        "category": "🏦 BUMN & Institusi Lokal",
+        "archetype": "Conservative Value & Dividend Seeker",
+        "behavior": "Berfokus pada saham-saham defensif, perbankan, dan infrastruktur dengan hasil dividen stabil.",
+        "future_price_impact": "🟢 STABILITAS & KENAIKAN BERTAHAP: Net Buy NI menunjukkan kepercayaan institusi lokal terhadap kinerja fundamental jangka panjang emiten."
+    },
+    "OD": {
+        "code": "OD",
+        "name": "PT BRI Danareksa Sekuritas",
+        "category": "🏦 BUMN & Penasihat Keuangan Negara",
+        "archetype": "State Underwriter & Corporate Action Specialist",
+        "behavior": "Sangat aktif dalam penanganan IPO BUMN, restrukturisasi, rights issue, dan merger korporasi strategis.",
+        "future_price_impact": "🟢 SIKLUS AKSI KORPORASI: Net Buy OD sering menjadi sinyal awal bahwa emiten akan menggelar aksi korporasi yang mendongkrak valuasi harga."
+    },
+    "DX": {
+        "code": "DX",
+        "name": "PT Bahana Sekuritas",
+        "category": "🏦 BUMN (Holding IFG)",
+        "archetype": "Sovereign Fund & Pension Inflow",
+        "behavior": "Pengelola portofolio institusi negara dan asuransi BUMN. Mengutamakan kepatuhan tata kelola (GCG) dan jarang berspekulasi.",
+        "future_price_impact": "🟢 SINYAL NILAI WAJAR (VALUE REVERSAL): Pembelian DX di harga murah menandakan valuasi saham telah terdiskon jauh di bawah nilai intrinsiknya."
+    },
+    "YP": {
+        "code": "YP",
+        "name": "PT Mirae Asset Sekuritas Indonesia",
+        "category": "👥 Kerumunan Ritel (Retail Crowd / Scalper)",
+        "archetype": "Retail Herd & Day Traders",
+        "behavior": "Basis nasabah ritel dan scalper terbesar di Indonesia. Transaksinya sangat reaktif terhadap berita harian, pergerakan chart jangka pendek, dan rumor di grup trading.",
+        "future_price_impact": "⚠️ KONTRARIAN (RESIKO DISTRIBUSI): Jika YP mendominasi Net Buy di harga pucuk (Ritel FOMO), harga saham sangat rawan diguyur (dumping) oleh bandar. Sebaliknya, jika YP panik Net Sell masif, sering kali menandakan dasar harga (bottoming) sebelum rebound."
+    },
+    "PD": {
+        "code": "PD",
+        "name": "PT Indo Premier Sekuritas",
+        "category": "👥 Ritel Domestik Massal (IPOT)",
+        "archetype": "Mainstream Retail Sentiment",
+        "behavior": "Nasabah ritel mandiri dari platform IPOT. Cenderung mengejar saham yang sedang breakout atau saham yang masuk daftar top gainer harian.",
+        "future_price_impact": "⚠️ RESIKO TRAP PUCUK: Net Buy besar PD di pucuk menandakan barang beralih dari bandar ke tangan ritel; harga berpotensi berbalik turun tajam jika momentum memudar."
+    },
+    "XC": {
+        "code": "XC",
+        "name": "PT Ajaib Sekuritas Asia",
+        "category": "👥 Ritel Pemula & Gen-Z (Fast Money)",
+        "archetype": "Novice Retail & Social Media Traders",
+        "behavior": "Mayoritas investor ritel muda dan pemula. Memiliki holding period sangat singkat, menyukai saham lapis 3 / saham gorengan yang sedang viral di media sosial.",
+        "future_price_impact": "⚡ VOLATILITAS TINGGI TANPA KETAHANAN: Mampu memicu lonjakan harga cepat sesaat, namun jika terjadi koreksi, kepanikan jual XC dapat menjatuhkan harga langsung ke batas ARB."
+    },
+    "MG": {
+        "code": "MG",
+        "name": "PT Semesta Indovest Sekuritas",
+        "category": "⚡ Bandar Kilat / Proprietary Day Trading",
+        "archetype": "Fast Market Maker & Momentum Igniter",
+        "behavior": "Dikenal di komunitas bursa sebagai broker 'Bandar Kilat'. Sering melakukan HAKA masif di pagi hari untuk menciptakan lonjakan volume dan menarik ritel, lalu membanting harga (HAKI) di sesi siang atau keesokan harinya.",
+        "future_price_impact": "🚨 SANGAT WASPADA (HANYA SCALPING CEPAT): Kenaikan harga akibat Net Buy MG umumnya bersifat sementara (1-2 hari). Jangan pernah menjadikan saham ini sebagai investasi jangka panjang saat MG aktif."
+    },
+    "AZ": {
+        "code": "AZ",
+        "name": "PT Sucor Sekuritas",
+        "category": "🚀 Komunitas Ritel Aktif & Swing Traders",
+        "archetype": "Aggressive Retail & HNW Community",
+        "behavior": "Memiliki basis komunitas trader aktif yang dipandu analisis teknikal momentum. Kerap memicu tren breakout saham mid-cap.",
+        "future_price_impact": "🟢 MOMENTUM RALLY 3-7 HARI: Net Buy AZ yang didukung volume tebal sering kali mengawali reli swing trading selama beberapa hari bursa ke depan."
+    },
+    "XL": {
+        "code": "XL",
+        "name": "PT Stockbit Sekuritas Digital",
+        "category": "👥 Komunitas Investor & Swing Trader",
+        "archetype": "Analytical Retail Community",
+        "behavior": "Nasabah teredukasi yang memanfaatkan fitur analisis mendalam. Menggabungkan strategi value investing dan swing momentum.",
+        "future_price_impact": "🟢 SINYAL AKUMULASI RITEL TERDIDIK: Akumulasi bertahap XL menandakan sentimen positif yang mulai menyebar di kalangan investor ritel berkualitas."
+    },
+    "SQ": {
+        "code": "SQ",
+        "name": "PT BCA Sekuritas",
+        "category": "💼 Ritel High Net Worth & Institusi Swasta",
+        "archetype": "Affluent Private Wealth",
+        "behavior": "Nasabah BCA Prioritas/Solitaire yang berinvestasi dengan modal relatif besar dan profil risiko tenang. Menyukai saham berkinerja sehat.",
+        "future_price_impact": "🟢 PERTUMBUHAN STABIL: Akumulasi SQ menandakan aliran modal swasta lokal berbobot tinggi yang menopang kenaikan harga jangka menengah."
+    },
+    "LG": {
+        "code": "LG",
+        "name": "PT Trimegah Sekuritas Indonesia",
+        "category": "🏛️ Institusi Swasta & Underwriter IPO",
+        "archetype": "Private Equity & Promoter Allied",
+        "behavior": "Kerap menjadi penjamin pelaksana emisi IPO baru dan memiliki hubungan erat dengan pemegang saham pengendali (promoter).",
+        "future_price_impact": "🟢 PENGEREKAN HARGA SPONSOR: Net Buy LG pada saham binaannya sering menjadi sinyal bahwa pengelola harga (market maker resmi) sedang menjaga dan menaikkan harga."
+    },
+    "AI": {
+        "code": "AI",
+        "name": "PT UOB Kay Hian Sekuritas",
+        "category": "🏛️ Smart Money Regional (Singapura/HK)",
+        "archetype": "Regional Institutional Capital",
+        "behavior": "Menghubungkan investor kaya dan hedge fund Asia Tenggara ke pasar saham Indonesia, khususnya sektor komoditas dan industri.",
+        "future_price_impact": "🟢 AKUMULASI SEKTORAL: Net Buy AI sering kali menandakan masuknya sentimen positif regional ke sektor terkait."
+    },
+    "KK": {
+        "code": "KK",
+        "name": "PT Phillip Sekuritas Indonesia",
+        "category": "👥 Ritel Mandiri & Reksa Dana Domestik",
+        "archetype": "Retail Online & Mutual Fund Inflow",
+        "behavior": "Platform ritel online terlama di Indonesia. Transaksinya mencerminkan pergerakan portofolio ritel mandiri dan reksa dana lokal.",
+        "future_price_impact": "⚪ PENGIKUT TREN: Pergerakannya cenderung selaras dengan tren arah pasar secara keseluruhan."
+    },
+    "CP": {
+        "code": "CP",
+        "name": "PT KB Valbury Sekuritas",
+        "category": "💼 Institusi Domestik & Fast Trader",
+        "archetype": "Commodity & Fast Money Trader",
+        "behavior": "Sangat aktif di saham-saham tambang, energi, dan komoditas siklikal.",
+        "future_price_impact": "🟢 MOMENTUM SIKLIKAL: Menandakan kebangkitan siklus harga komoditas pada saham terkait."
+    },
+    "EP": {
+        "code": "EP",
+        "name": "PT MNC Sekuritas",
+        "category": "💼 Ritel & Terafiliasi Konglomerasi MNC",
+        "archetype": "Conglomerate Inflow & Retail Network",
+        "behavior": "Memfasilitasi transaksi investor ritel dan ekosistem konglomerasi media, properti, dan perbankan MNC Group.",
+        "future_price_impact": "🟢 PENGGERAK SAHAM TERAFFILIASI: Menjadi penentu utama pergerakan saham-saham di bawah naungan grup konglomerasi terkait."
+    },
+    "DR": {
+        "code": "DR",
+        "name": "PT RHB Sekuritas Indonesia",
+        "category": "🏛️ Institusi Regional ASEAN (Malaysia)",
+        "archetype": "Regional ASEAN Fund",
+        "behavior": "Memiliki fokus pada saham-saham perkebunan CPO, konstruksi, dan perbankan di Asia Tenggara.",
+        "future_price_impact": "🟢 PENGUATAN TREN REGIONAL: Net Buy DR sering memperkuat tren kenaikan saham komoditas agribisnis dan energi."
+    },
+    "CD": {
+        "code": "CD",
+        "name": "PT Mega Capital Sekuritas",
+        "category": "💼 Terafiliasi Konglomerasi CT Corp",
+        "archetype": "Private Conglomerate Desk",
+        "behavior": "Menampung transaksi private investor dan ekosistem CT Corp (ritel, perbankan digital, media).",
+        "future_price_impact": "🟢 DUKUNGAN STRATEGIS: Memberikan stabilitas likuiditas pada saham-saham terafiliasi konglomerasi."
+    },
+    "GR": {
+        "code": "GR",
+        "name": "PT Panin Sekuritas Tbk.",
+        "category": "💼 Ritel HNW & Reksa Dana Panin",
+        "archetype": "Value Investor Domestik",
+        "behavior": "Terkenal dengan gaya investasi value investing (mencari saham murah dengan aset riil besar) dan nasabah HNW loyal.",
+        "future_price_impact": "🟢 AKUMULASI JANGKA PANJANG: Net Buy GR menandakan saham terdiskon secara fundamental dan siap disimpan untuk target multi-bagger."
+    },
+    "HD": {
+        "code": "HD",
+        "name": "PT KGI Sekuritas Indonesia",
+        "category": "🏛️ Institusi Regional Taiwan/Asia",
+        "archetype": "Asia Regional Wealth Desk",
+        "behavior": "Menyalurkan dana investor swasta Asia Timur pada saham-saham manufaktur dan ekspor.",
+        "future_price_impact": "🟢 PENGUATAN EKSPOR: Mengindikasikan minat asing pada saham berbasis ekspor dan komoditas."
+    },
+    "DP": {
+        "code": "DP",
+        "name": "PT DBS Vickers Sekuritas Indonesia",
+        "category": "🏛️ Smart Money Asing (Singapura)",
+        "archetype": "Institutional Wealth Management",
+        "behavior": "Mengelola portofolio institusi global dengan standar kepatuhan tinggi pada saham-saham LQ45.",
+        "future_price_impact": "🟢 KREDIBILITAS TINGGI: Net Buy konsisten DP memberikan rasa aman bagi pelaku pasar bahwa saham tersebut aman secara tata kelola korporasi."
+    },
+    "CG": {
+        "code": "CG",
+        "name": "PT CGS International Sekuritas Indonesia",
+        "category": "🏛️ Institusi Regional China/ASEAN",
+        "archetype": "Cross-border Institutional Capital",
+        "behavior": "Menjembatani aliran dana investasi institusi China dan Asia Tenggara ke pasar saham Indonesia.",
+        "future_price_impact": "🟢 ARUS MODAL INTERNASIONAL: Net Buy CG mencerminkan penempatan modal asing jangka menengah pada sektor riil."
+    },
+    "XA": {
+        "code": "XA",
+        "name": "PT NH Korindo Sekuritas Indonesia",
+        "category": "💼 Institusi Korea & Ritel Domestik",
+        "archetype": "Korean Capital & Retail Desk",
+        "behavior": "Menghubungkan ekosistem investasi Korea Selatan dengan bursa Indonesia, aktif di saham teknologi dan logistik.",
+        "future_price_impact": "🟢 MOMENTUM SPESIFIK: Mengindikasikan ekspansi bisnis atau kemitraan dengan entitas korporasi internasional."
+    },
+    "KI": {
+        "code": "KI",
+        "name": "PT Ciptadana Sekuritas Asia",
+        "category": "💼 Institusi Swasta Domestik Terkemuka",
+        "archetype": "Independent Domestic Institution",
+        "behavior": "Sekuritas independen mapan dengan nasabah institusi lokal dan manajer investasi terpercaya.",
+        "future_price_impact": "🟢 KUALITAS INVESTASI: Net Buy KI menunjukkan saham memiliki rasio valuasi menarik dan likuiditas sehat."
+    },
+    "HP": {
+        "code": "HP",
+        "name": "PT Henan Putihrai Sekuritas",
+        "category": "💼 Institusi Swasta & Komunitas Sharia",
+        "archetype": "Boutique Investment & Sharia Specialist",
+        "behavior": "Sekuritas butik senior yang aktif mengelola transaksi saham syariah dan nasabah loyal.",
+        "future_price_impact": "🟢 AKUMULASI SYARIAH: Mendukung apresiasi harga pada saham-saham yang masuk dalam indeks JII / ISSI."
+    },
+    "SH": {
+        "code": "SH",
+        "name": "PT Shinhan Sekuritas Indonesia",
+        "category": "🏛️ Institusi Korea Selatan",
+        "archetype": "Global Financial Group Network",
+        "behavior": "Menyalurkan dana konglomerasi dan perbankan Shinhan Financial Group ke instrumen ekuitas BEI.",
+        "future_price_impact": "🟢 DUKUNGAN KEUANGAN ASING: Menandai saham-saham yang memiliki daya tarik bagi investor institusi Asia Timur."
+    },
+    "IF": {
+        "code": "IF",
+        "name": "PT Samuel Sekuritas Indonesia",
+        "category": "💼 Riset Domestik & Institusi Swasta",
+        "archetype": "Comprehensive Domestic Research",
+        "behavior": "Divisi riset makro dan sektoral terkemuka yang menjadi rujukan fund manager domestik.",
+        "future_price_impact": "🟢 SINYAL RISET POSITIF: Pembelian IF mendahului sentimen kenaikan laba bersih emiten."
+    },
+    "LS": {
+        "code": "LS",
+        "name": "PT Reliance Sekuritas Indonesia Tbk.",
+        "category": "👥 Ritel Domestik & Asuransi",
+        "archetype": "Domestic Retail & Insurance Desk",
+        "behavior": "Terdaftar publik di BEI, melayani jaringan ritel mandiri dan unit asuransi grup Reliance.",
+        "future_price_impact": "⚪ PENGIKUT PASAR: Transaksi cenderung dinamis mengikuti tren likuiditas harian bursa."
+    }
+}
+
 # Klasifikasi Kode Broker BEI
 INSTITUTIONAL_BROKERS = {
-    "ZP", "CS", "MS", "BK", "RX", "AK", "KZ", "CC", "LG", "DX", "AI", "CG", "DP", "OD"
+    code for code, data in IDX_BROKER_DIRECTORY.items() if "Asing" in data["category"] or "BUMN" in data["category"] or "Institusi" in data["category"]
 }
 RETAIL_BROKERS = {
-    "YP", "PD", "XC", "NI", "KK", "AZ", "CP", "GR", "SQ", "XL", "EP", "XA"
+    code for code, data in IDX_BROKER_DIRECTORY.items() if "Ritel" in data["category"] or "Bandar" in data["category"] or "Pemula" in data["category"]
 }
+
+
+def get_broker_info(broker_code: str) -> Dict[str, str]:
+    """Mengambil metadata profil resmi broker, kategori, sifat transaksi, dan implikasi pergerakan harga."""
+    code_clean = str(broker_code).upper().strip()
+    if code_clean in IDX_BROKER_DIRECTORY:
+        return IDX_BROKER_DIRECTORY[code_clean]
+    
+    # Fallback jika broker belum terdaftar di katalog
+    is_inst = code_clean in INSTITUTIONAL_BROKERS
+    is_ret = code_clean in RETAIL_BROKERS
+    cat = "🏛️ Institusi Domestik/Asing" if is_inst else ("👥 Broker Ritel" if is_ret else "💼 Broker Swasta BEI")
+    return {
+        "code": code_clean,
+        "name": f"Broker Anggota Bursa ({code_clean})",
+        "category": cat,
+        "archetype": "General Participant",
+        "behavior": "Broker peserta perdagangan aktif di Bursa Efek Indonesia.",
+        "future_price_impact": "⚪ NETRAL: Mengikuti dinamika supply dan demand pasar reguler."
+    }
 
 
 # ==============================================================================
@@ -119,9 +425,36 @@ def detect_silent_institutional_accumulation(
         "🟡 KONSOLIDASI (BELUM AKUMULASI)" if is_stagnant else "⚪ TIDAK STAGNAN (TREN AKTIF)"
     )
 
-    # Urutkan top buyer & seller
-    top_inst = inst_df.sort_values(by="net_vol", ascending=False).head(5).to_dict(orient="records")
-    top_ret = retail_df.sort_values(by="net_vol", ascending=True).head(5).to_dict(orient="records")
+    # Urutkan top buyer & seller serta perkaya dengan metadata resmi dan implikasi harga
+    top_inst_raw = inst_df.sort_values(by="net_vol", ascending=False).head(5).to_dict(orient="records")
+    top_inst = []
+    for item in top_inst_raw:
+        b_info = get_broker_info(item["broker_code"])
+        top_inst.append({
+            "broker_code": item["broker_code"],
+            "broker_name": b_info["name"],
+            "category": b_info["category"],
+            "archetype": b_info["archetype"],
+            "net_vol": int(item["net_vol"]),
+            "buy_vol": int(item.get("buy_vol", 0)),
+            "sell_vol": int(item.get("sell_vol", 0)),
+            "future_price_impact": b_info["future_price_impact"]
+        })
+
+    top_ret_raw = retail_df.sort_values(by="net_vol", ascending=True).head(5).to_dict(orient="records")
+    top_ret = []
+    for item in top_ret_raw:
+        b_info = get_broker_info(item["broker_code"])
+        top_ret.append({
+            "broker_code": item["broker_code"],
+            "broker_name": b_info["name"],
+            "category": b_info["category"],
+            "archetype": b_info["archetype"],
+            "net_vol": int(item["net_vol"]),
+            "buy_vol": int(item.get("buy_vol", 0)),
+            "sell_vol": int(item.get("sell_vol", 0)),
+            "future_price_impact": b_info["future_price_impact"]
+        })
 
     return {
         "is_stagnant": is_stagnant,
@@ -619,18 +952,22 @@ def detect_wash_trading(
         b_code = row["broker_code"]
         dom = row["dominance_pct"]
         net_ratio = row["net_to_gross_pct"]
+        b_info = get_broker_info(b_code)
 
         # Kriteria: Dominasi >= 30% DAN net_to_gross < 5%
         if dom >= 30.0 and net_ratio < 5.0:
             flagged_brokers.append({
                 "broker_code": b_code,
+                "broker_name": b_info["name"],
+                "category": b_info["category"],
                 "gross_volume": int(row["gross_vol"]),
                 "buy_volume": int(row["buy_vol"]),
                 "sell_volume": int(row["sell_vol"]),
                 "net_volume": int(row["net_vol"]),
                 "dominance_pct": round(dom, 2),
                 "net_to_gross_pct": round(net_ratio, 2),
-                "type": "INSTITUSI" if b_code in INSTITUTIONAL_BROKERS else "RITEL/LAIN",
+                "type": b_info["category"],
+                "future_price_impact": b_info["future_price_impact"],
                 "verdict": "🚨 TERINDIKASI WASH TRADING (TRANSAKSI PUTAR)"
             })
 
@@ -660,11 +997,15 @@ def generate_synthetic_broker_summary(current_price: float, total_volume: float)
     for b_code, buy_pct, sell_pct in brokers:
         b_vol = int(base_vol * buy_pct)
         s_vol = int(base_vol * sell_pct)
+        b_info = get_broker_info(b_code)
         records.append({
             "broker_code": b_code,
+            "broker_name": b_info["name"],
+            "category": b_info["category"],
             "buy_vol": b_vol,
             "sell_vol": s_vol,
-            "net_vol": b_vol - s_vol
+            "net_vol": b_vol - s_vol,
+            "future_price_impact": b_info["future_price_impact"]
         })
     return pd.DataFrame(records)
 
@@ -756,14 +1097,15 @@ def render_broker_emiten_page(
 
     st.info(f"📌 **Emiten Terpilih**: **{ticker}** ({comp_name}) | **Rp {curr_p:,.0f}** | {tier_label}")
 
-    # Tabs untuk 6 Fitur Utama
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    # Tabs untuk 7 Fitur Utama
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
         "🕵️ Akumulasi Senyap Institusi",
         "🎯 Prediksi 3 Pilar & Holt-Winters",
         "🚨 Deteksi Pump & Dump",
         "🛡️ Spoofing & Layering Order Book",
         "⏰ Marking the Close (Intraday)",
-        "🔄 Deteksi Wash Trading"
+        "🔄 Deteksi Wash Trading",
+        "📖 Profil & Sifat Broker (Smart Money Guide)"
     ])
 
     # --------------------------------------------------------------------------
@@ -848,18 +1190,40 @@ def render_broker_emiten_page(
             )
             st.plotly_chart(fig_silent, use_container_width=True)
 
-        # Tabel Top Broker
+        # Tabel Top Broker dengan Metadata Nama Resmi & Implikasi Arah Harga
         c_inst, c_ret = st.columns(2)
         with c_inst:
-            st.markdown("#### 🏛️ Top 5 Net Buy Broker Institusi")
+            st.markdown("#### 🏛️ Top 5 Net Buy Broker Institusi (Smart Money)")
             if silent_res["top_institutional_buyers"]:
-                st.dataframe(pd.DataFrame(silent_res["top_institutional_buyers"]), use_container_width=True, hide_index=True)
+                st.dataframe(
+                    pd.DataFrame(silent_res["top_institutional_buyers"]),
+                    column_config={
+                        "broker_code": "Kode",
+                        "broker_name": "Nama Perusahaan Sekuritas",
+                        "category": "Kategori",
+                        "net_vol": st.column_config.NumberColumn("Net Lot", format="%d"),
+                        "future_price_impact": "Implikasi Arah Harga",
+                    },
+                    use_container_width=True,
+                    hide_index=True
+                )
             else:
                 st.info("Tidak ada transaksi net buy institusi yang dominan.")
         with c_ret:
-            st.markdown("#### 👥 Top 5 Net Sell Broker Ritel")
+            st.markdown("#### 👥 Top 5 Net Sell Broker Ritel (Kerumunan)")
             if silent_res["top_retail_sellers"]:
-                st.dataframe(pd.DataFrame(silent_res["top_retail_sellers"]), use_container_width=True, hide_index=True)
+                st.dataframe(
+                    pd.DataFrame(silent_res["top_retail_sellers"]),
+                    column_config={
+                        "broker_code": "Kode",
+                        "broker_name": "Nama Perusahaan Sekuritas",
+                        "category": "Kategori",
+                        "net_vol": st.column_config.NumberColumn("Net Lot", format="%d"),
+                        "future_price_impact": "Implikasi Arah Harga",
+                    },
+                    use_container_width=True,
+                    hide_index=True
+                )
             else:
                 st.info("Tidak ada distribusi ritel yang dominan.")
 
@@ -1143,13 +1507,153 @@ def render_broker_emiten_page(
         st.dataframe(
             pd.DataFrame(wash_res["broker_summary_table"]),
             column_config={
-                "broker_code": "Kode Broker",
-                "buy_vol": st.column_config.NumberColumn("Volume Beli (Lot)", format="%d"),
-                "sell_vol": st.column_config.NumberColumn("Volume Jual (Lot)", format="%d"),
+                "broker_code": "Kode",
+                "broker_name": "Nama Perusahaan Sekuritas",
+                "category": "Kategori",
+                "buy_vol": st.column_config.NumberColumn("Beli (Lot)", format="%d"),
+                "sell_vol": st.column_config.NumberColumn("Jual (Lot)", format="%d"),
                 "gross_vol": st.column_config.NumberColumn("Total Kotor (Lot)", format="%d"),
                 "net_vol": st.column_config.NumberColumn("Net Volume (Lot)", format="%d"),
                 "dominance_pct": st.column_config.NumberColumn("Dominasi Pasar", format="%.2f%%"),
                 "net_to_gross_pct": st.column_config.NumberColumn("Rasio Net/Gross", format="%.2f%%"),
+                "future_price_impact": "Implikasi Arah Harga",
+            },
+            use_container_width=True,
+            hide_index=True
+        )
+
+    # --------------------------------------------------------------------------
+    # TAB 7: PROFIL & SIFAT BROKER (SMART MONEY GUIDE)
+    # --------------------------------------------------------------------------
+    with tab7:
+        st.markdown("### 📖 Profil & Sifat Broker (Panduan Smart Money & Prediksi Arah Harga)")
+        st.markdown(
+            "Panduan komprehensif mengenai **sifat dan karakteristik broker di Bursa Efek Indonesia (BEI)**. "
+            "Memahami siapa yang berada di balik transaksi memungkinkan investor mengantisipasi fase pasar (*Akumulasi*, *Markup*, *Distribusi*, atau *Markdown*) "
+            "dan memproyeksikan ke mana arah pergerakan harga saham di masa depan."
+        )
+        
+        # 1. Empat Karakter Utama Pelaku Pasar BEI
+        st.markdown("#### 🧭 4 Karakter Utama Pelaku Pasar (Archetypes) di BEI:")
+        c_arch1, c_arch2, c_arch3, c_arch4 = st.columns(4)
+        with c_arch1:
+            st.info(
+                "**🏛️ Smart Money Asing**\n\n"
+                "*(BK, CS, ZP, RX, AK, KZ, DP)*\n\n"
+                "• **Sifat**: Akumulasi senyap, modal masif, orientasi jangka menengah-panjang.\n"
+                "• **Arah Harga**: **BULLISH KUAT**. Net buy konsisten mengawali fase kenaikan harga berkelanjutan (*Markup*)."
+            )
+        with c_arch2:
+            st.success(
+                "**🏦 BUMN & Sovereign Fund**\n\n"
+                "*(CC, NI, OD, DX)*\n\n"
+                "• **Sifat**: Dana pensiun & asuransi negara, penstabil pasar saat krisis.\n"
+                "• **Arah Harga**: **BOTTOM REVERSAL**. Pembelian masif di harga murah menandakan lantai support terkuat."
+            )
+        with c_arch3:
+            st.warning(
+                "**👥 Kerumunan Ritel**\n\n"
+                "*(YP, PD, XC, KK, XL)*\n\n"
+                "• **Sifat**: Cepat FOMO, sangat reaktif terhadap berita & medsos, holding singkat.\n"
+                "• **Arah Harga**: **BEARISH TRAP**. Jika ritel memborong di pucuk saat asing jualan, harga rawan diguyur (distribusi)."
+            )
+        with c_arch4:
+            st.error(
+                "**⚡ Bandar Kilat / Scalper**\n\n"
+                "*(MG, AZ, CP)*\n\n"
+                "• **Sifat**: Memompa harga cepat di pagi hari lalu guyur di siang/besok hari.\n"
+                "• **Arah Harga**: **VOLATILITAS EKSTREM**. HANYA untuk scalping kilat berdisiplin tinggi, sangat bahaya di-hold."
+            )
+
+        st.markdown("---")
+
+        # 2. Matriks Pengambilan Keputusan Arah Harga
+        st.markdown("#### 🎯 Matriks Sinyal Proyeksi Arah Harga Masa Depan:")
+        matrix_data = [
+            {
+                "Kondisi Transaksi Broker": "🏛️ Asing/Institusi NET BUY + 👥 Ritel NET SELL",
+                "Fase Pasar": "Akumulasi Smart Money",
+                "Arah Harga Masa Depan": "🟢 SANGAT BULLISH (Harga Siap Naik)",
+                "Strategi Tindakan": "Ikut akumulasi / Buy on Weakness dan pasang target hold menengah."
+            },
+            {
+                "Kondisi Transaksi Broker": "👥 Ritel NET BUY MASIF + 🏛️ Asing/Institusi NET SELL",
+                "Fase Pasar": "Distribusi ke Ritel (Jebakan Pucuk)",
+                "Arah Harga Masa Depan": "🔴 SANGAT BEARISH (Rawan Guyuran / Anjlok)",
+                "Strategi Tindakan": "Ambil Take Profit segera atau hindari masuk; risiko nyangkut di pucuk sangat tinggi."
+            },
+            {
+                "Kondisi Transaksi Broker": "⚡ Bandar Kilat (MG) NET BUY Besar di Awal Hari",
+                "Fase Pasar": "Fast Momentum Pump",
+                "Arah Harga Masa Depan": "🟡 VOLATIL (Naik Tajam Intraday, Guyuran H+1)",
+                "Strategi Tindakan": "Hanya ikuti untuk Scalping hit-and-run cepat; jangan menginapkan posisi."
+            },
+            {
+                "Kondisi Transaksi Broker": "🏦 BUMN (CC, NI, OD) NET BUY Saat IHSG / Saham Crash",
+                "Fase Pasar": "Stabilisasi Pasar (National Defense)",
+                "Arah Harga Masa Depan": "🟢 REVERSAL (Pembentukan Titik Terendah / Bottom)",
+                "Strategi Tindakan": "Mulai cicil beli bertahap pada saham BUMN/Blue Chip berfundamental unggul."
+            },
+            {
+                "Kondisi Transaksi Broker": "🔄 1 Broker Gross Masif (>= 30%), tapi Net ~ 0 (< 5%)",
+                "Fase Pasar": "Wash Trading / Transaksi Semu",
+                "Arah Harga Masa Depan": "⚪ ILUSI LIKUIDITAS (Arah Semu)",
+                "Strategi Tindakan": "Waspada manipulasi volume semu; jangan terkecoh oleh antrean tebal palsu."
+            }
+        ]
+        st.dataframe(pd.DataFrame(matrix_data), use_container_width=True, hide_index=True)
+
+        st.markdown("---")
+
+        # 3. Pencarian & Katalog Interaktif Seluruh Broker BEI
+        st.markdown("#### 🔍 Katalog & Direktori Profil Broker BEI:")
+        col_f1, col_f2 = st.columns([1, 2])
+        with col_f1:
+            cat_filter = st.selectbox(
+                "Filter Berdasarkan Kategori Broker:",
+                ["Semua Kategori", "🏛️ Asing / Smart Money", "🏦 BUMN / Sovereign Fund", "👥 Kerumunan Ritel", "⚡ Bandar Kilat / Scalper", "💼 Swasta & Terafiliasi"],
+                index=0
+            )
+        with col_f2:
+            search_kw = st.text_input("Cari Kode Broker atau Nama Perusahaan (contoh: ZP, YP, Mandiri, Mirae, J.P. Morgan):", "").strip().upper()
+
+        all_brokers_list = list(IDX_BROKER_DIRECTORY.values())
+        filtered_brokers = []
+        for b in all_brokers_list:
+            if cat_filter != "Semua Kategori":
+                if "Asing" in cat_filter and "Asing" not in b["category"]:
+                    continue
+                elif "BUMN" in cat_filter and "BUMN" not in b["category"]:
+                    continue
+                elif "Ritel" in cat_filter and "Ritel" not in b["category"]:
+                    continue
+                elif "Bandar" in cat_filter and "Bandar" not in b["category"] and "Fast" not in b["archetype"]:
+                    continue
+                elif "Swasta" in cat_filter and "Swasta" not in b["category"] and "Terafiliasi" not in b["category"]:
+                    continue
+
+            if search_kw:
+                if search_kw not in b["code"] and search_kw not in b["name"].upper():
+                    continue
+
+            filtered_brokers.append({
+                "Kode": b["code"],
+                "Nama Resmi Perusahaan": b["name"],
+                "Kategori": b["category"],
+                "Arketipe": b["archetype"],
+                "Sifat & Karakter Transaksi": b["behavior"],
+                "Implikasi Arah Harga Masa Depan": b["future_price_impact"]
+            })
+
+        st.dataframe(
+            pd.DataFrame(filtered_brokers),
+            column_config={
+                "Kode": st.column_config.TextColumn("Kode", width="small"),
+                "Nama Resmi Perusahaan": st.column_config.TextColumn("Nama Perusahaan Sekuritas", width="medium"),
+                "Kategori": st.column_config.TextColumn("Kategori", width="medium"),
+                "Arketipe": st.column_config.TextColumn("Peran Pasar", width="medium"),
+                "Sifat & Karakter Transaksi": st.column_config.TextColumn("Karakteristik & Perilaku", width="large"),
+                "Implikasi Arah Harga Masa Depan": st.column_config.TextColumn("Proyeksi Arah Harga", width="large"),
             },
             use_container_width=True,
             hide_index=True
