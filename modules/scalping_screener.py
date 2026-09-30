@@ -361,19 +361,22 @@ def scan_top_10_scalping_stocks(
         # 3. Filter Tier STRICTLY BERDASARKAN TIER RESMI & HARGA NOMINAL SAHAM
         if tier_filter not in {"Semua", "Semua Tingkatan"}:
             if "Gocap" in tier_filter or "Tidur" in tier_filter or "Rp50" in tier_filter:
-                if tier_code != "GOCAP" and not (50.0 <= price_val <= 100.0):
+                if tier_code != "GOCAP":
                     continue
-            elif "Receh" in tier_filter or "Murah" in tier_filter or "Rp100" in tier_filter:
-                if tier_code != "RECEH" and not (100.0 < price_val <= 1000.0):
+            elif "Receh" in tier_filter or "Murah" in tier_filter or "Rp100 – Rp1.000" in tier_filter or "Rp100" in tier_filter:
+                if tier_code != "RECEH":
+                    continue
+            elif "Menengah" in tier_filter or "Rp1.000 – Rp5.000" in tier_filter:
+                if tier_code != "MENENGAH":
                     continue
             elif "Premium" in tier_filter or "Blue Chip" in tier_filter or "5.000" in tier_filter:
-                if tier_code != "PREMIUM" and not (price_val > 5000.0):
+                if tier_code != "PREMIUM":
                     continue
             elif "Lapis 1" in tier_filter:
                 if tier_code != "PREMIUM":
                     continue
             elif "Lapis 2" in tier_filter:
-                if tier_code != "RECEH":
+                if tier_code not in {"MENENGAH", "RECEH"}:
                     continue
             elif "Lapis 3" in tier_filter:
                 if tier_code != "GOCAP":

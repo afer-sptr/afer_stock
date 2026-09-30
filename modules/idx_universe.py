@@ -53,12 +53,12 @@ CONVENTIONAL_INSURANCE: Set[str] = {
 # 3. Multifinance & Leasing Konvensional
 CONVENTIONAL_FINANCE: Set[str] = {
     "BFIN", "ADMF", "CFIN", "MFIN", "WOMF", "TRUS", "VRNA", "BBLD", "TIFA",
-    "HDFA", "BPFI", "IMFI", "FINN", "DEFI", "VTNY", "POLA"
+    "HDFA", "BPFI", "IMFI", "FINN", "DEFI", "VTNY", "POLA", "LPPS", "SMMA"
 }
 
 # 4. Sekuritas & Holding Investasi Konvensional
 CONVENTIONAL_SECURITIES: Set[str] = {
-    "PANS", "TRIM", "YULE", "APIC", "KREN", "RELI", "KBLM", "BHIT"
+    "PANS", "TRIM", "YULE", "APIC", "KREN", "RELI", "KBLM", "BHIT", "SRTG"
 }
 
 # 5. Produsen Rokok & Tembakau
@@ -68,12 +68,12 @@ TOBACCO_TICKERS: Set[str] = {
 
 # 6. Minuman Beralkohol
 ALCOHOL_TICKERS: Set[str] = {
-    "MLBI", "DLTA"
+    "MLBI", "DLTA", "WINE", "BEER", "STRK"
 }
 
-# Bank Syariah yang Sah Sesuai Kriteria Syariah OJK
+# Bank & Institusi Keuangan Syariah Resmi OJK (Daftar Efek Syariah)
 ISLAMIC_FINANCIAL_TICKERS: Set[str] = {
-    "BRIS", "BTPS", "BANK"
+    "BRIS", "BTPS", "BANK", "PNBS", "JMAS"
 }
 
 # Seluruh Ticker Non-Syariah Tergabung
@@ -90,6 +90,32 @@ _DATA_PATH = os.path.join(os.path.dirname(__file__), "idx_stocks.json")
 _PRICES_PATH = os.path.join(os.path.dirname(__file__), "idx_prices.json")
 
 
+def is_sharia_compliant(ticker: str, sector: str = "", name: str = "") -> bool:
+    """
+    Validasi Kepatuhan Syariah OJK / DSN-MUI secara ketat & permanen.
+    - Semua bank/keuangan konvensional, asuransi konvensional, multifinance, sekuritas: Non-Syariah
+    - Semua produsen rokok/tembakau (HMSP, GGRM, WIIM, ITIC, RMBA): Non-Syariah
+    - Semua produsen minuman beralkohol (MLBI, DLTA, WINE, BEER, STRK): Non-Syariah
+    - Emiten keuangan yang berprinsip Syariah (BRIS, BTPS, BANK, PNBS, JMAS): Syariah
+    """
+    clean = ticker.replace(".JK", "").upper().strip()
+    if clean in ISLAMIC_FINANCIAL_TICKERS:
+        return True
+    if clean in NON_SHARIA_TICKERS:
+        return False
+    if sector.strip().lower() in {"financials", "keuangan"}:
+        return False
+
+    name_lower = name.lower()
+    for kw in ["bank", "asuransi", "insurance", "finance", "multifinance", "securities", "sekuritas", "brewery", "beer", "wine", "tobacco", "rokok", "tembakau"]:
+        if kw in name_lower:
+            if any(sharia_kw in name_lower for sharia_kw in ["syariah", "sharia", "aladin"]):
+                return True
+            return False
+
+    return True
+
+
 @lru_cache(maxsize=1)
 def load_idx_prices() -> Dict[str, float]:
     """Memuat database harga pasar penutupan riil seluruh saham BEI."""
@@ -102,16 +128,29 @@ def load_idx_prices() -> Dict[str, float]:
     return {}
 
 
+def classify_tier_by_price(price: float) -> Tuple[str, str, str]:
+    """Mengklasifikasikan tier secara presisi berdasarkan nilai nominal riil."""
+    if price > 5000.0:
+        return "Saham Premium / Blue Chip (Di atas Rp5.000)", "PREMIUM", "Premium >5k"
+    elif price <= 100.0:
+        return "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "GOCAP", "Gocap 50-100"
+    elif 100.0 < price <= 1000.0:
+        return "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "RECEH", "Receh 100-1k"
+    else:
+        return "Saham Menengah (Rp1.000 – Rp5.000)", "MENENGAH", "Menengah 1k-5k"
+
+
 def classify_stock_tier(
     ticker: str,
     price: Optional[float] = None,
     board: str = "Utama"
 ) -> Tuple[str, str, str]:
     """
-    Mengklasifikasikan saham ke dalam salah satu dari 3 Tingkatan (Tier) resmi:
+    Mengklasifikasikan saham secara presisi ke dalam Tingkatan (Tier) resmi:
     1. Saham Gocap / Saham Tidur (Rp50 – Rp100) [GOCAP]
     2. Saham Receh / Saham Murah (Rp100 – Rp1.000) [RECEH]
-    3. Saham Premium / Blue Chip (Di atas Rp5.000) [PREMIUM]
+    3. Saham Menengah (Rp1.000 – Rp5.000) [MENENGAH]
+    4. Saham Premium / Blue Chip (Di atas Rp5.000) [PREMIUM]
     """
     clean = ticker.upper().strip()
     
@@ -122,35 +161,13 @@ def classify_stock_tier(
         current_p = prices.get(clean)
 
     if current_p is not None and current_p > 0:
-        if current_p <= 100.0:
-            return "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "GOCAP", "Gocap 50-100"
-        elif 100.0 < current_p <= 1000.0:
-            return "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "RECEH", "Receh 100-1k"
-        elif current_p > 5000.0:
-            return "Saham Premium / Blue Chip (Di atas Rp5.000)", "PREMIUM", "Premium >5k"
-        else:
-            # Harga antara Rp 1.000 - Rp 5.000:
-            # Jika merupakan saham induk LQ45/Institusi, masukkan ke kategori Blue Chip
-            if clean in BLUE_CHIP_TICKERS:
-                return "Saham Premium / Blue Chip (Di atas Rp5.000)", "PREMIUM", "Blue Chip"
-            else:
-                return "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "RECEH", "Mid-Cap 1k-5k"
+        return classify_tier_by_price(current_p)
 
     # Fallback jika harga belum tercatat di database harga
     if board in {"Pemantauan Khusus", "Akselerasi"}:
         return "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "GOCAP", "Gocap 50-100"
     elif clean in BLUE_CHIP_TICKERS:
         return "Saham Premium / Blue Chip (Di atas Rp5.000)", "PREMIUM", "Blue Chip"
-    else:
-        return "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "RECEH", "Receh 100-1k"
-
-
-def classify_tier_by_price(price: float) -> Tuple[str, str, str]:
-    """Mengklasifikasikan tier secara instan berdasarkan nilai nominal riil."""
-    if price > 5000.0:
-        return "Saham Premium / Blue Chip (Di atas Rp5.000)", "PREMIUM", "Premium >5k"
-    elif price <= 100.0:
-        return "Saham Gocap / Saham Tidur (Rp50 – Rp100)", "GOCAP", "Gocap 50-100"
     else:
         return "Saham Receh / Saham Murah (Rp100 – Rp1.000)", "RECEH", "Receh 100-1k"
 
@@ -197,15 +214,7 @@ def get_all_idx_stocks_enriched() -> List[Dict[str, Any]]:
         tier, tier_code, tier_short = classify_stock_tier(ticker, price=price, board=board)
 
         # 2. Klasifikasi Syariah Presisi OJK / DSN-MUI
-        if ticker in ISLAMIC_FINANCIAL_TICKERS:
-            is_syariah = True
-        elif sector == "Financials":
-            is_syariah = False
-        elif ticker in NON_SHARIA_TICKERS:
-            is_syariah = False
-        else:
-            is_syariah = True
-
+        is_syariah = is_sharia_compliant(ticker, sector=sector, name=name)
         syariah_label = "☪️ Syariah (ISSI)" if is_syariah else "⚪ Non-Syariah"
 
         enriched.append({
@@ -241,14 +250,26 @@ def filter_idx_stocks(
     for s in stocks:
         # Filter Tier
         if tier_filter not in {"Semua", "Semua Tingkatan"}:
-            if "Gocap" in tier_filter or "Tidur" in tier_filter:
+            if "Gocap" in tier_filter or "Tidur" in tier_filter or "Rp50" in tier_filter:
                 if s["tier_code"] != "GOCAP":
                     continue
-            elif "Receh" in tier_filter or "Murah" in tier_filter:
+            elif "Receh" in tier_filter or "Murah" in tier_filter or "Rp100 – Rp1.000" in tier_filter:
                 if s["tier_code"] != "RECEH":
                     continue
-            elif "Premium" in tier_filter or "Blue Chip" in tier_filter:
+            elif "Menengah" in tier_filter or "Rp1.000 – Rp5.000" in tier_filter:
+                if s["tier_code"] != "MENENGAH":
+                    continue
+            elif "Premium" in tier_filter or "Blue Chip" in tier_filter or "5.000" in tier_filter:
                 if s["tier_code"] != "PREMIUM":
+                    continue
+            elif "Lapis 1" in tier_filter:
+                if s["tier_code"] != "PREMIUM":
+                    continue
+            elif "Lapis 2" in tier_filter:
+                if s["tier_code"] not in {"MENENGAH", "RECEH"}:
+                    continue
+            elif "Lapis 3" in tier_filter:
+                if s["tier_code"] != "GOCAP":
                     continue
 
         # Filter Syariah
@@ -287,13 +308,7 @@ def get_stock_metadata(ticker_or_code: str) -> Dict[str, Any]:
     prices = load_idx_prices()
     p = prices.get(clean_ticker, 0.0)
     tier, tier_code, tier_short = classify_stock_tier(clean_ticker, price=p)
-
-    if clean_ticker in ISLAMIC_FINANCIAL_TICKERS:
-        is_syariah = True
-    elif clean_ticker in NON_SHARIA_TICKERS:
-        is_syariah = False
-    else:
-        is_syariah = True
+    is_syariah = is_sharia_compliant(clean_ticker)
 
     return {
         "code": f"{clean_ticker}.JK",
@@ -320,8 +335,9 @@ def get_all_sectors() -> List[str]:
 
 get_all_idx_stocks = get_all_idx_stocks_enriched
 TIER_1_TICKERS = BLUE_CHIP_TICKERS
-PREMIUM_BLUE_CHIP_TICKERS = BLUE_CHIP_TICKERS
-TIER_2_TICKERS = {s["ticker"] for s in get_all_idx_stocks_enriched() if s["tier_code"] == "RECEH"}
-RECEH_MURAH_TICKERS = TIER_2_TICKERS
+PREMIUM_BLUE_CHIP_TICKERS = {s["ticker"] for s in get_all_idx_stocks_enriched() if s["tier_code"] == "PREMIUM"}
+MENENGAH_TICKERS = {s["ticker"] for s in get_all_idx_stocks_enriched() if s["tier_code"] == "MENENGAH"}
+TIER_2_TICKERS = {s["ticker"] for s in get_all_idx_stocks_enriched() if s["tier_code"] in {"RECEH", "MENENGAH"}}
+RECEH_MURAH_TICKERS = {s["ticker"] for s in get_all_idx_stocks_enriched() if s["tier_code"] == "RECEH"}
 TIER_3_TICKERS = {s["ticker"] for s in get_all_idx_stocks_enriched() if s["tier_code"] == "GOCAP"}
 GOCAP_TIDUR_TICKERS = TIER_3_TICKERS

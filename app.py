@@ -340,6 +340,7 @@ chosen_tier = st.sidebar.selectbox(
         "Semua Tingkatan",
         "Saham Gocap / Saham Tidur (Rp50 – Rp100)",
         "Saham Receh / Saham Murah (Rp100 – Rp1.000)",
+        "Saham Menengah (Rp1.000 – Rp5.000)",
         "Saham Premium / Blue Chip (Di atas Rp5.000)",
     ],
     index=0
@@ -932,6 +933,7 @@ with tab_scalp:
                 "Semua Tingkatan",
                 "Saham Gocap / Saham Tidur (Rp50 – Rp100)",
                 "Saham Receh / Saham Murah (Rp100 – Rp1.000)",
+                "Saham Menengah (Rp1.000 – Rp5.000)",
                 "Saham Premium / Blue Chip (Di atas Rp5.000)",
             ],
             key="scalp_tier_filter"

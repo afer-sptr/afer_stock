@@ -2285,7 +2285,7 @@
     "code": "GGRM.JK",
     "ticker": "GGRM",
     "name": "Gudang Garam Tbk.",
-    "sector": "`",
+    "sector": "Consumer Non-Cyclicals",
     "board": "Utama"
   },
   {
@@ -6557,5 +6557,12 @@
     "name": "Zyrexindo Mandiri Buana Tbk.",
     "sector": "Technology",
     "board": "Pengembangan"
+  },
+  {
+    "code": "AADI.JK",
+    "ticker": "AADI",
+    "name": "Adaro Andalan Indonesia Tbk.",
+    "sector": "Energy",
+    "board": "Utama"
   }
 ]
