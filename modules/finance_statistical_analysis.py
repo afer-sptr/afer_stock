@@ -409,10 +409,14 @@ def render_finance_statistical_analysis_page(
                 f"- **Status Siklus**: **{broker_eval['fase_bandar']}** -> _{broker_eval['action_bandar']}_"
             )
         with eko_col2:
+            insta_info = social_eval.get("instagram_feed")
+            insta_sc = f"{insta_info['composite_instagram_score']:.0f}" if insta_info else "75"
+            insta_reg = insta_info.get("primary_authority", "@smindrawati & @kemenkeuri") if insta_info else "@smindrawati"
             st.markdown(
-                f"**🌍 Sentimen Media Sosial Global** (`{social_eval['composite_social_score']}/100`):\n"
+                f"**📸 Radar Instagram Otoritas & Medsos** (`{social_eval['composite_social_score']}/100`):\n"
+                f"- **Otoritas Kebijakan**: **{insta_reg}** | Skor Instagram: `{insta_sc}/100`\n"
                 f"- **Status Kerumunan**: **{social_eval['crowd_status']}**\n"
-                f"- **Platform Breakdown**: Twitter/X: `{social_eval['channels']['Twitter / X (FinTwit Global)']:.0f}` | Stockbit: `{social_eval['channels']['Stockbit Stream & Retail IDX']:.0f}` | Telegram: `{social_eval['channels']['Telegram Komunitas Saham']:.0f}` | YouTube: `{social_eval['channels']['YouTube & Financial Influencer']:.0f}`\n"
+                f"- **Platform Breakdown**: Instagram: `{insta_sc}` | Stockbit: `{social_eval['channels'].get('Stockbit Stream & Retail IDX', 65):.0f}` | Twitter/X: `{social_eval['channels'].get('Twitter / X (FinTwit Global)', 65):.0f}`\n"
                 f"- **Psikologi Kerumunan**: _{social_eval['crowd_desc']}_\n\n"
                 f"**🧠 Psikologi Pasar & Katalis Korporasi**:\n"
                 f"- **Fear & Greed Index**: **{psychology_eval['fear_greed_index']}/100** ({psychology_eval['cycle_phase']})\n"
@@ -1697,6 +1701,19 @@ def render_finance_statistical_analysis_page(
                 ]
             })
             st.dataframe(st_df, hide_index=True, use_container_width=True)
+
+            # Sub-analisis 4: Radar Intelijen Keputusan Instagram
+            st.markdown("##### 📸 4. Intelijen Keputusan Instagram: Menkeu, Presiden, BI, OJK & BEI")
+            insta_rep = social_eval.get("instagram_feed")
+            if insta_rep:
+                st.info(
+                    f"**Regulator Kunci Sektor**: **{insta_rep['primary_authority']}** | "
+                    f"**Status Kebijakan**: **{insta_rep['policy_status']}**\n\n"
+                    f"- **Fokus Regulasi**: _{insta_rep['policy_focus']}_\n"
+                    f"- **Katalis Pendorong (Booster)**: _{insta_rep['policy_booster_theme']}_\n"
+                    f"- **Risiko Tekanan (Pressure)**: _{insta_rep['policy_risk_theme']}_\n"
+                    f"- **Panduan Arah Keputusan**: **{insta_rep['policy_guidance']}**"
+                )
 
         with anom_tab4:
             st.markdown("#### 🚀 Arsitektur Modern MLOps Produksi (Dual-Model Meta-Labeling)")

@@ -279,6 +279,7 @@ def generate_composite_recommendation(
             "ihsg_macro": ihsg_score,
             "broker_flow": broker_score,
             "global_social": social_score,
+            "instagram_sentiment": round(float(social_sentiment_result.get("instagram_feed", {}).get("composite_instagram_score", social_score))) if social_sentiment_result and social_sentiment_result.get("instagram_feed") else social_score,
             "corporate_catalysts": catalyst_score,
             "investor_psychology": psychology_score,
         },

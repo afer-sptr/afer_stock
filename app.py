@@ -882,8 +882,10 @@ with st.expander("🌐 **Ekosistem Pasar Terpadu: Proyeksi Masa Depan IHSG, Jeja
         st.markdown(f"**🏛️ Lead Broker Dominan:** `{broker_eval['lead_broker_code']}` ({broker_eval['lead_broker_name'][:20]})")
         st.caption(f"Modal Rata-rata Bandar: **Rp {broker_eval['bandar_cost']:,}** ({broker_eval['diff_from_cost_pct']:+.1f}% dari pasar)\n- Fase: **{broker_eval['fase_bandar']}**\n- Implikasi Tindakan: **{broker_eval['action_bandar']}**")
     with eko_c3:
-        st.markdown(f"**🌍 Sentimen Media Sosial Global:** `{social_eval['composite_social_score']}/100`")
-        st.caption(f"Status Kerumunan: **{social_eval['crowd_status']}**\n- Twitter/X: {social_eval['channels']['Twitter / X (FinTwit Global)']:.0f} | Stockbit: {social_eval['channels']['Stockbit Stream & Retail IDX']:.0f}\n- Telegram: {social_eval['channels']['Telegram Komunitas Saham']:.0f} | YouTube: {social_eval['channels']['YouTube & Financial Influencer']:.0f}")
+        insta_d = social_eval.get("instagram_feed")
+        insta_st = f"📸 Insta: {insta_d['policy_status'].split('(')[0].strip()}" if insta_d else "📸 Insta Radar"
+        st.markdown(f"**🌍 Sentimen Medsos & Instagram:** `{social_eval['composite_social_score']}/100`")
+        st.caption(f"{insta_st} | Status: **{social_eval['crowd_status'].split('/')[0].strip()}**\n- Otoritas (@smindrawati, @idx): `{social_eval['channels'].get(list(social_eval['channels'].keys())[0], 70):.0f}`\n- Stockbit: `{social_eval['channels'].get('Stockbit Stream & Retail IDX', 65):.0f}` | Twitter/X: `{social_eval['channels'].get('Twitter / X (FinTwit Global)', 65):.0f}`")
     with eko_c4:
         st.markdown(f"**🧠 Psikologi Pasar & Proyek:**")
         st.caption(f"Fear & Greed Index: **{psychology_eval['fear_greed_index']}/100** ({psychology_eval['cycle_phase']})\n- Bias Kognitif: _{psychology_eval['bias_warning'][:38]}..._\n- Proyek Kunci: **{corp_eval['project_title'][:32]}...**")
@@ -911,7 +913,7 @@ with res_col1:
     
     b = rec["breakdown_scores"]
     st.caption(f"• Teknikal: {b['technical']} | • High/Low: {b['high_low']} | • Fundamental: {b['fundamental']}")
-    st.caption(f"• Sentimen Berita: {b['news_sentiment']} | • AI & ML: {b['ml_prediction']} | • Order Book: {b['order_book']}")
+    st.caption(f"• Berita: {b['news_sentiment']} | • Instagram & Medsos: {b.get('instagram_sentiment', b.get('global_social', 50))} | • AI/ML: {b['ml_prediction']} | • Order Book: {b['order_book']}")
 
     # Tombol Kirim Cepat WhatsApp & Telegram
     alert_payload = {
@@ -1812,9 +1814,10 @@ with tab_eko:
     eko_tabs = st.tabs([
         "📈 1. Makro IHSG & Proyeksi 30D",
         "🏛️ 2. Jejak Broker & Modal Bandar",
-        "🌍 3. Sentimen Media Sosial Global",
-        "🏗️ 4. Proyek Strategis & Capex",
-        "🧠 5. Psikologi & Behavioral Finance"
+        "📸 3. Sentimen Instagram & Kebijakan",
+        "🌍 4. Sentimen Medsos Global",
+        "🏗️ 5. Proyek Strategis & Capex",
+        "🧠 6. Psikologi & Behavioral Finance"
     ])
 
     with eko_tabs[0]:
@@ -1930,6 +1933,84 @@ with tab_eko:
         st.plotly_chart(fig_br, use_container_width=True)
 
     with eko_tabs[2]:
+        st.markdown(f"##### 📸 Radar Sentimen Instagram: Kebijakan Menkeu, Presiden, BI, BEI & Media Saham")
+        st.caption(
+            "Mengambil dan membedah informasi langsung dari akun-akun resmi Instagram terkait pasar modal, "
+            "kebijakan Menteri Keuangan (@smindrawati), Kemenkeu (@kemenkeuri), Presiden (@presidenrepublikindonesia), "
+            "Bank Indonesia (@bank_indonesia), OJK (@ojkindonesia), Bursa Efek Indonesia (@indonesiastockexchange, @idx_channel), "
+            "dan media finansial terpercaya (@cnbcindonesia, @bisniscom, @kontannews, @stockbit) yang dapat mengubah arah pergerakan harga saham."
+        )
+
+        insta_info = social_eval.get("instagram_feed")
+        if not insta_info:
+            from modules.instagram_sentiment_radar import fetch_instagram_sentiment_feed
+            insta_info = fetch_instagram_sentiment_feed(
+                ticker_clean,
+                company_name=meta_live.get("name") or ticker_clean,
+                sector=meta_live.get("sector") or "Umum"
+            )
+
+        ig_c1, ig_c2, ig_c3 = st.columns(3)
+        with ig_c1:
+            st.metric("Skor Sentimen Instagram", f"{insta_info['composite_instagram_score']:.0f} / 100", f"Status: {insta_info['policy_status'].split('(')[0].strip()}")
+        with ig_c2:
+            st.metric("Otoritas Penentu Kebijakan", f"{insta_info['primary_authority']}", "Regulator Utama")
+        with ig_c3:
+            st.metric("Akun Otoritas Terpantau", f"{insta_info['key_accounts_tracked_count']} Akun Resmi", "Terverifikasi")
+
+        st.markdown(f"""
+        <div class="quant-box" style="border-left: 5px solid {insta_info['policy_color']}; padding:14px; margin-top:8px; margin-bottom:12px;">
+            <h5 style="margin:0 0 6px 0; color:{insta_info['policy_color']};">⚖️ Status Kebijakan: {insta_info['policy_status']}</h5>
+            <p style="margin:0 0 6px 0;"><b>🎯 Fokus Kebijakan & Regulasi Sektor:</b> {insta_info['policy_focus']}</p>
+            <p style="margin:0 0 6px 0;"><b>🟢 Faktor Pendorong (Booster):</b> {insta_info['policy_booster_theme']}</p>
+            <p style="margin:0 0 6px 0;"><b>🔴 Faktor Risiko (Pressure):</b> {insta_info['policy_risk_theme']}</p>
+            <b>🧭 Panduan Arah Pasar:</b> <span style="color:{insta_info['policy_color']}; font-weight:700;">{insta_info['policy_guidance']}</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        ig_post_col, ig_chart_col = st.columns([3, 2])
+        with ig_post_col:
+            st.markdown("###### 📱 Feed Postingan & Pernyataan Terkini Akun Instagram Otoritas:")
+            for p in insta_info.get("latest_posts", [])[:5]:
+                badge_style = "color:#10B981; font-weight:700;" if "POSITIF" in p['sentiment'] else ("color:#EF4444; font-weight:700;" if "NEGATIF" in p['sentiment'] else "color:#EAB308; font-weight:700;")
+                st.markdown(f"""
+                <div style="background:#1E293B; border-radius:8px; padding:10px 12px; margin-bottom:8px; border:1px solid #334155;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <span style="color:#38BDF8; font-weight:700; font-size:0.9rem;">🔵 {p['account']}</span>
+                        <span style="color:#94A3B8; font-size:0.8rem;">⏱️ {p['time_ago']}</span>
+                    </div>
+                    <div style="font-size:0.88rem; color:#F1F5F9; margin-bottom:6px;">{p['title']}</div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
+                        <span style="color:#94A3B8;">Sumber: <i>{p['source']}</i></span>
+                        <span style="{badge_style}">{p['sentiment']}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        with ig_chart_col:
+            st.markdown("###### 📊 Sentimen per Kategori Akun Instagram:")
+            cat_data = insta_info.get("category_breakdown", {})
+            cat_names = [k.split("(")[0].strip() for k in cat_data.keys()]
+            cat_scores = list(cat_data.values())
+            fig_ig_cat = px.bar(
+                x=cat_scores,
+                y=cat_names,
+                orientation="h",
+                labels={"x": "Skor Sentimen (0-100)", "y": "Kategori Akun"},
+                template="plotly_dark",
+                color=cat_scores,
+                color_continuous_scale="Purp",
+                text=[f"{v:.0f}" for v in cat_scores]
+            )
+            fig_ig_cat.update_layout(height=260, margin=dict(l=20, r=20, t=20, b=20))
+            st.plotly_chart(fig_ig_cat, use_container_width=True)
+
+            st.caption(
+                "💡 **Catatan Analisis**: Kebijakan fiskal dari Menteri Keuangan (@smindrawati) atau arahan Presiden memiliki "
+                "bobot pengaruh langsung yang dapat mengubah arus dana asing dan memutar haluan harga saham secara instan."
+            )
+
+    with eko_tabs[3]:
         st.markdown(f"##### 🌍 Sentimen Media Sosial Global Multi-Platform (Multi-Channel NLP)")
         st.markdown(
             "Agregasi cerdas sentimen percakapan publik dari berbagai platform keuangan dan media sosial dunia "
@@ -1965,7 +2046,7 @@ with tab_eko:
             fig_soc_bar.update_layout(height=290, margin=dict(l=30, r=30, t=40, b=30))
             st.plotly_chart(fig_soc_bar, use_container_width=True)
 
-    with eko_tabs[3]:
+    with eko_tabs[4]:
         st.markdown(f"##### 🏗️ Proyek Strategis, Alokasi Capex & Aksi Korporasi Emiten")
         st.markdown(
             "Menelaah arah ekspansi korporasi, belanja modal masa depan, dan inisiatif strategis "
@@ -1987,7 +2068,7 @@ with tab_eko:
             st.progress(corp_eval['catalyst_score'] / 100.0)
             st.caption("Skor mengevaluasi visibilitas arus kas bebas (FCFF), kapabilitas eksekusi manajemen, dan efisiensi belanja modal terhadap ROIC.")
 
-    with eko_tabs[4]:
+    with eko_tabs[5]:
         st.markdown(f"##### 🧠 Psikologi Investor & Siklus Keuangan Perilaku (Behavioral Finance)")
         st.markdown(
             "Memetakan spektrum emosi kerumunan ritel pada kurva psikologi keuangan legendaris "
