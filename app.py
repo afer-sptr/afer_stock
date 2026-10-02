@@ -903,7 +903,12 @@ candle_pred = predict_candlestick_movement(df_tech, info)
 # 15. Ekosistem Terpadu: Makro IHSG, Broker Footprint, Social Sentiment Global, Proyek Korporasi & Psikologi Pasar
 ihsg_eval, df_ihsg_hist = get_cached_ihsg_data()
 beta_eval = calculate_emiten_market_beta(df_tech, df_ihsg_hist)
-broker_eval = evaluate_lead_broker_and_bandar_cost(ticker_clean, current_price, df_tech)
+broker_eval = evaluate_lead_broker_and_bandar_cost(
+    ticker_clean,
+    current_price,
+    df_tech,
+    lead_broker_code=promoter_eval.get("lead_broker_code")
+)
 social_eval = analyze_global_social_sentiment(ticker_clean, news_eval, info)
 corp_eval = evaluate_corporate_projects_and_catalysts(ticker_clean, info, df_tech)
 psychology_eval = evaluate_investor_psychology_cycle(ticker_clean, current_price, df_tech, tech_eval.get("rsi", 50.0), social_eval["composite_social_score"])
@@ -1137,7 +1142,7 @@ with st.expander("🌐 **Ekosistem Pasar Terpadu: Proyeksi Masa Depan IHSG, Jeja
         st.markdown(f"**📈 Makro IHSG (^JKSE):** `Rp {ihsg_eval['current_level']:,.2f}` ({ihsg_eval['change_pct']:+.2f}%)")
         st.caption(f"Status Tren: **{ihsg_eval['future_trend']}**\n- Target 30D Bull: **{ihsg_eval['target_30d_bull']:,}** | Base: **{ihsg_eval['target_30d_base']:,}**\n- Resisten 1: {ihsg_eval['resistance_1']:,} | Support 1: {ihsg_eval['support_1']:,}\n- Sensitivitas Beta vs IHSG: **{beta_eval['beta']}x** ({beta_eval['category']})")
     with eko_c2:
-        st.markdown(f"**🏛️ Lead Broker Dominan:** `{broker_eval['lead_broker_code']}` ({broker_eval['lead_broker_name'][:20]})")
+        st.markdown(f"**🏛️ Lead Broker Dominan:** `{broker_eval['lead_broker_code']}` ({broker_eval['lead_broker_name']})")
         st.caption(f"Modal Rata-rata Bandar: **Rp {broker_eval['bandar_cost']:,}** ({broker_eval['diff_from_cost_pct']:+.1f}% dari pasar)\n- Fase: **{broker_eval['fase_bandar']}**\n- Implikasi Tindakan: **{broker_eval['action_bandar']}**")
     with eko_c3:
         insta_d = social_eval.get("instagram_feed")

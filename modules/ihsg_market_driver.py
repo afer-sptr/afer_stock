@@ -213,35 +213,40 @@ def evaluate_lead_broker_and_bandar_cost(
     ticker: str,
     current_price: float,
     df_ohlcv: pd.DataFrame,
-    broker_summary_df: Optional[pd.DataFrame] = None
+    broker_summary_df: Optional[pd.DataFrame] = None,
+    lead_broker_code: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Menghitung modal rata-rata bandar (Bandar Cost Basis / Break-Even Price),
     mengidentifikasi Top Market Maker broker dominan, dan menganalisis dampaknya ke depan.
+    Terintegrasi penuh dengan Single Source of Truth direktori broker BEI (broker_analyzer).
     """
     clean_t = str(ticker).replace(".JK", "").upper().strip()
     cp = max(1.0, float(current_price))
 
-    # Direktori Pemain Broker Kunci
-    broker_lead_map = {
-        "BBCA": {"lead": "ZP", "name": "Maybank Sekuritas", "type": "Institusi Asing / Long-Term Fund", "nature": "Akumulasi Senyap Valuasi"},
-        "BBRI": {"lead": "BK", "name": "J.P. Morgan Sekuritas", "type": "Konsorsium Global Asing", "nature": "Rotasi Aliran Dana Asing"},
-        "BMRI": {"lead": "AK", "name": "UBS Sekuritas Indonesia", "type": "Global Institutional Broker", "nature": "Akumulasi Dividen & Laba"},
-        "BBNI": {"lead": "CC", "name": "Mandiri Sekuritas", "type": "BUMN Anchor / Domestik Terbesar", "nature": "Penstabil Pasar & Korporasi"},
-        "ASII": {"lead": "CS", "name": "Credit Suisse / CGS International", "type": "Foreign Institutional", "nature": "Holding Industri"},
-        "TLKM": {"lead": "NI", "name": "BNI Sekuritas", "type": "Anchor Domestik / Institusi BUMN", "nature": "Defensif Arus Kas"},
-        "GOTO": {"lead": "YU", "name": "CGS International Sekuritas", "type": "Algorithmic Market Maker", "nature": "Likuiditas Jumbo & Scalping"},
-        "BRIS": {"lead": "OD", "name": "BRI Danareksa Sekuritas", "type": "Sindikasi Syariah Terbesar", "nature": "Ekspansi Pertumbuhan Syariah"},
-        "ADRO": {"lead": "KZ", "name": "CLSA Sekuritas Indonesia", "type": "Komoditas & Energy Funds", "nature": "Siklus Dividen Jumbo"},
-        "BUMI": {"lead": "YP", "name": "Mirae Asset Sekuritas", "type": "Dominasi Kerumunan Ritel & Sindikasi", "nature": "Volatilitas Cepat Momentum"},
-    }
+    # Single Source of Truth: Dapatkan profil broker resmi dari broker_analyzer
+    try:
+        from modules.broker_analyzer import get_broker_info, get_ticker_lead_broker
+    except ImportError:
+        try:
+            from broker_analyzer import get_broker_info, get_ticker_lead_broker
+        except ImportError:
+            def get_broker_info(c):
+                return {"code": c, "name": f"Sekuritas {c}", "category": "Broker BEI", "archetype": "Partisipan", "behavior": "Reguler"}
+            def get_ticker_lead_broker(t, price=0.0, sector=""):
+                return get_broker_info("CC")
 
-    lead_info = broker_lead_map.get(clean_t, {
-        "lead": "AK",
-        "name": "UBS Sekuritas / Konsorsium Institusi",
-        "type": "Market Maker Institusional Utama",
-        "nature": "Akumulasi Berjenjang & Pengendali Likuiditas"
-    })
+    if lead_broker_code:
+        lead_b = get_broker_info(lead_broker_code)
+    else:
+        lead_b = get_ticker_lead_broker(clean_t, price=cp)
+
+    lead_info = {
+        "lead": lead_b.get("code", "CC"),
+        "name": lead_b.get("name", "PT Mandiri Sekuritas"),
+        "type": lead_b.get("category", "🏛️ Market Maker Institusional"),
+        "nature": lead_b.get("archetype", "Akumulasi Berjenjang & Pengendali Likuiditas")
+    }
 
     # Hitung Estimasi Modal Rata-rata Bandar (Bandar Cost Basis)
     if df_ohlcv is not None and not df_ohlcv.empty and len(df_ohlcv) >= 10:

@@ -408,7 +408,7 @@ IDX_TICKER_LEAD_BROKER_MAP: Dict[str, str] = {
     # 5. Grup Prajogo Pangestu (Barito)
     "BREN": "CP", "BRPT": "CP", "CUAN": "CP", "TPIA": "AK", "PTRO": "CP",
     # 6. Grup Bakrie
-    "BUMI": "AI", "BRMS": "AI", "ENRG": "ZP", "DEWA": "AI", "UNSP": "YP", "VKTR": "AI",
+    "BUMI": "AI", "BRMS": "AI", "ENRG": "ZP", "DEWA": "AI", "UNSP": "YP", "VKTR": "AI", "MDIA": "CP", "VIVA": "CP",
     # 7. Grup Sinarmas
     "INKP": "DH", "TKIM": "DH", "BSDE": "DH", "DMAS": "DH", "DSSA": "DH",
     # 8. Grup Salim & Adaro
@@ -431,6 +431,12 @@ IDX_TICKER_LEAD_BROKER_MAP: Dict[str, str] = {
 }
 
 
+def deterministic_ticker_hash(ticker: str) -> int:
+    """Hash deterministik yang konsisten dan stabil antar-proses dan antar-eksekusi Python."""
+    import zlib
+    return zlib.crc32(str(ticker).encode("utf-8"))
+
+
 def get_ticker_lead_broker(ticker: str, price: float = 0.0, sector: str = "") -> Dict[str, Any]:
     """
     Menentukan broker penggerak utama (Lead Broker) yang akurat dan unik untuk suatu emiten BEI.
@@ -444,9 +450,9 @@ def get_ticker_lead_broker(ticker: str, price: float = 0.0, sector: str = "") ->
         code = IDX_TICKER_LEAD_BROKER_MAP[clean_t]
         return get_broker_info(code)
     
-    # 2. Fallback deterministik berdasarkan harga nominal (Tier) dan hash ticker unik
+    # 2. Fallback deterministik berdasarkan harga nominal (Tier) dan hash ticker unik permanen
     # Memastikan setiap saham memiliki broker yang realistis dan BERBEDA, tidak monoton MG atau CC.
-    h = abs(hash(clean_t))
+    h = deterministic_ticker_hash(clean_t)
     
     if price > 5000.0:
         # Saham Premium / Blue Chip: Dominasi Institusi Global Asing & Swasta Mapan

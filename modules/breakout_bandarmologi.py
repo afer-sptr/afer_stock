@@ -54,9 +54,9 @@ CONGLOMERATE_MAP: Dict[str, Dict[str, Any]] = {
     },
     "Bakrie Group": {
         "promoter": "Keluarga Bakrie",
-        "tickers": {"BUMI", "BRMS", "ENRG", "DEWA", "UNSP", "VKTR"},
-        "profile": "Grup berbasis sumber daya alam (batubara, mineral, energi). Likuiditas perdagangan sangat masif dan menjadi favorit trader ritel maupun bandar lokal.",
-        "footprint": "Sangat dipengaruhi oleh broker ritel (YP, PD, XC) dan market maker lokal (MG, CC). Volatilitas fraksi sangat agresif.",
+        "tickers": {"BUMI", "BRMS", "ENRG", "DEWA", "UNSP", "VKTR", "MDIA", "VIVA"},
+        "profile": "Grup berbasis sumber daya alam (batubara, mineral, energi) serta media penyiaran nasional. Likuiditas perdagangan sangat masif dan menjadi favorit trader ritel maupun bandar lokal.",
+        "footprint": "Sangat dipengaruhi oleh broker ritel (YP, PD, XC) dan market maker lokal (MG, CC, CP). Volatilitas fraksi sangat agresif.",
     },
     "BUMN & Danantara (Pemerintah RI)": {
         "promoter": "Pemerintah Republik Indonesia (Kementerian BUMN / Badan Pengelola Investasi Danantara)",
@@ -370,7 +370,12 @@ def analyze_promoter_and_broker_footprint(
     # Dapatkan broker penggerak utama spesifik emiten
     lead_b = get_ticker_lead_broker(clean_t, price=price)
     lead_code = lead_b["code"]
-    h = abs(hash(clean_t))
+    try:
+        from modules.broker_analyzer import deterministic_ticker_hash
+        h = deterministic_ticker_hash(clean_t)
+    except Exception:
+        import zlib
+        h = zlib.crc32(clean_t.encode("utf-8"))
 
     # Tentukan mitra beli (buyer_codes) dan penjual (seller_codes) realistis
     if "Asing" in lead_b["category"]:

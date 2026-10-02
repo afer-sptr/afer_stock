@@ -1756,7 +1756,7 @@ def render_finance_statistical_analysis_page(
             with dev_c1:
                 st.metric("Modal Rata-rata Bandar", f"Rp {broker_eval['bandar_cost']:,}", f"{broker_eval['diff_from_cost_pct']:+.1f}% Deviasi Pasar")
             with dev_c2:
-                st.metric("Lead Broker Penggerak", f"{broker_eval['lead_broker_code']}", f"{broker_eval['lead_broker_name'][:20]}")
+                st.metric("Lead Broker Penggerak", f"{broker_eval['lead_broker_code']}", f"{broker_eval['lead_broker_name']}")
             with dev_c3:
                 st.metric("Status Fase Bandar", f"{broker_eval['fase_bandar'].split(':')[0]}", f"Aksi: {broker_eval['action_bandar']}")
 
