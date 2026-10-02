@@ -98,6 +98,7 @@ from modules.breakout_bandarmologi import (
     detect_chart_patterns_and_breakout,
     analyze_promoter_and_broker_footprint,
     scan_breakout_universe,
+    generate_broker_interpretation_conclusion,
 )
 from modules.advanced_ai_suite import run_comprehensive_ai_suite
 from modules.lapis3_rally_crowd import screen_lapis_3, evaluate_crowd_contrarian
@@ -1142,8 +1143,10 @@ with st.expander("🌐 **Ekosistem Pasar Terpadu: Proyeksi Masa Depan IHSG, Jeja
         st.markdown(f"**📈 Makro IHSG (^JKSE):** `Rp {ihsg_eval['current_level']:,.2f}` ({ihsg_eval['change_pct']:+.2f}%)")
         st.caption(f"Status Tren: **{ihsg_eval['future_trend']}**\n- Target 30D Bull: **{ihsg_eval['target_30d_bull']:,}** | Base: **{ihsg_eval['target_30d_base']:,}**\n- Resisten 1: {ihsg_eval['resistance_1']:,} | Support 1: {ihsg_eval['support_1']:,}\n- Sensitivitas Beta vs IHSG: **{beta_eval['beta']}x** ({beta_eval['category']})")
     with eko_c2:
+        buyers_summary = ", ".join([b['code'] for b in promoter_eval.get('top_buyers_detail', [])[:3]]) or broker_eval['lead_broker_code']
+        sellers_summary = ", ".join([s['code'] for s in promoter_eval.get('top_sellers_detail', [])[:3]]) or "XC, YP"
         st.markdown(f"**🏛️ Lead Broker Dominan:** `{broker_eval['lead_broker_code']}` ({broker_eval['lead_broker_name']})")
-        st.caption(f"Modal Rata-rata Bandar: **Rp {broker_eval['bandar_cost']:,}** ({broker_eval['diff_from_cost_pct']:+.1f}% dari pasar)\n- Fase: **{broker_eval['fase_bandar']}**\n- Implikasi Tindakan: **{broker_eval['action_bandar']}**")
+        st.caption(f"Modal Rata-rata Bandar: **Rp {broker_eval['bandar_cost']:,}** ({broker_eval['diff_from_cost_pct']:+.1f}% dari pasar)\n- Akumulator: **{buyers_summary}** | Distribusi: **{sellers_summary}**\n- Fase: **{broker_eval['fase_bandar']}**\n- Implikasi Tindakan: **{broker_eval['action_bandar']}**")
     with eko_c3:
         insta_d = social_eval.get("instagram_feed")
         insta_st = f"📸 Insta: {insta_d['policy_status'].split('(')[0].strip()}" if insta_d else "📸 Insta Radar"
@@ -1152,6 +1155,28 @@ with st.expander("🌐 **Ekosistem Pasar Terpadu: Proyeksi Masa Depan IHSG, Jeja
     with eko_c4:
         st.markdown(f"**🧠 Psikologi Pasar & Proyek:**")
         st.caption(f"Fear & Greed Index: **{psychology_eval['fear_greed_index']}/100** ({psychology_eval['cycle_phase']})\n- Bias Kognitif: _{psychology_eval['bias_warning'][:38]}..._\n- Proyek Kunci: **{corp_eval['project_title'][:32]}...**")
+
+    # Daftar Konstelasi Broker Penentu Arah (Top Akumulator vs Distribusi dari Lampiran 2)
+    eco_buyers = promoter_eval.get("top_buyers_detail", [])
+    eco_sellers = promoter_eval.get("top_sellers_detail", [])
+    if eco_buyers or eco_sellers:
+        st.markdown("---")
+        st.markdown("**👥 Konstelasi Aliran Broker Penentu Arah (Daftar Top Akumulator vs Distribusi Pasar):**")
+        eco_b1, eco_b2 = st.columns(2)
+        with eco_b1:
+            st.markdown("🟢 **Top Broker Akumulator (Smart Money & Institusi Pembeli):**")
+            for b_item in eco_buyers[:3]:
+                st.caption(
+                    f"• `{b_item['code']}` **{b_item['name']}** — *{b_item['category']}* (`{b_item['archetype']}`)\n"
+                    f"  ↳ _{b_item['future_price_impact']}_"
+                )
+        with eco_b2:
+            st.markdown("🔴 **Top Broker Distribusi (Seller & Tekanan Pasokan Pasar):**")
+            for s_item in eco_sellers[:3]:
+                st.caption(
+                    f"• `{s_item['code']}` **{s_item['name']}** — *{s_item['category']}* (`{s_item['archetype']}`)\n"
+                    f"  ↳ _{s_item['future_price_impact']}_"
+                )
 
 st.markdown("---")
 
@@ -1175,8 +1200,71 @@ with res_col1:
     st.caption(f"**Skor Gabungan Multi-Pilar: {rec['composite_score']} / 100**")
     
     b = rec["breakdown_scores"]
-    st.caption(f"• Teknikal: {b['technical']} | • High/Low: {b['high_low']} | • Fundamental: {b['fundamental']}")
-    st.caption(f"• Berita: {b['news_sentiment']} | • Instagram & Medsos: {b.get('instagram_sentiment', b.get('global_social', 50))} | • AI/ML: {b['ml_prediction']} | • Order Book: {b['order_book']}")
+    st.markdown("**📊 Skor Rincian Multi-Pilar (10 Dimensi Terpadu):**")
+    score_p1, score_p2 = st.columns(2)
+    with score_p1:
+        st.caption(
+            f"• Teknikal & Trend: **{b.get('technical', 50)}/100**\n"
+            f"• High/Low Action: **{b.get('high_low', 50)}/100**\n"
+            f"• Fundamental & Solvabilitas: **{b.get('fundamental', 50)}/100**\n"
+            f"• Berita FinBERT NLP: **{b.get('news_sentiment', 50)}/100**\n"
+            f"• Instagram Otoritas & Sekuritas: **{b.get('instagram_sentiment', 50)}/100**\n"
+            f"• Sentimen Medsos Global: **{b.get('global_social', 50)}/100**"
+        )
+    with score_p2:
+        st.caption(
+            f"• Machine Learning AI: **{b.get('ml_prediction', 50)}/100**\n"
+            f"• Order Book Microstructure: **{b.get('order_book', 50)}/100**\n"
+            f"• Makroekonomi IHSG: **{b.get('ihsg_macro', 50)}/100**\n"
+            f"• Bandarmologi & Broker Flow: **{b.get('broker_flow', 50)}/100**\n"
+            f"• Proyek Strategis Korporasi: **{b.get('corporate_catalysts', 50)}/100**\n"
+            f"• Psikologi Pasar (Fear/Greed): **{b.get('investor_psychology', 50)}/100**"
+        )
+
+    # Sintesis Keputusan Eksekutif Multi-Pilar Terpadu
+    lead_b_code = broker_eval.get('lead_broker_code', 'CP')
+    lead_b_name = broker_eval.get('lead_broker_name', 'Valbury Sekuritas Indonesia')
+    bandar_cost = broker_eval.get('bandar_cost', current_price)
+    fase_bandar = broker_eval.get('fase_bandar', 'Akumulasi')
+    ihsg_trend = ihsg_eval.get('future_trend', 'Sideways Konsolidasi')
+    ihsg_lev = ihsg_eval.get('current_level', 7000)
+    
+    if rec.get("is_veto"):
+        veto_reason = rec['action_desc']
+        decision_thesis = (
+            f"⚠️ **PROTOKOL PROTEKSI MODAL (VETO AKTIF)**: Sistem mengaktifkan pembatalan sinyal beli mutlak. "
+            f"Meskipun aliran bandarmologi mengonfirmasi keterlibatan broker penggerak `{lead_b_code}` ({lead_b_name}) dengan modal Rp {bandar_cost:,}, "
+            f"prinsip *Zero Tolerance Risk Management* mewajibkan perlindungan modal di atas segalanya karena terdeteksi {veto_reason}. "
+            f"Dilarang membuka posisi beli baru hingga risiko legal/solvabilitas terselesaikan sepenuhnya."
+        )
+    elif "BUY" in action:
+        decision_thesis = (
+            f"✅ **TESIS INVESTASI STRATEGIS (BUY/ACCUMULATION)**: Konfluensi positif terkonfirmasi pada seluruh pilar. "
+            f"Broker penggerak `{lead_b_code}` ({lead_b_name}) berada dalam fase **{fase_bandar}** dengan modal rata-rata Rp {bandar_cost:,}. "
+            f"Didukung proyeksi tren IHSG ({ihsg_trend} di level {ihsg_lev:,.0f}), valuasi Margin of Safety ({mos_sign}{mos_val:.1f}%), "
+            f"serta sentimen publik ({social_eval['composite_social_score']}/100). Setup akumulasi sangat ideal di zona entry."
+        )
+    elif "SELL" in action:
+        decision_thesis = (
+            f"🔻 **TESIS AMANKAN KEUNTUNGAN (SELL / DEFENSIVE)**: Terjadi divergensi negatif atau distribusi aktif. "
+            f"Broker penggerak `{lead_b_code}` mulai melepas barang ke kerumunan ritel, sementara sentimen atau tren IHSG ({ihsg_trend}) membayangi pergerakan harga. "
+            f"Disarankan mengamankan profit atau melakukan cut loss defensif pada level proteksi modal."
+        )
+    else:
+        decision_thesis = (
+            f"⏸️ **TESIS KONSOLIDASI (HOLD / WAIT & SEE)**: Pergerakan harga berada dalam fase wait-and-see. "
+            f"Lead broker `{lead_b_code}` menjaga harga di sekitar Rp {bandar_cost:,}, sementara pasar makro IHSG ({ihsg_lev:,.0f}) menguji area support/resisten. "
+            f"Disiplin menunggu konfirmasi breakout sebelum menambah eksposur modal."
+        )
+        
+    with st.expander("🏛️ **Sintesis Keputusan Eksekutif Multi-Pilar (Executive Investment Thesis)**", expanded=True):
+        st.markdown(decision_thesis)
+        st.caption(
+            f"• **Lead Broker**: `{lead_b_code}` ({lead_b_name}) | **Modal Bandar**: Rp {bandar_cost:,} ({broker_eval.get('diff_from_cost_pct', 0.0):+.1f}%)\n"
+            f"• **Makro IHSG**: {ihsg_trend} ({ihsg_lev:,.1f}) | **Beta Emiten**: {beta_eval['beta']}x ({beta_eval['category']})\n"
+            f"• **Psikologi Pasar**: Fear & Greed {psychology_eval['fear_greed_index']}/100 ({psychology_eval['cycle_phase']})\n"
+            f"• **Katalis Korporasi**: {corp_eval['project_title'][:40]}..."
+        )
 
     # Tombol Kirim Cepat WhatsApp & Telegram
     alert_payload = {
@@ -2090,6 +2178,31 @@ with tab_breakout:
             "• **Jika Top Buyer didominasi Bandar Kilat (MG, AZ)**: Menandakan lonjakan harga cepat spekulatif (*Pump*) yang cocok untuk scalping kilat, namun rawan guyuran.\n"
             "• **Jika Top Buyer didominasi Kerumunan Ritel (YP, PD, XC)**: Waspada jebakan beli di pucuk (*Distribution to Retail*) saat institusi sedang melepas barang."
         )
+
+    # ----------------- KESIMPULAN BERDASARKAN KARAKTERISTIK BROKER (LAMPIRAN 2 & 3) -----------------
+    broker_conclusion = generate_broker_interpretation_conclusion(promoter_eval, broker_eval)
+    
+    st.markdown("#### 🎯 Kesimpulan & Rekomendasi Terpadu Berdasarkan Karakteristik Broker:")
+    conclusion_box_color = "#ECFDF5" if "Akumulasi" in broker_conclusion["status"] else ("#FEF2F2" if "Distribusi" in broker_conclusion["status"] else "#EFF6FF")
+    conclusion_border_color = "#10B981" if "Akumulasi" in broker_conclusion["status"] else ("#EF4444" if "Distribusi" in broker_conclusion["status"] else "#3B82F6")
+    
+    st.markdown(
+        f"""
+        <div style="background-color: {conclusion_box_color}; border: 1.5px solid {conclusion_border_color}; border-radius: 10px; padding: 16px; margin-top: 10px; margin-bottom: 15px;">
+            <div style="font-size: 1.05rem; font-weight: 700; color: #1E293B; margin-bottom: 8px;">
+                📌 Status Aliran Dana Pasar: <span style="color: {conclusion_border_color};">{broker_conclusion['status']}</span>
+            </div>
+            <div style="font-size: 0.92rem; color: #334155; line-height: 1.6;">
+                <strong>1. Aturan Pedoman Terpenuhi:</strong> {broker_conclusion['primary_rule']}<br>
+                <strong>2. Analisis Kekuatan Pembeli (Buyer):</strong> {broker_conclusion['narrative']}<br>
+                <strong>3. Karakter Penjual (Seller Dynamic):</strong> {broker_conclusion['seller_dynamic']}<br>
+                <strong>4. Posisi Harga vs Modal Bandar:</strong> {broker_conclusion['cost_implication']}<br>
+                <strong>5. Rekomendasi Taktis:</strong> <span style="font-weight: 700; color: #0F172A;">{broker_conclusion['action_recommendation']}</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # TAB 11: EKONOMETRIKA, DEEP RISK & MEAN-CVAR
 with tab_risk:

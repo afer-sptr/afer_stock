@@ -456,6 +456,139 @@ def analyze_promoter_and_broker_footprint(
     }
 
 
+def generate_broker_interpretation_conclusion(
+    promoter_eval: Dict[str, Any],
+    broker_eval: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Menghasilkan kesimpulan komprehensif berdasarkan karakter Top Broker Pembeli vs Penjual
+    yang diselaraskan secara matematis dan logis dengan 4 Panduan Interpretasi Pergerakan Harga
+    Berdasarkan Sifat Broker (Lampiran 3).
+    """
+    buyers = promoter_eval.get("top_buyers_detail", [])
+    sellers = promoter_eval.get("top_sellers_detail", [])
+
+    buyer_codes = [b.get("code", "") for b in buyers]
+    seller_codes = [s.get("code", "") for s in sellers]
+
+    # Kategori Dominansi Sekuritas BEI
+    foreign_smart = {"BK", "AK", "ZP", "CS", "KZ", "MS", "SQ", "CG", "DP"}
+    bumn_sovereign = {"CC", "NI", "OD", "DX"}
+    scalper_kilat = {"MG", "AG", "AZ"}
+    private_inst = {"CP", "AI", "DR", "LG", "KI", "DH", "GR", "IF"}
+    retail_herd = {"YP", "PD", "XC", "XL", "XA", "HD"}
+
+    # 1. Identifikasi Karakter Buyer Utama
+    has_foreign_buyer = any(c in foreign_smart for c in buyer_codes)
+    has_bumn_buyer = any(c in bumn_sovereign for c in buyer_codes)
+    has_scalper_buyer = any(c in scalper_kilat for c in buyer_codes)
+    has_private_buyer = any(c in private_inst for c in buyer_codes)
+    has_retail_buyer = any(c in retail_herd for c in buyer_codes)
+
+    # 2. Identifikasi Karakter Seller Utama
+    has_retail_seller = any(c in retail_herd for c in seller_codes)
+
+    lead_code = promoter_eval.get("lead_broker_code", buyer_codes[0] if buyer_codes else "CC")
+    lead_name = promoter_eval.get("lead_broker_name", "Sekuritas Utama")
+
+    # Evaluasi Kesimpulan Berdasarkan 4 Aturan Pedoman:
+    if has_foreign_buyer and not has_retail_buyer:
+        category_title = "🏛️ Dominasi Smart Money Asing (Global Institutional Accumulation)"
+        category_color = "#10B981"
+        status_tag = "AKUMULASI SENYAP MENUJU MARKUP"
+        interpretation_rule = "Jika Top Buyer didominasi Smart Money Asing (BK, AK, ZP): Mengindikasikan fase akumulasi senyap menuju kenaikan harga berkelanjutan (Markup)."
+        narrative = (
+            f"Top Buyer saham ini dikendalikan oleh Smart Money Institusi Asing ({', '.join(buyer_codes)}), "
+            f"dengan broker pengendali utama {lead_code} ({lead_name}). "
+            f"Aktivitas ini mengonfirmasi akumulasi masif jangka menengah-panjang yang menyerap penawaran di pasar "
+            f"sebelum transisi menuju gelombang kenaikan harga (Markup Phase) yang berkelanjutan."
+        )
+    elif has_bumn_buyer and not has_retail_buyer:
+        category_title = "🏢 Dominasi Konsorsium BUMN & Sovereign Anchor"
+        category_color = "#3B82F6"
+        status_tag = "PENGAWALAN LANTAI HARGA (STRONG SUPPORT / BOTTOM REVERSAL)"
+        interpretation_rule = "Jika Top Buyer didominasi BUMN (CC, NI, OD): Menandakan pengawalan lantai harga (support) dan potensi Bottom Reversal yang kuat."
+        narrative = (
+            f"Top Buyer saham ini didominasi oleh sekuritas BUMN & Anchor Domestik ({', '.join(buyer_codes)}), "
+            f"dipimpin oleh {lead_code} ({lead_name}). "
+            f"Kehadiran institusi BUMN di antrean bid menandakan pengawalan lantai harga (support) yang sangat solid, "
+            f"mencegah penurunan lebih lanjut dan membangun momentum pembalikan arah dari bawah (Bottom Reversal)."
+        )
+    elif has_scalper_buyer and not (has_foreign_buyer or has_bumn_buyer or has_private_buyer):
+        category_title = "⚡ Dominasi Bandar Kilat & Momentum Scalper"
+        category_color = "#F59E0B"
+        status_tag = "LONJAKAN CEPAT SPEKULATIF (RAWAN GUYURAN)"
+        interpretation_rule = "Jika Top Buyer didominasi Bandar Kilat (MG, AZ): Menandakan lonjakan harga cepat spekulatif (Pump) yang cocok untuk scalping kilat, namun rawan guyuran."
+        narrative = (
+            f"Top Buyer saham ini didominasi oleh pergerakan bandar kilat ({', '.join(buyer_codes)}). "
+            f"Karakteristik transaksi berorientasi pada perputaran volume harian kilat (Hit & Run / Pump). "
+            f"Sangat menguntungkan untuk strategi scalping kilat momentum, namun investor swing/holding disarankan "
+            f"memasang trailing stop ketat untuk mengantisipasi potensi guyuran kilat."
+        )
+    elif has_retail_buyer and not (has_foreign_buyer or has_bumn_buyer or has_private_buyer):
+        category_title = "👥 Dominasi Kerumunan Ritel (Retail FOMO Trap)"
+        category_color = "#EF4444"
+        status_tag = "WASPADA JEBAKAN BELI DI PUCUK (DISTRIBUSI KE RITEL)"
+        interpretation_rule = "Jika Top Buyer didominasi Kerumunan Ritel (YP, PD, XC): Waspada jebakan beli di pucuk (Distribution to Retail) saat institusi sedang melepas barang."
+        narrative = (
+            f"Peringatan distribusi: Pembeli terbanyak saat ini didominasi oleh akun ritel ({', '.join(buyer_codes)}). "
+            f"Kondisi ini menunjukkan kerumunan ritel sedang mengalami euforia (FOMO), sementara institusi besar berpeluang "
+            f"memanfaatkan likuiditas beli ritel untuk melepas barang secara senyap. Waspada jebakan harga pucuk."
+        )
+    else:
+        # Institusi Swasta / Komoditas & Sindikasi Momentum (kasus CP, AZ, AI)
+        category_title = "💼 Dominasi Institusi Swasta, Komoditas & Sindikasi Momentum"
+        category_color = "#06B6D4"
+        status_tag = "AKUMULASI TERARAH & PENYERAPAN LIKUIDITAS RITEL"
+        interpretation_rule = "Top Buyer didominasi sindikasi institusi swasta & komoditas (CP, AI, AZ, DR) yang menyerap suplai likuiditas dari kerumunan ritel."
+        narrative = (
+            f"Top Buyer saham ini didominasi oleh institusi swasta dan penggerak momentum komoditas ({', '.join(buyer_codes)}), "
+            f"dengan {lead_code} ({lead_name}) sebagai lead akumulator. "
+            f"Sifat akumulasi ini terbukti efektif menyerap penawaran jual tanpa memicu kepanikan harga, "
+            f"menciptakan landasan akumulasi yang kokoh sebelum ekspansi tren kenaikan."
+        )
+
+    # Evaluasi Sisi Penjual (Sellers)
+    if has_retail_seller:
+        seller_synthesis = (
+            f"Sisi penjual didominasi oleh kerumunan ritel ({', '.join(seller_codes)}). "
+            f"Ini mengonfirmasi terjadinya transfer kepemilikan sehat dari 'Weak Hands' (ritel yang panik/cut loss) "
+            f"ke 'Strong Hands' (Top Akumulator), memperkuat probabilitas markup lanjutan."
+        )
+    else:
+        seller_synthesis = (
+            f"Sisi penjual melibatkan broker campuran ({', '.join(seller_codes)}), "
+            f"menunjukkan rotasi posisi yang terkendali antar-partisipan pasar reguler."
+        )
+
+    # Implikasi Modal Bandar (jika data broker_eval tersedia)
+    bandar_cost_text = ""
+    if broker_eval and "bandar_cost" in broker_eval:
+        b_cost = broker_eval["bandar_cost"]
+        diff_pct = broker_eval.get("diff_from_cost_pct", 0.0)
+        bandar_cost_text = (
+            f"Modal rata-rata bandar saat ini tercatat di Rp {b_cost:,} ({diff_pct:+.1f}% dari harga pasar). "
+            f"Selama harga bergerak di sekitar atau di bawah modal bandar, posisi beli memiliki Margin of Safety institusional yang tebal."
+        )
+
+    return {
+        "category_title": category_title,
+        "category_color": category_color,
+        "status_tag": status_tag,
+        "status": status_tag,
+        "interpretation_rule": interpretation_rule,
+        "primary_rule": interpretation_rule,
+        "narrative": narrative,
+        "seller_synthesis": seller_synthesis,
+        "seller_dynamic": seller_synthesis,
+        "bandar_cost_text": bandar_cost_text,
+        "cost_implication": bandar_cost_text,
+        "action_recommendation": promoter_eval.get("bandar_action", "Akumulasi Bertahap bersama Smart Money"),
+        "top_buyers_str": ", ".join([f"{b['code']} ({b['name']})" for b in buyers[:3]]),
+        "top_sellers_str": ", ".join([f"{s['code']} ({s['name']})" for s in sellers[:3]]),
+    }
+
+
 # ==============================================================================
 # 4. SCANNER SELURUH SEMESTA SAHAM UNTUK TOP BREAKOUT & BREAKOUT SOON
 # ==============================================================================
