@@ -941,6 +941,16 @@ def render_technical_analysis_page(
     tech_score_eval = evaluate_technical_score(df_calc)
     tech_score = tech_score_eval.get("score", 50)
 
+    if not plan:
+        plan = calculate_trading_levels(
+            current_price=current_price,
+            support_near=pivots["s1"],
+            support_strong=pivots["s2"],
+            resistance_near=pivots["r1"],
+            resistance_strong=pivots["r2"],
+            atr=float(df_calc["ATR_14"].iloc[-1]) if "ATR_14" in df_calc.columns else max(1.0, current_price * 0.02),
+        )
+
     # ----------------- CSS INJECTION (ANTI TRUNCATION & HORIZONTAL SCROLL) -----------------
     st.markdown(
         """
@@ -1048,6 +1058,8 @@ def render_technical_analysis_page(
                 t_code = val.split(" - ")[0].strip().replace(".JK", "").upper()
                 if t_code:
                     st.session_state["selected_ticker"] = t_code
+                    if "catalog_stock_selector" in st.session_state:
+                        del st.session_state["catalog_stock_selector"]
 
         selected_stock_label = st.selectbox(
             f"Pilih Emiten ({len(matched_stocks)} Saham Tersedia):",
@@ -1081,6 +1093,8 @@ def render_technical_analysis_page(
                     )
                     if st.button(f"🔍 Analisis {item['ticker']}", key=f"btn_quick_ta_{item['ticker']}", use_container_width=True):
                         st.session_state["selected_ticker"] = item["ticker"]
+                        if "catalog_stock_selector" in st.session_state:
+                            del st.session_state["catalog_stock_selector"]
                         st.rerun()
 
     # ----------------- KARTU METRIK & VONIS STATUS TEKNIKAL -----------------
@@ -1125,7 +1139,6 @@ def render_technical_analysis_page(
         unsafe_allow_html=True
     )
 
-    # ----------------- QUICK SLIDER & GESER KANAN-KIRI NAVIGATOR -----------------
     FEATURE_LIST = [
         "📊 1. Advanced Charting & Replay",
         "📚 2. Library Indikator Kuantitatif",
@@ -1136,42 +1149,10 @@ def render_technical_analysis_page(
         "🎯 7. Trading Plan & Fraksi BEI"
     ]
 
-    if "ta_active_feature_idx" not in st.session_state:
-        st.session_state["ta_active_feature_idx"] = 0
-
-    st.markdown("##### ↔️ Geser Navigasi Fitur Teknikal (Pindah Cepat Kiri - Kanan):")
-    nav_col1, nav_col2, nav_col3 = st.columns([1.5, 5, 1.5])
-    with nav_col1:
-        if st.button("◀️ Geser Kiri", key="btn_ta_slide_left", use_container_width=True, help="Geser ke fitur teknikal sebelumnya"):
-            st.session_state["ta_active_feature_idx"] = (st.session_state["ta_active_feature_idx"] - 1) % len(FEATURE_LIST)
-            st.rerun()
-
-    with nav_col3:
-        if st.button("Geser Kanan ▶️", key="btn_ta_slide_right", use_container_width=True, help="Geser ke fitur teknikal berikutnya"):
-            st.session_state["ta_active_feature_idx"] = (st.session_state["ta_active_feature_idx"] + 1) % len(FEATURE_LIST)
-            st.rerun()
-
-    with nav_col2:
-        def _on_ta_feat_dropdown_change():
-            chosen = st.session_state.get("ta_feature_dropdown", "")
-            if chosen in FEATURE_LIST:
-                st.session_state["ta_active_feature_idx"] = FEATURE_LIST.index(chosen)
-
-        selected_feat = st.selectbox(
-            "Pilih Langsung / Geser Fitur:",
-            FEATURE_LIST,
-            index=st.session_state["ta_active_feature_idx"],
-            key="ta_feature_dropdown",
-            on_change=_on_ta_feat_dropdown_change
-        )
-
-    # ----------------- TABS UTAMA 5 PILAR TEKNIKAL MUTAKHIR -----------------
-    tab_chart, tab_lib, tab_geo, tab_auto, tab_screener, tab_backtest, tab_plan = st.tabs(FEATURE_LIST)
-
     # ==============================================================================
-    # TAB 1: ADVANCED CHARTING & BAR REPLAY
+    # 1. ADVANCED CHARTING & BAR REPLAY
     # ==============================================================================
-    with tab_chart:
+    def render_section_charting():
         st.markdown("##### 📊 Pro Interactive Charting Suite & Bar Replay Simulator")
         c_bar1, c_bar2, c_bar3, c_bar4 = st.columns(4)
         with c_bar1:
@@ -1378,9 +1359,9 @@ def render_technical_analysis_page(
             st.plotly_chart(fig, use_container_width=True)
 
     # ==============================================================================
-    # TAB 2: LIBRARY INDIKATOR KUANTITATIF
+    # 2. LIBRARY INDIKATOR KUANTITATIF
     # ==============================================================================
-    with tab_lib:
+    def render_section_lib():
         st.markdown("##### 📚 Library Indikator Kuantitatif Terpadu (4 Kategori Analisis)")
         l_c1, l_c2 = st.columns(2)
         with l_c1:
@@ -1411,9 +1392,9 @@ def render_technical_analysis_page(
             st.write(f"• **Value Area (70% Volume)**: Rp {volume_profile['val']:,} s/d Rp {volume_profile['vah']:,}")
 
     # ==============================================================================
-    # TAB 3: ALAT GEOMETRI, FIBONACCI & SIKLUS ELLIOTT / GANN
+    # 3. ALAT GEOMETRI, FIBONACCI & SIKLUS ELLIOTT / GANN
     # ==============================================================================
-    with tab_geo:
+    def render_section_geo():
         st.markdown("##### 📐 Alat Geometri Manual, Fibonacci Extension & Siklus Pasar")
         g_c1, g_c2 = st.columns(2)
         with g_c1:
@@ -1461,9 +1442,9 @@ def render_technical_analysis_page(
             st.dataframe(pd.DataFrame(gann_items), use_container_width=True, hide_index=True)
 
     # ==============================================================================
-    # TAB 4: AUTO PATTERN RECOGNITION & MULTI-TIMEFRAME (MTF)
+    # 4. AUTO PATTERN RECOGNITION & MULTI-TIMEFRAME (MTF)
     # ==============================================================================
-    with tab_auto:
+    def render_section_auto():
         st.markdown("##### 🤖 Auto Pattern Recognition AI & Analisis Multi-Timeframe (MTF)")
         p_c1, p_c2 = st.columns(2)
         with p_c1:
@@ -1514,9 +1495,9 @@ def render_technical_analysis_page(
                 st.success(f"✅ Script berhasil dieksekusi! Sinyal saat ini untuk {clean_t}: **BUY / ACCUMULATE** (Kondisi Close Rp {current_price:,.0f} > EMA 20 & RSI {df_calc['RSI_14'].iloc[-1]:.1f} terpenuhi).")
 
     # ==============================================================================
-    # TAB 5: TECHNICAL STOCK SCREENER
+    # 5. TECHNICAL STOCK SCREENER
     # ==============================================================================
-    with tab_screener:
+    def render_section_screener():
         st.markdown("##### 🔍 Technical Stock Screener Kuantitatif (Seluruh Semesta BEI)")
         st.caption("Menyaring saham berdasarkan kriteria teknikal spesifik dikombinasikan dengan filter Tier & Syariah:")
         sc_col1, sc_col2 = st.columns(2)
@@ -1550,9 +1531,9 @@ def render_technical_analysis_page(
             st.info("Tidak ada saham yang memenuhi kondisi filter saat ini.")
 
     # ==============================================================================
-    # TAB 6: STRATEGY TESTER & BACKTESTING ENGINE
+    # 6. STRATEGY TESTER & BACKTESTING ENGINE
     # ==============================================================================
-    with tab_backtest:
+    def render_section_backtest():
         st.markdown("##### 🧪 Strategy Tester (Backtesting Engine Masa Lalu)")
         st.caption("Uji akurasi formula strategi beli/jual pada riwayat data historis saham ini menggunakan uang simulasi:")
         
@@ -1605,9 +1586,9 @@ def render_technical_analysis_page(
             st.dataframe(df_trades.tail(15), use_container_width=True, hide_index=True)
 
     # ==============================================================================
-    # TAB 7: TRADING PLAN & FRAKSI RESMI BEI
+    # 7. TRADING PLAN & FRAKSI RESMI BEI
     # ==============================================================================
-    with tab_plan:
+    def render_section_plan():
         st.markdown("##### 🎯 Rekomendasi Level Transaksi & Money Management Berfraksi Resmi BEI")
         if not plan:
             plan = calculate_trading_levels(
@@ -1659,6 +1640,124 @@ def render_technical_analysis_page(
             st.metric("Alokasi Maksimal Lot Aman", f"{max_lots:,} Lot", f"Modal Terpakai: Rp {capital_deployed:,.0f} ({(capital_deployed/user_capital)*100:.1f}%)")
         with mres2:
             st.metric("Maksimum Risiko Kerugian Riil", f"Rp {risk_idr:,.0f}", f"Toleransi {risk_tolerance_pct}%")
+
+    # ==============================================================================
+    # KONTROL NAVIGASI GESER KANAN - KIRI & PILIHAN FITUR
+    # ==============================================================================
+    if "ta_active_feature_idx" not in st.session_state:
+        st.session_state["ta_active_feature_idx"] = 0
+
+    active_idx = st.session_state["ta_active_feature_idx"] % len(FEATURE_LIST)
+    st.session_state["ta_active_feature_idx"] = active_idx
+
+    st.markdown("##### ↔️ Geser Navigasi Fitur Teknikal (Pindah Cepat Kiri - Kanan):")
+    nav_col1, nav_col2, nav_col3 = st.columns([2, 5, 2])
+    with nav_col1:
+        prev_idx = (active_idx - 1) % len(FEATURE_LIST)
+        prev_name = FEATURE_LIST[prev_idx].split(". ")[1] if ". " in FEATURE_LIST[prev_idx] else FEATURE_LIST[prev_idx]
+        if st.button(f"◀️ Geser Kiri\n({prev_name[:12]}..)", key="btn_ta_slide_left", use_container_width=True, help=f"Beralih ke: {FEATURE_LIST[prev_idx]}"):
+            st.session_state["ta_active_feature_idx"] = prev_idx
+            active_idx = prev_idx
+            if "ta_feature_dropdown" in st.session_state:
+                st.session_state["ta_feature_dropdown"] = FEATURE_LIST[prev_idx]
+
+    with nav_col3:
+        next_idx = (active_idx + 1) % len(FEATURE_LIST)
+        next_name = FEATURE_LIST[next_idx].split(". ")[1] if ". " in FEATURE_LIST[next_idx] else FEATURE_LIST[next_idx]
+        if st.button(f"Geser Kanan ▶️\n({next_name[:12]}..)", key="btn_ta_slide_right", use_container_width=True, help=f"Beralih ke: {FEATURE_LIST[next_idx]}"):
+            st.session_state["ta_active_feature_idx"] = next_idx
+            active_idx = next_idx
+            if "ta_feature_dropdown" in st.session_state:
+                st.session_state["ta_feature_dropdown"] = FEATURE_LIST[next_idx]
+
+    with nav_col2:
+        def _on_ta_feat_dropdown_change():
+            chosen = st.session_state.get("ta_feature_dropdown", "")
+            if chosen in FEATURE_LIST:
+                st.session_state["ta_active_feature_idx"] = FEATURE_LIST.index(chosen)
+
+        if st.session_state.get("ta_feature_dropdown") != FEATURE_LIST[active_idx]:
+            st.session_state["ta_feature_dropdown"] = FEATURE_LIST[active_idx]
+
+        selected_feat = st.selectbox(
+            "Pilih Langsung / Geser Fitur:",
+            FEATURE_LIST,
+            index=active_idx,
+            key="ta_feature_dropdown",
+            on_change=_on_ta_feat_dropdown_change
+        )
+
+    # Baris Tombol Cepat (Pill Buttons) Berjejer Horizontal
+    pill_cols = st.columns(len(FEATURE_LIST) + 1)
+    short_titles = ["1. Charting", "2. Indikator", "3. Geometri", "4. AI Pattern", "5. Screener", "6. Backtesting", "7. Trading Plan"]
+    for p_i, (f_name, s_name) in enumerate(zip(FEATURE_LIST, short_titles)):
+        with pill_cols[p_i]:
+            is_cur = (p_i == active_idx)
+            btn_t = "primary" if is_cur else "secondary"
+            if st.button(f"{'🎯 ' if is_cur else ''}{s_name}", key=f"btn_p_nav_{p_i}", type=btn_t, use_container_width=True):
+                st.session_state["ta_active_feature_idx"] = p_i
+                if "ta_feature_dropdown" in st.session_state:
+                    st.session_state["ta_feature_dropdown"] = FEATURE_LIST[p_i]
+                active_idx = p_i
+
+    with pill_cols[-1]:
+        show_all = st.session_state.get("ta_show_all", False)
+        if st.button(f"{'📑 Mode Tunggal' if show_all else '🌐 Semua Tab'}", key="btn_toggle_show_all", use_container_width=True, help="Tampilkan semua tab pilar sekaligus"):
+            st.session_state["ta_show_all"] = not show_all
+            show_all = st.session_state["ta_show_all"]
+
+    # ==============================================================================
+    # RENDER TAMPILAN FITUR (FOCUS MODE VS ALL TABS MODE)
+    # ==============================================================================
+    if st.session_state.get("ta_show_all", False):
+        tab_chart, tab_lib, tab_geo, tab_auto, tab_screener, tab_backtest, tab_plan = st.tabs(FEATURE_LIST)
+        with tab_chart:
+            render_section_charting()
+        with tab_lib:
+            render_section_lib()
+        with tab_geo:
+            render_section_geo()
+        with tab_auto:
+            render_section_auto()
+        with tab_screener:
+            render_section_screener()
+        with tab_backtest:
+            render_section_backtest()
+        with tab_plan:
+            render_section_plan()
+    else:
+        # FOCUS MODE (HANYA SATU FITUR YANG AKTIF - SEHINGGA SAAT GESER KANAN / KIRI, KONTEN 100% BERGANTI SECARA REAL-TIME!)
+        st.markdown(
+            f"""
+            <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #38BDF8; border-left: 6px solid #38BDF8; padding: 14px 20px; border-radius: 10px; margin: 15px 0 20px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #38BDF8; font-weight: 700;">FITUR AKTIF #{active_idx + 1} DARI {len(FEATURE_LIST)}</span>
+                        <h3 style="margin: 4px 0 0 0; color: #FFFFFF; font-size: 18px; font-weight: 800;">{FEATURE_LIST[active_idx]}</h3>
+                    </div>
+                    <div style="font-size: 12px; color: #94A3B8; background: rgba(15, 23, 42, 0.8); padding: 6px 12px; border-radius: 6px; border: 1px solid #334155;">
+                        Gunakan tombol <b>◀️ Geser Kiri</b> atau <b>Geser Kanan ▶️</b> di atas untuk beralih fitur
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        if active_idx == 0:
+            render_section_charting()
+        elif active_idx == 1:
+            render_section_lib()
+        elif active_idx == 2:
+            render_section_geo()
+        elif active_idx == 3:
+            render_section_auto()
+        elif active_idx == 4:
+            render_section_screener()
+        elif active_idx == 5:
+            render_section_backtest()
+        elif active_idx == 6:
+            render_section_plan()
 
     # ----------------- KESIMPULAN EKSEKUTIF ANALISIS TEKNIKAL -----------------
     st.markdown("---")

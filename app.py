@@ -704,15 +704,11 @@ st.sidebar.markdown("---")
 if "selected_ticker" not in st.session_state:
     st.session_state["selected_ticker"] = "BBCA"
 
-# Mode Live Real-Time
-st.sidebar.subheader("⏱️ Mode Live Real-Time")
-auto_refresh = st.sidebar.checkbox("Aktifkan Auto-Refresh Otomatis", value=False)
-refresh_interval = st.sidebar.select_slider(
-    "Interval Pembaruan Data:",
-    options=[5, 10, 15, 30, 60, 120],
-    value=5,
-    format_func=lambda x: f"{x} Detik"
-)
+# Status Koneksi Pasar
+st.sidebar.subheader("⏱️ Status Data Real-Time")
+st.sidebar.caption("⚡ Terhubung langsung dengan sistem pasar BEI / Yahoo Finance.")
+auto_refresh = False
+refresh_interval = 60
 
 # Filter Semesta Saham
 st.sidebar.subheader("🔍 Filter Saham BEI")
@@ -769,6 +765,14 @@ if mode_input == "Pilih dari Katalog":
             if chosen_val:
                 clean_t = chosen_val.replace("📌 [Aktif] ", "").split(" - ")[0].strip().upper()
                 st.session_state["selected_ticker"] = clean_t
+
+        # Pastikan catalog_stock_selector selalu sinkron dengan current_target_ticker
+        cur_cat = st.session_state.get("catalog_stock_selector", "")
+        if not (cur_cat.startswith(current_target_ticker + " -") or cur_cat.startswith(f"📌 [Aktif] {current_target_ticker} -")):
+            for lbl in stock_labels:
+                if lbl.startswith(current_target_ticker + " -") or lbl.startswith(f"📌 [Aktif] {current_target_ticker} -"):
+                    st.session_state["catalog_stock_selector"] = lbl
+                    break
 
         selected_stock_label = st.sidebar.selectbox(
             "Katalog Saham Terfilter:",
@@ -2966,9 +2970,6 @@ with tab_bot:
         dispatcher_instance.config.save_to_disk()
         st.success("✅ Konfigurasi bot berhasil disimpan ke disk!")
 
-# Auto-Refresh Handler
-if auto_refresh:
-    time.sleep(refresh_interval)
-    st.rerun()
+# Pembaruan Data Real-Time: Dilakukan secara aman melalui tombol manual refresh di sidebar untuk mencegah refresh berulang tanpa izin user.
 
 st.caption("⚠️ Disclaimer Pasar Modal: Seluruh analisis, skor kuantitatif, dan rekomendasi harga adalah alat bantu pendukung keputusan (decision support tool). Keputusan investasi dan trading sepenuhnya merupakan tanggung jawab mandiri investor.")
