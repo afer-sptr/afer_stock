@@ -951,7 +951,7 @@ def render_technical_analysis_page(
             atr=float(df_calc["ATR_14"].iloc[-1]) if "ATR_14" in df_calc.columns else max(1.0, current_price * 0.02),
         )
 
-    # ----------------- CSS INJECTION (ANTI TRUNCATION & HORIZONTAL SCROLL) -----------------
+    # ----------------- CSS INJECTION (ANTI TRUNCATION, ANTI OVERLAP & MULTISELECT FIX) -----------------
     st.markdown(
         """
         <style>
@@ -961,6 +961,32 @@ def render_technical_analysis_page(
         }
         .stMarkdown, .stText, p, span, h1, h2, h3, h4, h5, h6, div {
             text-overflow: unset !important;
+            overflow: visible !important;
+        }
+        /* Anti-overlap dan pencegahan terpotong pada widget st.multiselect & selectbox */
+        div[data-baseweb="select"] {
+            min-height: 42px !important;
+        }
+        div[data-baseweb="tag"] {
+            max-width: 100% !important;
+            white-space: normal !important;
+            height: auto !important;
+            padding: 4px 8px !important;
+            margin: 2px 4px 2px 0 !important;
+            border-radius: 6px !important;
+            background: #1E293B !important;
+            border: 1px solid #334155 !important;
+        }
+        div[data-baseweb="tag"] span {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            font-size: 12px !important;
+            color: #E2E8F0 !important;
+        }
+        /* Memastikan kolom Streamlit tidak tumpang tindih */
+        [data-testid="column"] {
+            min-width: 0 !important;
             overflow: visible !important;
         }
         /* Styling Tabs agar bisa digeser horizontal ke kanan dan ke kiri secara fleksibel */
@@ -1017,7 +1043,7 @@ def render_technical_analysis_page(
         unsafe_allow_html=True
     )
 
-    # ----------------- FILTER SAHAM MULTI-TIER, SYARIAH & SEKTOR -----------------
+    # ----------------- FILTER SAHAM MULTI-TIER, SYARIAH & SEKTOR / KETIK MANUAL -----------------
     st.markdown(
         """
         <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
@@ -1028,46 +1054,82 @@ def render_technical_analysis_page(
         """,
         unsafe_allow_html=True
     )
-    f_c1, f_c2, f_c3 = st.columns(3)
-    with f_c1:
-        tier_sel = st.selectbox(
-            "Pilih Tingkatan Saham (Tier):",
-            TIER_OPTIONS,
-            index=TIER_OPTIONS.index(chosen_tier) if chosen_tier in TIER_OPTIONS else 0,
-            key="ta_tier_sel"
-        )
-    with f_c2:
-        syariah_sel = st.selectbox(
-            "Kepatuhan Syariah (ISSI/OJK):",
-            ["Semua", "☪️ Hanya Syariah (ISSI)", "⚪ Non-Syariah"],
-            index=0 if chosen_syariah == "Semua" else (1 if "Syariah" in chosen_syariah else 2),
-            key="ta_syariah_sel"
-        )
-    with f_c3:
-        matched_stocks = filter_idx_stocks(tier_filter=tier_sel, syariah_filter=syariah_sel, sector_filter=chosen_sector)
-        stock_opts = [f"{s['ticker']} - {s['name']}" for s in matched_stocks] if matched_stocks else [f"{clean_t} - {company_name}"]
-        curr_idx = 0
-        for idx, opt in enumerate(stock_opts):
-            if opt.startswith(clean_t + " -") or opt.startswith(clean_t + " "):
-                curr_idx = idx
-                break
 
-        def _on_ta_picker_stock_change():
-            val = st.session_state.get("ta_stock_picker", "")
-            if val:
-                t_code = val.split(" - ")[0].strip().replace(".JK", "").upper()
-                if t_code:
-                    st.session_state["selected_ticker"] = t_code
-                    if "catalog_stock_selector" in st.session_state:
-                        del st.session_state["catalog_stock_selector"]
+    mode_stock_input = st.radio(
+        "Metode Pemilihan Saham:",
+        ["📋 Pilih dari Katalog / Filter (Tier & Syariah)", "⌨️ Ketik Manual Ticker Emiten BEI"],
+        horizontal=True,
+        key="ta_mode_stock_input"
+    )
 
-        selected_stock_label = st.selectbox(
-            f"Pilih Emiten ({len(matched_stocks)} Saham Tersedia):",
-            stock_opts,
-            index=curr_idx,
-            key="ta_stock_picker",
-            on_change=_on_ta_picker_stock_change
-        )
+    if mode_stock_input == "⌨️ Ketik Manual Ticker Emiten BEI":
+        m_c1, m_c2 = st.columns([3.2, 1.2])
+        with m_c1:
+            manual_in = st.text_input(
+                "Ketik Kode Saham BEI (Contoh: BBCA, BBRI, BREN, BRMS, BUMI, GOTO, TLKM, UNVR):",
+                value=clean_t,
+                max_chars=6,
+                key="ta_manual_stock_input_field",
+                help="Ketik 4-5 huruf kode saham BEI lalu tekan Enter atau klik tombol 'Analisis Saham'."
+            ).strip().upper()
+        with m_c2:
+            st.write("")
+            st.write("")
+            btn_apply_manual = st.button("🚀 Analisis Saham", key="ta_btn_apply_manual", use_container_width=True)
+
+        if (btn_apply_manual or (manual_in and manual_in != clean_t)) and manual_in:
+            target_manual = manual_in.replace(".JK", "").strip().upper()
+            if target_manual != clean_t and len(target_manual) >= 2:
+                st.session_state["selected_ticker"] = target_manual
+                if "catalog_stock_selector" in st.session_state:
+                    del st.session_state["catalog_stock_selector"]
+                if "ta_stock_picker" in st.session_state:
+                    del st.session_state["ta_stock_picker"]
+                st.rerun()
+
+        tier_sel = chosen_tier if chosen_tier in TIER_OPTIONS else "Semua Tier"
+        syariah_sel = chosen_syariah if chosen_syariah in ["Semua", "☪️ Hanya Syariah (ISSI)", "⚪ Non-Syariah"] else "Semua"
+    else:
+        f_c1, f_c2, f_c3 = st.columns(3)
+        with f_c1:
+            tier_sel = st.selectbox(
+                "Pilih Tingkatan Saham (Tier):",
+                TIER_OPTIONS,
+                index=TIER_OPTIONS.index(chosen_tier) if chosen_tier in TIER_OPTIONS else 0,
+                key="ta_tier_sel"
+            )
+        with f_c2:
+            syariah_sel = st.selectbox(
+                "Kepatuhan Syariah (ISSI/OJK):",
+                ["Semua", "☪️ Hanya Syariah (ISSI)", "⚪ Non-Syariah"],
+                index=0 if chosen_syariah == "Semua" else (1 if "Syariah" in chosen_syariah else 2),
+                key="ta_syariah_sel"
+            )
+        with f_c3:
+            matched_stocks = filter_idx_stocks(tier_filter=tier_sel, syariah_filter=syariah_sel, sector_filter=chosen_sector)
+            stock_opts = [f"{s['ticker']} - {s['name']}" for s in matched_stocks] if matched_stocks else [f"{clean_t} - {company_name}"]
+            curr_idx = 0
+            for idx, opt in enumerate(stock_opts):
+                if opt.startswith(clean_t + " -") or opt.startswith(clean_t + " "):
+                    curr_idx = idx
+                    break
+
+            def _on_ta_picker_stock_change():
+                val = st.session_state.get("ta_stock_picker", "")
+                if val:
+                    t_code = val.split(" - ")[0].strip().replace(".JK", "").upper()
+                    if t_code and t_code != clean_t:
+                        st.session_state["selected_ticker"] = t_code
+                        if "catalog_stock_selector" in st.session_state:
+                            del st.session_state["catalog_stock_selector"]
+
+            selected_stock_label = st.selectbox(
+                f"Pilih Emiten ({len(matched_stocks)} Saham Tersedia):",
+                stock_opts,
+                index=curr_idx,
+                key="ta_stock_picker",
+                on_change=_on_ta_picker_stock_change
+            )
 
     # Quick Screener Cards
     screener_items = scan_technical_screener(tier_sel, syariah_sel, chosen_sector)
@@ -1154,7 +1216,9 @@ def render_technical_analysis_page(
     # ==============================================================================
     def render_section_charting():
         st.markdown("##### 📊 Pro Interactive Charting Suite & Bar Replay Simulator")
-        c_bar1, c_bar2, c_bar3, c_bar4 = st.columns(4)
+        
+        # Baris 1: Kontrol Jenis Grafik & Rentang Waktu (Ruang Lega, Anti-Terpotong)
+        c_bar1, c_bar2 = st.columns([1.2, 1.0])
         with c_bar1:
             chart_type = st.selectbox(
                 "Jenis Grafik Mutakhir:",
@@ -1162,16 +1226,30 @@ def render_technical_analysis_page(
                 key="ta_chart_type_sel"
             )
         with c_bar2:
-            time_range = st.selectbox("Rentang Waktu Data:", ["3 Bulan", "6 Bulan", "1 Tahun", "Semua Data"], index=1, key="ta_time_range_sel")
+            time_range = st.selectbox(
+                "Rentang Waktu Data:",
+                ["3 Bulan", "6 Bulan", "1 Tahun", "Semua Data"],
+                index=1,
+                key="ta_time_range_sel"
+            )
+
+        # Baris 2: Overlay Grafik Utama & Indikator Subplot Bawah (Ruang Luas Khusus Multiselect Tags Anti-Overlap)
+        c_bar3, c_bar4 = st.columns([1.65, 1.35])
         with c_bar3:
             overlay_choice = st.multiselect(
                 "Overlay Grafik Utama:",
                 ["MA Ribbon (10,20,50,200)", "WMA (20)", "Ichimoku Cloud", "Bollinger Bands", "Keltner Channels", "Parabolic SAR", "Pivot S/R", "Fibonacci"],
                 default=["MA Ribbon (10,20,50,200)", "Bollinger Bands"],
-                key="ta_overlay_multi"
+                key="ta_overlay_multi",
+                help="Pilih satu atau beberapa indikator overlay yang akan ditampilkan langsung di atas grafik candlestick."
             )
         with c_bar4:
-            sub_indicator = st.selectbox("Indikator Subplot Bawah:", ["MACD + RSI + Stochastic", "Chaikin Money Flow (CMF) + Volume", "Commodity Channel Index (CCI) + OBV"], key="ta_sub_ind_sel")
+            sub_indicator = st.selectbox(
+                "Indikator Subplot Bawah:",
+                ["MACD + RSI + Stochastic", "Chaikin Money Flow (CMF) + Volume", "Commodity Channel Index (CCI) + OBV"],
+                key="ta_sub_ind_sel",
+                help="Pilih indikator osilator dan aliran dana volume pada panel bawah grafik."
+            )
 
         # Bar Replay Simulator
         st.markdown("###### ⏱️ Bar Replay Simulator (Time Machine Point-in-Time):")
