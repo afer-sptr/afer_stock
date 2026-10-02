@@ -23,6 +23,9 @@ import sys
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
+MODULES_DIR = os.path.join(CURRENT_DIR, "modules")
+if MODULES_DIR not in sys.path:
+    sys.path.insert(0, MODULES_DIR)
 
 import streamlit as st
 import pandas as pd
@@ -94,12 +97,112 @@ from modules.trading_styles_types import (
     TRADING_STYLES_INFO,
     STOCK_TYPES_PROFILES,
 )
-from modules.breakout_bandarmologi import (
-    detect_chart_patterns_and_breakout,
-    analyze_promoter_and_broker_footprint,
-    scan_breakout_universe,
-    generate_broker_interpretation_conclusion,
-)
+# Import Modul Breakout & Bandarmologi (Resilient Import dengan Auto-Reload & Fail-Safe Fallback)
+try:
+    import importlib
+    import modules.breakout_bandarmologi
+    if not hasattr(modules.breakout_bandarmologi, "generate_broker_interpretation_conclusion"):
+        try:
+            importlib.reload(modules.breakout_bandarmologi)
+        except Exception:
+            pass
+    from modules.breakout_bandarmologi import (
+        detect_chart_patterns_and_breakout,
+        analyze_promoter_and_broker_footprint,
+        scan_breakout_universe,
+    )
+    generate_broker_interpretation_conclusion = getattr(
+        modules.breakout_bandarmologi, "generate_broker_interpretation_conclusion", None
+    )
+except Exception:
+    try:
+        import breakout_bandarmologi
+        from breakout_bandarmologi import (
+            detect_chart_patterns_and_breakout,
+            analyze_promoter_and_broker_footprint,
+            scan_breakout_universe,
+        )
+        generate_broker_interpretation_conclusion = getattr(
+            breakout_bandarmologi, "generate_broker_interpretation_conclusion", None
+        )
+    except Exception:
+        def detect_chart_patterns_and_breakout(*args, **kwargs):
+            return {}
+        def analyze_promoter_and_broker_footprint(*args, **kwargs):
+            return {}
+        def scan_breakout_universe(*args, **kwargs):
+            return [], []
+        generate_broker_interpretation_conclusion = None
+
+if generate_broker_interpretation_conclusion is None:
+    def generate_broker_interpretation_conclusion(promoter_eval, broker_eval=None):
+        buyers = promoter_eval.get("top_buyers_detail", [])
+        sellers = promoter_eval.get("top_sellers_detail", [])
+        buyer_codes = [b.get("code", "") for b in buyers]
+        seller_codes = [s.get("code", "") for s in sellers]
+        foreign_smart = {"BK", "AK", "ZP", "CS", "KZ", "MS", "SQ", "CG", "DP"}
+        bumn_sovereign = {"CC", "NI", "OD", "DX"}
+        scalper_kilat = {"MG", "AG", "AZ"}
+        private_inst = {"CP", "AI", "DR", "LG", "KI", "DH", "GR", "IF"}
+        retail_herd = {"YP", "PD", "XC", "XL", "XA", "HD"}
+        has_foreign = any(c in foreign_smart for c in buyer_codes)
+        has_bumn = any(c in bumn_sovereign for c in buyer_codes)
+        has_scalp = any(c in scalper_kilat for c in buyer_codes)
+        has_priv = any(c in private_inst for c in buyer_codes)
+        has_ret = any(c in retail_herd for c in buyer_codes)
+        has_ret_s = any(c in retail_herd for c in seller_codes)
+        lead_c = promoter_eval.get("lead_broker_code", buyer_codes[0] if buyer_codes else "CP")
+        lead_n = promoter_eval.get("lead_broker_name", "Valbury Sekuritas Indonesia")
+        if has_foreign and not has_ret:
+            cat_title = "🏛️ Dominasi Smart Money Asing (Global Institutional Accumulation)"
+            cat_col = "#10B981"
+            st_tag = "AKUMULASI SENYAP MENUJU MARKUP"
+            rule = "Jika Top Buyer didominasi Smart Money Asing (BK, AK, ZP): Mengindikasikan fase akumulasi senyap menuju kenaikan harga berkelanjutan (Markup)."
+            narr = f"Top Buyer saham ini dikendalikan oleh Smart Money Institusi Asing ({', '.join(buyer_codes)}), dipimpin oleh {lead_c} ({lead_n})."
+        elif has_bumn and not has_ret:
+            cat_title = "🏢 Dominasi Konsorsium BUMN & Sovereign Anchor"
+            cat_col = "#3B82F6"
+            st_tag = "PENGAWALAN LANTAI HARGA (STRONG SUPPORT / BOTTOM REVERSAL)"
+            rule = "Jika Top Buyer didominasi BUMN (CC, NI, OD): Menandakan pengawalan lantai harga (support) dan potensi Bottom Reversal yang kuat."
+            narr = f"Top Buyer saham ini didominasi oleh sekuritas BUMN & Anchor Domestik ({', '.join(buyer_codes)}), dipimpin oleh {lead_c} ({lead_n})."
+        elif has_scalp and not (has_foreign or has_bumn or has_priv):
+            cat_title = "⚡ Dominasi Bandar Kilat & Momentum Scalper"
+            cat_col = "#F59E0B"
+            st_tag = "LONJAKAN CEPAT SPEKULATIF (RAWAN GUYURAN)"
+            rule = "Jika Top Buyer didominasi Bandar Kilat (MG, AZ): Menandakan lonjakan harga cepat spekulatif (Pump) yang cocok untuk scalping kilat, namun rawan guyuran."
+            narr = f"Top Buyer saham ini didominasi oleh pergerakan bandar kilat ({', '.join(buyer_codes)})."
+        elif has_ret and not (has_foreign or has_bumn or has_priv):
+            cat_title = "👥 Dominasi Kerumunan Ritel (Retail FOMO Trap)"
+            cat_col = "#EF4444"
+            st_tag = "WASPADA JEBAKAN BELI DI PUCUK (DISTRIBUSI KE RITEL)"
+            rule = "Jika Top Buyer didominasi Kerumunan Ritel (YP, PD, XC): Waspada jebakan beli di pucuk (Distribution to Retail) saat institusi sedang melepas barang."
+            narr = f"Peringatan distribusi: Pembeli terbanyak saat ini didominasi oleh akun ritel ({', '.join(buyer_codes)})."
+        else:
+            cat_title = "💼 Dominasi Institusi Swasta, Komoditas & Sindikasi Momentum"
+            cat_col = "#06B6D4"
+            st_tag = "AKUMULASI TERARAH & PENYERAPAN LIKUIDITAS RITEL"
+            rule = "Top Buyer didominasi sindikasi institusi swasta & komoditas (CP, AI, AZ, DR) yang menyerap suplai likuiditas dari kerumunan ritel."
+            narr = f"Top Buyer saham ini didominasi oleh institusi swasta dan penggerak momentum komoditas ({', '.join(buyer_codes)}), dengan {lead_c} ({lead_n}) sebagai lead akumulator."
+        sel_syn = f"Sisi penjual didominasi oleh kerumunan ritel ({', '.join(seller_codes)}), mengonfirmasi transfer kepemilikan dari Weak Hands ke Strong Hands." if has_ret_s else f"Sisi penjual melibatkan broker campuran ({', '.join(seller_codes)})."
+        b_cost = broker_eval.get("bandar_cost", 0) if broker_eval else 0
+        diff_p = broker_eval.get("diff_from_cost_pct", 0.0) if broker_eval else 0.0
+        cost_t = f"Modal rata-rata bandar saat ini tercatat di Rp {b_cost:,} ({diff_p:+.1f}% dari harga pasar)." if b_cost > 0 else "Harga bergerak dalam batas aman akumulasi."
+        return {
+            "category_title": cat_title,
+            "category_color": cat_col,
+            "status_tag": st_tag,
+            "status": st_tag,
+            "interpretation_rule": rule,
+            "primary_rule": rule,
+            "narrative": narr,
+            "seller_synthesis": sel_syn,
+            "seller_dynamic": sel_syn,
+            "bandar_cost_text": cost_t,
+            "cost_implication": cost_t,
+            "action_recommendation": promoter_eval.get("bandar_action", "Akumulasi Bertahap bersama Smart Money"),
+            "top_buyers_str": ", ".join([f"{b['code']} ({b['name']})" for b in buyers[:3]]),
+            "top_sellers_str": ", ".join([f"{s['code']} ({s['name']})" for s in sellers[:3]]),
+        }
 from modules.advanced_ai_suite import run_comprehensive_ai_suite
 from modules.lapis3_rally_crowd import screen_lapis_3, evaluate_crowd_contrarian
 from modules.bot_dispatcher import (
