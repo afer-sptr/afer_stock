@@ -424,6 +424,34 @@ def render_finance_statistical_analysis_page(
                 f"- **Katalis & Proyek Utama**: **{corp_eval['project_title']}** (Fokus Capex: _{corp_eval['capex_focus']}_)"
             )
 
+        # Konsensus Riset Sekuritas, Obligasi SBN & Aliran ETF
+        b_cons = broker_eval.get("broker_consensus")
+        if b_cons:
+            st.markdown("---")
+            st.markdown("#### 📊 4. Konsensus Riset Sekuritas BEI & Global, Pasar Obligasi SBN & Aliran Portofolio ETF")
+            c_cons1, c_cons2, c_cons3 = st.columns(3)
+            with c_cons1:
+                st.metric(
+                    "Target Konsensus Analis Sekuritas",
+                    f"Rp {b_cons['mean_target_price']:,}",
+                    f"{b_cons['upside_avg_pct']:+.1f}% Rata-rata Upside"
+                )
+                st.caption(f"Rating: **{b_cons['consensus_action']}** (Beli: {b_cons['buy_pct']}%, Tahan: {b_cons['hold_pct']}%, Jual: {b_cons['sell_pct']}%)")
+            with c_cons2:
+                st.metric(
+                    "Yield Acuan Obligasi Negara (SBN 10Y)",
+                    f"{b_cons['sbn_10y_yield']}%",
+                    f"Spread Dividen: {b_cons['yield_spread']:+.2f}%"
+                )
+                st.caption(f"Rotasi Aset: {b_cons['fixed_income_impact']}")
+            with c_cons3:
+                st.metric(
+                    "Aliran Pasif ETF & Indexing",
+                    "Net Inflow Stabil",
+                    "LQ45, IDX30, MSCI EIDO"
+                )
+                st.caption(f"Dampak ETF: {b_cons['etf_flow_impact']}")
+
     # ---------------------------------------------------------------------------------------------------
     # TAB 2: EXPLORATORY DATA ANALYSIS (EDA) & STATISTIK DESKRIPTIF (LANGKAH 1)
     # ---------------------------------------------------------------------------------------------------
@@ -1713,6 +1741,36 @@ def render_finance_statistical_analysis_page(
                     f"- **Katalis Pendorong (Booster)**: _{insta_rep['policy_booster_theme']}_\n"
                     f"- **Risiko Tekanan (Pressure)**: _{insta_rep['policy_risk_theme']}_\n"
                     f"- **Panduan Arah Keputusan**: **{insta_rep['policy_guidance']}**"
+                )
+
+            # Sub-analisis 5: Dispersi Target Konsensus Sekuritas & Sensitivitas Yield SBN / ETF
+            st.markdown("##### 🏛️ 5. Dispersi Target Konsensus Sekuritas BEI/Global & Lintas-Aset SBN/ETF")
+            b_cons = broker_eval.get("broker_consensus")
+            if b_cons:
+                st.write(
+                    f"**Ringkasan Konsensus Analis Sekuritas**: **{b_cons['consensus_action']}** "
+                    f"dengan rata-rata target harga **Rp {b_cons['mean_target_price']:,}** ({b_cons['upside_avg_pct']:+.1f}% potensi upside). "
+                    f"Rasio rekomendasi: **{b_cons['buy_pct']}% Beli**, **{b_cons['hold_pct']}% Tahan**, **{b_cons['sell_pct']}% Jual**."
+                )
+                df_btargets = pd.DataFrame(b_cons.get("broker_targets_list", []))
+                if not df_btargets.empty:
+                    st.dataframe(
+                        df_btargets[["broker", "tier", "target_price", "upside_pct", "recommendation", "publish_date"]].rename(
+                            columns={
+                                "broker": "Nama Sekuritas / Broker",
+                                "tier": "Klasifikasi",
+                                "target_price": "Target Harga (IDR)",
+                                "upside_pct": "Potensi Upside (%)",
+                                "recommendation": "Rekomendasi Riset",
+                                "publish_date": "Tanggal Rilis"
+                            }
+                        ),
+                        hide_index=True,
+                        use_container_width=True
+                    )
+                st.caption(
+                    f"**Pasar Obligasi & ETF**: {b_cons['fixed_income_impact']} | "
+                    f"{b_cons['etf_flow_impact']}"
                 )
 
         with anom_tab4:

@@ -1814,10 +1814,11 @@ with tab_eko:
     eko_tabs = st.tabs([
         "📈 1. Makro IHSG & Proyeksi 30D",
         "🏛️ 2. Jejak Broker & Modal Bandar",
-        "📸 3. Sentimen Instagram & Kebijakan",
-        "🌍 4. Sentimen Medsos Global",
-        "🏗️ 5. Proyek Strategis & Capex",
-        "🧠 6. Psikologi & Behavioral Finance"
+        "📊 3. Konsensus Sekuritas, ETF & Obligasi",
+        "📸 4. Sentimen Instagram & Kebijakan",
+        "🌍 5. Sentimen Medsos Global",
+        "🏗️ 6. Proyek Strategis & Capex",
+        "🧠 7. Psikologi & Behavioral Finance"
     ])
 
     with eko_tabs[0]:
@@ -1933,6 +1934,65 @@ with tab_eko:
         st.plotly_chart(fig_br, use_container_width=True)
 
     with eko_tabs[2]:
+        st.markdown(f"##### 📊 Konsensus Riset Analis Sekuritas BEI, Broker Global, ETF & Pasar Obligasi")
+        st.caption(
+            "Mengagregasi target harga resmi dan rekomendasi riset dari sekuritas anggota BEI "
+            "(Mandiri Sekuritas, Mirae Asset, Indo Premier, BCA Sekuritas, BRI Danareksa, Trimegah, Sucor, dll.) "
+            "dan bank investasi global (J.P. Morgan, Morgan Stanley, UBS, Goldman Sachs, CLSA), "
+            "serta menganalisis imbal hasil obligasi negara (SBN 10Y) dan aliran dana pasif ETF."
+        )
+
+        b_con = broker_eval.get("broker_consensus")
+        if not b_con:
+            from modules.instagram_sentiment_radar import evaluate_broker_research_consensus
+            b_con = evaluate_broker_research_consensus(ticker_clean, current_price, sector=meta_live.get("sector", ""))
+
+        bc_c1, bc_c2, bc_c3 = st.columns(3)
+        with bc_c1:
+            st.metric("Target Harga Konsensus Analis", f"Rp {b_con['mean_target_price']:,}", f"Potensi Upside: +{b_con['upside_avg_pct']}%")
+        with bc_c2:
+            st.metric("Rekomendasi Konsensus", f"{b_con['consensus_action'].split('/')[0].strip()}", f"{b_con['buy_pct']}% Beli | {b_con['hold_pct']}% Tahan | {b_con['sell_pct']}% Jual")
+        with bc_c3:
+            st.metric("Cakupan Riset Sekuritas", f"{b_con['total_analysts']} Lembaga Riset", f"Tertinggi: Rp {b_con['highest_target']:,}")
+
+        st.markdown(f"""
+        <div class="quant-box" style="border-left: 5px solid {b_con['consensus_color']}; padding:14px; margin-top:8px; margin-bottom:12px;">
+            <h5 style="margin:0 0 6px 0; color:{b_con['consensus_color']};">🎯 {b_con['consensus_action']}</h5>
+            <p style="margin:0 0 6px 0; font-size:0.95rem;">{b_con['consensus_summary']}</p>
+            <div style="font-size:0.85rem; color:#94A3B8;">
+                Rentang Target Harga Analis: <b>Rp {b_con['lowest_target']:,}</b> (Konservatif) s/d <b>Rp {b_con['highest_target']:,}</b> (Agresif).
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("###### 📑 Rincian Target Harga Analis per Sekuritas Resmi:")
+        df_b_table = pd.DataFrame(b_con["broker_targets_list"])[["broker", "tier", "target_price", "upside_pct", "recommendation", "publish_date"]]
+        df_b_table.columns = ["Sekuritas / Broker", "Kategori Broker", "Target Harga (IDR)", "Potensi Upside (%)", "Rating Rekomendasi", "Tanggal Laporan"]
+        st.dataframe(df_b_table, hide_index=True, use_container_width=True)
+
+        co_c1, co_c2 = st.columns(2)
+        with co_c1:
+            st.markdown("###### 📜 Pasar Obligasi & Surat Berharga Negara (SBN / Fixed Income):")
+            st.markdown(f"""
+            <div class="quant-box" style="border-left: 5px solid #F59E0B; padding:12px;">
+                <b>Benchmark Yield SBN 10Y:</b> <code style="font-size:1rem; color:#F59E0B;">{b_con['sbn_10y_yield']}%</code><br>
+                <b>Spread Yield vs Deviden:</b> <code>{b_con['yield_spread']:+.2f}%</code><br><br>
+                <small>{b_con['fixed_income_impact']}</small><br><br>
+                <span style="font-size:0.8rem; color:#94A3B8;">Akun Resmi Terpantau: <b>@phei_id</b> (Penilai Harga Efek Indonesia), <b>@bareksa_id</b>, <b>@bibit.id</b>, <b>@pasar_modal_syariah</b></span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with co_c2:
+            st.markdown("###### 🧺 Aliran Likuiditas ETF & Index Rebalancing:")
+            st.markdown(f"""
+            <div class="quant-box" style="border-left: 5px solid #38BDF8; padding:12px;">
+                <b>Indeks Acuan Utama:</b> <code>LQ45, IDX30, ISSI, MSCI Indonesia (EIDO)</code><br><br>
+                <small>{b_con['etf_flow_impact']}</small><br><br>
+                <span style="font-size:0.8rem; color:#94A3B8;">Akun Resmi Terpantau: <b>@indonesiaetf</b>, <b>@indopremier</b>, <b>@blackrock</b>, <b>@vanguardgroup</b></span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with eko_tabs[3]:
         st.markdown(f"##### 📸 Radar Sentimen Instagram: Kebijakan Menkeu, Presiden, BI, BEI & Media Saham")
         st.caption(
             "Mengambil dan membedah informasi langsung dari akun-akun resmi Instagram terkait pasar modal, "
@@ -2010,7 +2070,7 @@ with tab_eko:
                 "bobot pengaruh langsung yang dapat mengubah arus dana asing dan memutar haluan harga saham secara instan."
             )
 
-    with eko_tabs[3]:
+    with eko_tabs[4]:
         st.markdown(f"##### 🌍 Sentimen Media Sosial Global Multi-Platform (Multi-Channel NLP)")
         st.markdown(
             "Agregasi cerdas sentimen percakapan publik dari berbagai platform keuangan dan media sosial dunia "
@@ -2046,7 +2106,7 @@ with tab_eko:
             fig_soc_bar.update_layout(height=290, margin=dict(l=30, r=30, t=40, b=30))
             st.plotly_chart(fig_soc_bar, use_container_width=True)
 
-    with eko_tabs[4]:
+    with eko_tabs[5]:
         st.markdown(f"##### 🏗️ Proyek Strategis, Alokasi Capex & Aksi Korporasi Emiten")
         st.markdown(
             "Menelaah arah ekspansi korporasi, belanja modal masa depan, dan inisiatif strategis "
@@ -2068,7 +2128,7 @@ with tab_eko:
             st.progress(corp_eval['catalyst_score'] / 100.0)
             st.caption("Skor mengevaluasi visibilitas arus kas bebas (FCFF), kapabilitas eksekusi manajemen, dan efisiensi belanja modal terhadap ROIC.")
 
-    with eko_tabs[5]:
+    with eko_tabs[6]:
         st.markdown(f"##### 🧠 Psikologi Investor & Siklus Keuangan Perilaku (Behavioral Finance)")
         st.markdown(
             "Memetakan spektrum emosi kerumunan ritel pada kurva psikologi keuangan legendaris "

@@ -281,6 +281,13 @@ def evaluate_lead_broker_and_bandar_cost(
         action_bandar = "TAKE PROFIT / HINDARI BELI DI PUCUK"
         broker_score = 35
 
+    # Integrasi Riset Konsensus Analis Sekuritas & Broker Dunia
+    try:
+        from modules.instagram_sentiment_radar import evaluate_broker_research_consensus
+        consensus_res = evaluate_broker_research_consensus(clean_t, cp, df_ohlcv=df_ohlcv)
+    except Exception:
+        consensus_res = None
+
     return {
         "lead_broker_code": lead_info["lead"],
         "lead_broker_name": lead_info["name"],
@@ -294,6 +301,7 @@ def evaluate_lead_broker_and_bandar_cost(
         "fase_color": fase_color,
         "action_bandar": action_bandar,
         "broker_score": broker_score,
+        "broker_consensus": consensus_res,
     }
 
 
