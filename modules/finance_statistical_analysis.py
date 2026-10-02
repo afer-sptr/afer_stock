@@ -214,7 +214,12 @@ def _simulate_dqn_policy(returns: np.ndarray, rsi: np.ndarray, df_clean: pd.Data
 def render_finance_statistical_analysis_page(
     ticker: str,
     df_ohlcv: pd.DataFrame,
-    info: dict
+    info: dict,
+    ihsg_eval: dict = None,
+    broker_eval: dict = None,
+    social_eval: dict = None,
+    corp_eval: dict = None,
+    psychology_eval: dict = None
 ):
     """
     Renders the state-of-the-art Finance and Statistical Analysis suite in Streamlit.
@@ -240,6 +245,38 @@ def render_finance_statistical_analysis_page(
     annual_ret = float(df_clean["Return"].tail(252).mean() * 252) if len(df_clean) >= 252 else daily_ret * 252
     rf_rate = 0.060  # BI 7-Day Reverse Repo Rate 6.00%
     sharpe_1y = (annual_ret - rf_rate) / vol_30d if vol_30d > 0.001 else 0.0
+
+    # Auto-Integrasi 5 Pilar Ekosistem Pasar
+    from modules.ihsg_market_driver import (
+        get_cached_ihsg_data,
+        calculate_emiten_market_beta,
+        evaluate_lead_broker_and_bandar_cost,
+        analyze_global_social_sentiment,
+        evaluate_corporate_projects_and_catalysts,
+        evaluate_investor_psychology_cycle
+    )
+
+    if ihsg_eval is None:
+        ihsg_eval, df_ihsg_hist = get_cached_ihsg_data()
+    else:
+        _, df_ihsg_hist = get_cached_ihsg_data()
+    
+    beta_eval = calculate_emiten_market_beta(df_clean, df_ihsg_hist)
+
+    if broker_eval is None:
+        broker_eval = evaluate_lead_broker_and_bandar_cost(ticker, current_p, df_clean)
+    if social_eval is None:
+        social_eval = analyze_global_social_sentiment(ticker, None, info)
+    if corp_eval is None:
+        corp_eval = evaluate_corporate_projects_and_catalysts(ticker, info, df_clean)
+    if psychology_eval is None:
+        psychology_eval = evaluate_investor_psychology_cycle(
+            ticker,
+            current_p,
+            df_clean,
+            float(df_clean["RSI_14"].iloc[-1]) if "RSI_14" in df_clean.columns else 50.0,
+            social_eval.get("composite_social_score", 50.0)
+        )
 
     # Top Executive Banner
     col_t1, col_t2, col_t3, col_t4, col_t5 = st.columns(5)
@@ -356,6 +393,32 @@ def render_finance_statistical_analysis_page(
             ))
             fig_score.update_layout(height=260, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor="rgba(0,0,0,0)")
             st.plotly_chart(fig_score, use_container_width=True)
+
+        st.markdown("---")
+        st.markdown("#### 🌐 3. Integrasi Ekosistem: IHSG Macro, Lead Broker, Sentimen Global & Psikologi Pasar")
+        eko_col1, eko_col2 = st.columns(2)
+        with eko_col1:
+            st.markdown(
+                f"**📈 Makroekonomi IHSG (^JKSE)**:\n"
+                f"- **Level & Tren IHSG**: `Rp {ihsg_eval['current_level']:,.2f}` ({ihsg_eval['change_pct']:+.2f}%) | Status: **{ihsg_eval['future_trend']}**\n"
+                f"- **Sensitivitas Saham**: Beta **{beta_eval['beta']}x** ({beta_eval['category']}) | Jensen's Alpha: **{beta_eval['alpha_annual_pct']:+.2f}%/tahun**\n"
+                f"- **Proyeksi Forward 30 Hari IHSG**: Bullish **{ihsg_eval['target_30d_bull']:,}** | Base **{ihsg_eval['target_30d_base']:,}** | Bearish **{ihsg_eval['target_30d_bear']:,}**\n\n"
+                f"**🏛️ Lead Broker & Bandar Cost Basis**:\n"
+                f"- **Broker Dominan**: `{broker_eval['lead_broker_code']}` ({broker_eval['lead_broker_name']})\n"
+                f"- **Modal Rata-rata Bandar**: **Rp {broker_eval['bandar_cost']:,}** ({broker_eval['diff_from_cost_pct']:+.1f}% dari harga pasar)\n"
+                f"- **Status Siklus**: **{broker_eval['fase_bandar']}** -> _{broker_eval['action_bandar']}_"
+            )
+        with eko_col2:
+            st.markdown(
+                f"**🌍 Sentimen Media Sosial Global** (`{social_eval['composite_social_score']}/100`):\n"
+                f"- **Status Kerumunan**: **{social_eval['crowd_status']}**\n"
+                f"- **Platform Breakdown**: Twitter/X: `{social_eval['channels']['Twitter / X (FinTwit Global)']:.0f}` | Stockbit: `{social_eval['channels']['Stockbit Stream & Retail IDX']:.0f}` | Telegram: `{social_eval['channels']['Telegram Komunitas Saham']:.0f}` | YouTube: `{social_eval['channels']['YouTube & Financial Influencer']:.0f}`\n"
+                f"- **Psikologi Kerumunan**: _{social_eval['crowd_desc']}_\n\n"
+                f"**🧠 Psikologi Pasar & Katalis Korporasi**:\n"
+                f"- **Fear & Greed Index**: **{psychology_eval['fear_greed_index']}/100** ({psychology_eval['cycle_phase']})\n"
+                f"- **Peringatan Bias Kognitif**: _{psychology_eval['bias_warning']}_\n"
+                f"- **Katalis & Proyek Utama**: **{corp_eval['project_title']}** (Fokus Capex: _{corp_eval['capex_focus']}_)"
+            )
 
     # ---------------------------------------------------------------------------------------------------
     # TAB 2: EXPLORATORY DATA ANALYSIS (EDA) & STATISTIK DESKRIPTIF (LANGKAH 1)
@@ -1475,7 +1538,12 @@ def render_finance_statistical_analysis_page(
             "dan merancang arsitektur produksi **Modern MLOps**."
         )
 
-        anom_tab1, anom_tab2, anom_tab3 = st.tabs(["📅 Anomali Kalender & Payday", "🕵️ Bandarmologi & Divergensi", "🚀 Modern MLOps Architecture"])
+        anom_tab1, anom_tab2, anom_tab3, anom_tab4 = st.tabs([
+            "📅 Anomali Kalender & Payday",
+            "🕵️ Bandarmologi & Divergensi",
+            "🌐 Ekosistem & Anomali Bandar",
+            "🚀 Modern MLOps Architecture"
+        ])
 
         with anom_tab1:
             st.markdown("#### 📅 Analisis Anomali Kalender Saham BEI")
@@ -1542,6 +1610,95 @@ def render_finance_statistical_analysis_page(
                 st.info(f"⚪ **Arus Dana Netral**: CMF berada di sekitar titik imbang ({latest_cmf:+.3f}).")
 
         with anom_tab3:
+            st.markdown("#### 🌐 Ekosistem Pasar: Divergensi Bandar Cost Basis, Sentimen Global & Stress Test IHSG")
+            st.markdown(
+                "Menganalisis anomali struktural antara harga saham saat ini terhadap modal akumulasi bandar, "
+                "decoupling sentimen media sosial, serta uji ketahanan (stress test) skenario IHSG."
+            )
+
+            # Sub-analisis 1: Divergensi Bandar Cost Basis
+            st.markdown("##### 🏛️ 1. Divergensi Harga Pasar vs Modal Rata-rata Bandar (Bandar Cost)")
+            dev_c1, dev_c2, dev_c3 = st.columns(3)
+            with dev_c1:
+                st.metric("Modal Rata-rata Bandar", f"Rp {broker_eval['bandar_cost']:,}", f"{broker_eval['diff_from_cost_pct']:+.1f}% Deviasi Pasar")
+            with dev_c2:
+                st.metric("Lead Broker Penggerak", f"{broker_eval['lead_broker_code']}", f"{broker_eval['lead_broker_name'][:20]}")
+            with dev_c3:
+                st.metric("Status Fase Bandar", f"{broker_eval['fase_bandar'].split(':')[0]}", f"Aksi: {broker_eval['action_bandar']}")
+
+            st.caption(f"_{broker_eval['fase_desc']}_")
+
+            # Chart Divergensi Harga vs Modal Bandar
+            fig_bc = go.Figure()
+            fig_bc.add_trace(go.Bar(
+                name="Harga Pasar Saat Ini",
+                x=["Komparasi Harga (IDR)"],
+                y=[current_p],
+                marker_color="#3B82F6",
+                text=[f"Rp {current_p:,.0f}"],
+                textposition="auto"
+            ))
+            fig_bc.add_trace(go.Bar(
+                name=f"Modal Bandar ({broker_eval['lead_broker_code']})",
+                x=["Komparasi Harga (IDR)"],
+                y=[broker_eval['bandar_cost']],
+                marker_color="#10B981" if broker_eval['diff_from_cost_pct'] <= 5.0 else "#F59E0B",
+                text=[f"Rp {broker_eval['bandar_cost']:,}"],
+                textposition="auto"
+            ))
+            fig_bc.update_layout(
+                title=f"Komparasi Harga Riil vs Modal Bandar ({broker_eval['lead_broker_code']})",
+                barmode="group",
+                template="plotly_dark",
+                height=280,
+                margin=dict(l=30, r=30, t=40, b=30)
+            )
+            st.plotly_chart(fig_bc, use_container_width=True)
+
+            # Sub-analisis 2: Multi-Platform Sentiment & Decoupling
+            st.markdown("##### 🌍 2. Sentimen Media Sosial Global & Decoupling Kerumunan")
+            ch_names = list(social_eval["channels"].keys())
+            ch_vals = [social_eval["channels"][k] for k in ch_names]
+            fig_soc = px.bar(
+                x=ch_names,
+                y=ch_vals,
+                labels={"x": "Platform Media Sosial Global", "y": "Skor Sentimen (0-100)"},
+                title="Distribusi Sentimen Percakapan Investor Global Multi-Channel",
+                template="plotly_dark",
+                color=ch_vals,
+                color_continuous_scale="Viridis",
+                text_auto=True
+            )
+            fig_soc.update_layout(height=280, margin=dict(l=30, r=30, t=40, b=30))
+            st.plotly_chart(fig_soc, use_container_width=True)
+
+            # Sub-analisis 3: Stress Test Makro IHSG
+            st.markdown("##### 📈 3. Stress Test Skenario Makroekonomi IHSG (^JKSE)")
+            st.write(
+                f"Berdasarkan Beta saham **{beta_eval['beta']}x**, proyeksi perubahan harga saham terhadap skenario IHSG 30 hari ke depan:"
+            )
+            sc_bull_ihsg = ((ihsg_eval["target_30d_bull"] - ihsg_eval["current_level"]) / ihsg_eval["current_level"]) * 100.0
+            sc_base_ihsg = ((ihsg_eval["target_30d_base"] - ihsg_eval["current_level"]) / ihsg_eval["current_level"]) * 100.0
+            sc_bear_ihsg = ((ihsg_eval["target_30d_bear"] - ihsg_eval["current_level"]) / ihsg_eval["current_level"]) * 100.0
+
+            st_bull_stock = sc_bull_ihsg * beta_eval["beta"]
+            st_base_stock = sc_base_ihsg * beta_eval["beta"]
+            st_bear_stock = sc_bear_ihsg * beta_eval["beta"]
+
+            st_df = pd.DataFrame({
+                "Skenario IHSG 30 Hari": ["🟢 Bullish Skenario", "🟡 Base Skenario", "🔴 Bearish Koreksi"],
+                "Target IHSG": [f"{ihsg_eval['target_30d_bull']:,}", f"{ihsg_eval['target_30d_base']:,}", f"{ihsg_eval['target_30d_bear']:,}"],
+                "Proyeksi IHSG (%)": [f"{sc_bull_ihsg:+.2f}%", f"{sc_base_ihsg:+.2f}%", f"{sc_bear_ihsg:+.2f}%"],
+                "Estimasi Return Saham (%)": [f"{st_bull_stock:+.2f}%", f"{st_base_stock:+.2f}%", f"{st_bear_stock:+.2f}%"],
+                "Target Harga Saham (IDR)": [
+                    f"Rp {round(current_p * (1 + st_bull_stock/100)):,}",
+                    f"Rp {round(current_p * (1 + st_base_stock/100)):,}",
+                    f"Rp {round(current_p * (1 + st_bear_stock/100)):,}"
+                ]
+            })
+            st.dataframe(st_df, hide_index=True, use_container_width=True)
+
+        with anom_tab4:
             st.markdown("#### 🚀 Arsitektur Modern MLOps Produksi (Dual-Model Meta-Labeling)")
             st.code("""
 +-----------------------------------------------------------------------------------+

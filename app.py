@@ -74,6 +74,14 @@ from modules.order_book_microstructure import (
     calculate_net_pnl,
 )
 from modules.finance_statistical_analysis import render_finance_statistical_analysis_page
+from modules.ihsg_market_driver import (
+    get_cached_ihsg_data,
+    calculate_emiten_market_beta,
+    evaluate_lead_broker_and_bandar_cost,
+    analyze_global_social_sentiment,
+    evaluate_corporate_projects_and_catalysts,
+    evaluate_investor_psychology_cycle,
+)
 from modules.econometrics_risk import run_econometrics_and_risk
 from modules.portfolio_optimizer import optimize_mean_cvar_portfolio
 from modules.trading_styles_types import (
@@ -634,7 +642,15 @@ ai_suite_eval = get_cached_ai_suite(
 # 14. Prediksi Pergerakan Candlestick Real-Time & Target Level
 candle_pred = predict_candlestick_movement(df_tech, info)
 
-# 14. Rekomendasi Keputusan Terpadu Holistik
+# 15. Ekosistem Terpadu: Makro IHSG, Broker Footprint, Social Sentiment Global, Proyek Korporasi & Psikologi Pasar
+ihsg_eval, df_ihsg_hist = get_cached_ihsg_data()
+beta_eval = calculate_emiten_market_beta(df_tech, df_ihsg_hist)
+broker_eval = evaluate_lead_broker_and_bandar_cost(ticker_clean, current_price, df_tech)
+social_eval = analyze_global_social_sentiment(ticker_clean, news_eval, info)
+corp_eval = evaluate_corporate_projects_and_catalysts(ticker_clean, info, df_tech)
+psychology_eval = evaluate_investor_psychology_cycle(ticker_clean, current_price, df_tech, tech_eval.get("rsi", 50.0), social_eval["composite_social_score"])
+
+# 16. Rekomendasi Keputusan Terpadu Holistik
 rec = generate_composite_recommendation(
     tech_result=tech_eval,
     fund_result=fund_eval,
@@ -644,6 +660,11 @@ rec = generate_composite_recommendation(
     news_result=news_eval,
     order_book_result=order_book_eval,
     ai_suite_result=ai_suite_eval,
+    ihsg_result=ihsg_eval,
+    broker_result=broker_eval,
+    social_sentiment_result=social_eval,
+    corporate_projects_result=corp_eval,
+    investor_psychology_result=psychology_eval,
 )
 plan = rec["trading_plan"]
 pos = calculate_position_size(
@@ -790,7 +811,12 @@ elif app_menu == "📊 Finance and Statistical Analysis":
     render_finance_statistical_analysis_page(
         ticker=ticker_clean,
         df_ohlcv=df_tech,
-        info=info
+        info=info,
+        ihsg_eval=ihsg_eval,
+        broker_eval=broker_eval,
+        social_eval=social_eval,
+        corp_eval=corp_eval,
+        psychology_eval=psychology_eval
     )
     st.stop()
 
@@ -843,6 +869,24 @@ with top_c5:
         delta=f"Low: Rp {hl_eval['year_low']:,}",
         delta_color="off"
     )
+
+st.markdown("---")
+
+# ----------------- WIDGET EKOSISTEM PASAR TERPADU -----------------
+with st.expander("🌐 **Ekosistem Pasar Terpadu: Proyeksi Masa Depan IHSG, Jejak Broker Bandar, Sentimen Global & Psikologi Investor**", expanded=True):
+    eko_c1, eko_c2, eko_c3, eko_c4 = st.columns(4)
+    with eko_c1:
+        st.markdown(f"**📈 Makro IHSG (^JKSE):** `Rp {ihsg_eval['current_level']:,.2f}` ({ihsg_eval['change_pct']:+.2f}%)")
+        st.caption(f"Status Tren: **{ihsg_eval['future_trend']}**\n- Target 30D Bull: **{ihsg_eval['target_30d_bull']:,}** | Base: **{ihsg_eval['target_30d_base']:,}**\n- Resisten 1: {ihsg_eval['resistance_1']:,} | Support 1: {ihsg_eval['support_1']:,}\n- Sensitivitas Beta vs IHSG: **{beta_eval['beta']}x** ({beta_eval['category']})")
+    with eko_c2:
+        st.markdown(f"**🏛️ Lead Broker Dominan:** `{broker_eval['lead_broker_code']}` ({broker_eval['lead_broker_name'][:20]})")
+        st.caption(f"Modal Rata-rata Bandar: **Rp {broker_eval['bandar_cost']:,}** ({broker_eval['diff_from_cost_pct']:+.1f}% dari pasar)\n- Fase: **{broker_eval['fase_bandar']}**\n- Implikasi Tindakan: **{broker_eval['action_bandar']}**")
+    with eko_c3:
+        st.markdown(f"**🌍 Sentimen Media Sosial Global:** `{social_eval['composite_social_score']}/100`")
+        st.caption(f"Status Kerumunan: **{social_eval['crowd_status']}**\n- Twitter/X: {social_eval['channels']['Twitter / X (FinTwit Global)']:.0f} | Stockbit: {social_eval['channels']['Stockbit Stream & Retail IDX']:.0f}\n- Telegram: {social_eval['channels']['Telegram Komunitas Saham']:.0f} | YouTube: {social_eval['channels']['YouTube & Financial Influencer']:.0f}")
+    with eko_c4:
+        st.markdown(f"**🧠 Psikologi Pasar & Proyek:**")
+        st.caption(f"Fear & Greed Index: **{psychology_eval['fear_greed_index']}/100** ({psychology_eval['cycle_phase']})\n- Bias Kognitif: _{psychology_eval['bias_warning'][:38]}..._\n- Proyek Kunci: **{corp_eval['project_title'][:32]}...**")
 
 st.markdown("---")
 
@@ -939,6 +983,7 @@ st.markdown("---")
     tab_style,
     tab_breakout,
     tab_risk,
+    tab_eko,
     tab_bot,
 ) = st.tabs([
     "⚡ 10 Rekomendasi Scalping Super Cuan",
@@ -953,6 +998,7 @@ st.markdown("---")
     "🏷️ Gaya Trading, 19 Tipe Saham & Cash Cows",
     "🏆 Top Breakout & Bandarmologi",
     "📊 Ekonometrika, Deep Risk & Mean-CVaR",
+    "🌐 Ekosistem Pasar: IHSG, Broker, Sentimen & Psikologi",
     "📲 Bot Dispatcher (Telegram & WhatsApp)",
 ])
 
@@ -1758,7 +1804,228 @@ with tab_risk:
             else:
                 st.warning("Data historis tidak mencukupi untuk minimal 2 aset.")
 
-# TAB 13: BOT DISPATCHER
+# TAB 13: EKOSISTEM PASAR TERPADU (IHSG, BROKER, SENTIMEN & PSIKOLOGI)
+with tab_eko:
+    st.markdown("#### 🌐 Ekosistem Pasar Terpadu: Proyeksi Masa Depan IHSG, Broker Bandar, Sentimen & Psikologi")
+    st.caption("Analisis makro multi-dimensi yang mengintegrasikan dinamika IHSG, footprint broker penggerak, sentimen multi-platform global, proyeksi korporasi, dan siklus psikologi investor.")
+
+    eko_tabs = st.tabs([
+        "📈 1. Makro IHSG & Proyeksi 30D",
+        "🏛️ 2. Jejak Broker & Modal Bandar",
+        "🌍 3. Sentimen Media Sosial Global",
+        "🏗️ 4. Proyek Strategis & Capex",
+        "🧠 5. Psikologi & Behavioral Finance"
+    ])
+
+    with eko_tabs[0]:
+        st.markdown("##### 📈 Hasil & Proyeksi Forward 30 Hari IHSG (^JKSE)")
+        ih_c1, ih_c2, ih_c3, ih_c4 = st.columns(4)
+        with ih_c1:
+            st.metric("Level IHSG Terakhir", f"Rp {ihsg_eval['current_level']:,.2f}", f"{ihsg_eval['change_pct']:+.2f}%")
+        with ih_c2:
+            st.metric("Target 30D Bullish", f"Rp {ihsg_eval['target_30d_bull']:,}", f"+{((ihsg_eval['target_30d_bull'] - ihsg_eval['current_level'])/ihsg_eval['current_level'])*100:.2f}%")
+        with ih_c3:
+            st.metric("Target 30D Base", f"Rp {ihsg_eval['target_30d_base']:,}", f"+{((ihsg_eval['target_30d_base'] - ihsg_eval['current_level'])/ihsg_eval['current_level'])*100:.2f}%")
+        with ih_c4:
+            st.metric("Target 30D Bearish", f"Rp {ihsg_eval['target_30d_bear']:,}", f"{((ihsg_eval['target_30d_bear'] - ihsg_eval['current_level'])/ihsg_eval['current_level'])*100:.2f}%")
+
+        st.info(f"🧭 **Status Tren Masa Depan IHSG**: **{ihsg_eval['future_trend']}**\n\n_{ihsg_eval['future_trend_desc']}_\n- **Peluang Penguatan**: **{ihsg_eval['direction_prob_up']:.1f}%** | Support: **{ihsg_eval['support_1']:,}** / **{ihsg_eval['support_2']:,}** | Resistance: **{ihsg_eval['resistance_1']:,}** / **{ihsg_eval['resistance_2']:,}**")
+
+        if df_ihsg_hist is not None and not df_ihsg_hist.empty:
+            fig_ih = go.Figure()
+            fig_ih.add_trace(go.Scatter(
+                x=df_ihsg_hist.index[-60:],
+                y=df_ihsg_hist["Close"].tail(60),
+                name="Historis IHSG (^JKSE)",
+                line=dict(color="#38BDF8", width=2.5)
+            ))
+            last_date = df_ihsg_hist.index[-1]
+            future_dates = [last_date + timedelta(days=d) for d in [10, 20, 30]]
+            cur_ih = ihsg_eval['current_level']
+            bull_path = [cur_ih, (cur_ih + ihsg_eval['target_30d_bull'])/2.0, ihsg_eval['target_30d_bull']]
+            base_path = [cur_ih, (cur_ih + ihsg_eval['target_30d_base'])/2.0, ihsg_eval['target_30d_base']]
+            bear_path = [cur_ih, (cur_ih + ihsg_eval['target_30d_bear'])/2.0, ihsg_eval['target_30d_bear']]
+
+            fig_ih.add_trace(go.Scatter(
+                x=future_dates, y=bull_path, name="Skenario Bullish 30D",
+                line=dict(color="#10B981", width=2, dash="dash")
+            ))
+            fig_ih.add_trace(go.Scatter(
+                x=future_dates, y=base_path, name="Skenario Base 30D",
+                line=dict(color="#FBBF24", width=2, dash="dash")
+            ))
+            fig_ih.add_trace(go.Scatter(
+                x=future_dates, y=bear_path, name="Skenario Bearish 30D",
+                line=dict(color="#EF4444", width=2, dash="dash")
+            ))
+            fig_ih.update_layout(
+                title="Proyeksi Forward 30 Hari IHSG (^JKSE) - Scenario Cones",
+                template="plotly_dark",
+                height=340,
+                margin=dict(l=30, r=30, t=40, b=30),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            st.plotly_chart(fig_ih, use_container_width=True)
+
+        st.markdown(f"##### 🎯 Sensitivitas Emiten {ticker_clean} terhadap Gelombang IHSG")
+        b_c1, b_c2, b_c3 = st.columns(3)
+        with b_c1:
+            st.metric("Market Beta (β) vs IHSG", f"{beta_eval['beta']}x", beta_eval['category'])
+        with b_c2:
+            st.metric("Jensen's Alpha (α)", f"{beta_eval['alpha_annual_pct']:+.2f}%", "Outperformance Tahunan")
+        with b_c3:
+            st.metric("Korelasi Pearson (r)", f"{beta_eval['correlation']:.2f}", "Kekuatan Hubungan Linear")
+        st.caption(f"_{beta_eval['impact_summary']}_")
+
+    with eko_tabs[1]:
+        st.markdown(f"##### 🏛️ Jejak Broker Penggerak Utama & Modal Rata-rata Bandar (Bandar Cost)")
+        st.markdown(
+            f"Analisis bandarmologi institusional melacak entitas broker utama yang mengendalikan likuiditas "
+            f"dan mengkalkulasi titik impas modal rata-rata akumulasi (**Bandar Cost Basis**)."
+        )
+
+        br_c1, br_c2, br_c3 = st.columns(3)
+        with br_c1:
+            st.metric("Kode Broker Lead", f"{broker_eval['lead_broker_code']}", f"{broker_eval['lead_broker_name']}")
+        with br_c2:
+            st.metric("Modal Rata-rata Bandar", f"Rp {broker_eval['bandar_cost']:,}", f"{broker_eval['diff_from_cost_pct']:+.1f}% dari Harga Pasar")
+        with br_c3:
+            st.metric("Harga Saham Saat Ini", f"Rp {current_price:,.0f}", f"Skor Bandar: {broker_eval['broker_score']}/100")
+
+        st.markdown(f"**Tipe Broker**: `{broker_eval['lead_broker_type']}` | **Karakteristik**: _{broker_eval['lead_broker_nature']}_")
+        
+        phase_color_border = "#10B981" if "AKUMULASI" in broker_eval['fase_bandar'] else ("#3B82F6" if "KONSOLIDASI" in broker_eval['fase_bandar'] else ("#F59E0B" if "MARKUP" in broker_eval['fase_bandar'] else "#EF4444"))
+        st.markdown(f"""
+        <div class="quant-box" style="border-left: 5px solid {phase_color_border}; padding:14px; margin-top:10px;">
+            <h5 style="margin:0 0 6px 0; color:{phase_color_border};">⚖️ {broker_eval['fase_bandar']}</h5>
+            <p style="margin:0 0 6px 0; font-size:0.95rem;">{broker_eval['fase_desc']}</p>
+            <b>👉 Rekomendasi Aksi:</b> <span style="color:{phase_color_border}; font-weight:700;">{broker_eval['action_bandar']}</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        fig_br = go.Figure()
+        fig_br.add_trace(go.Bar(
+            name="Harga Pasar Saat Ini",
+            x=[ticker_clean],
+            y=[current_price],
+            marker_color="#38BDF8",
+            text=[f"Rp {current_price:,.0f}"],
+            textposition="auto"
+        ))
+        fig_br.add_trace(go.Bar(
+            name=f"Modal Bandar ({broker_eval['lead_broker_code']})",
+            x=[ticker_clean],
+            y=[broker_eval['bandar_cost']],
+            marker_color="#10B981" if broker_eval['diff_from_cost_pct'] <= 5.0 else "#F59E0B",
+            text=[f"Rp {broker_eval['bandar_cost']:,}"],
+            textposition="auto"
+        ))
+        fig_br.update_layout(
+            title=f"Perbandingan Harga Pasar vs Modal Bandar ({broker_eval['lead_broker_code']})",
+            barmode="group",
+            template="plotly_dark",
+            height=280,
+            margin=dict(l=30, r=30, t=40, b=30)
+        )
+        st.plotly_chart(fig_br, use_container_width=True)
+
+    with eko_tabs[2]:
+        st.markdown(f"##### 🌍 Sentimen Media Sosial Global Multi-Platform (Multi-Channel NLP)")
+        st.markdown(
+            "Agregasi cerdas sentimen percakapan publik dari berbagai platform keuangan dan media sosial dunia "
+            "untuk mengidentifikasi apakah kerumunan sedang berada di fase FOMO atau Extreme Fear."
+        )
+
+        soc_c1, soc_c2 = st.columns([1, 2])
+        with soc_c1:
+            st.metric("Skor Sentimen Komposit", f"{social_eval['composite_social_score']}/100", f"Status: {social_eval['crowd_status'].split('/')[0].strip()}")
+            st.markdown(f"""
+            <div class="quant-box" style="border-left: 5px solid #F59E0B; padding:12px; margin-top:8px;">
+                <b>Status Kerumunan:</b><br>
+                <span style="color:#F59E0B; font-weight:700;">{social_eval['crowd_status']}</span><br><br>
+                <b>Analisis Psikologis:</b><br>
+                <small>{social_eval['crowd_desc']}</small>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with soc_c2:
+            ch_keys = list(social_eval["channels"].keys())
+            ch_scores = [social_eval["channels"][k] for k in ch_keys]
+            fig_soc_bar = px.bar(
+                x=ch_scores,
+                y=ch_keys,
+                orientation="h",
+                labels={"x": "Skor Sentimen (0-100)", "y": "Saluran Media Sosial"},
+                title=f"Sentimen Komunitas Pasar Modal Lintas Platform untuk {ticker_clean}",
+                template="plotly_dark",
+                color=ch_scores,
+                color_continuous_scale="Temps",
+                text=[f"{v:.0f}" for v in ch_scores]
+            )
+            fig_soc_bar.update_layout(height=290, margin=dict(l=30, r=30, t=40, b=30))
+            st.plotly_chart(fig_soc_bar, use_container_width=True)
+
+    with eko_tabs[3]:
+        st.markdown(f"##### 🏗️ Proyek Strategis, Alokasi Capex & Aksi Korporasi Emiten")
+        st.markdown(
+            "Menelaah arah ekspansi korporasi, belanja modal masa depan, dan inisiatif strategis "
+            "yang menjadi bahan bakar pertumbuhan laba bersih dan katalis harga saham ke depan."
+        )
+
+        cp_c1, cp_c2 = st.columns([2, 1])
+        with cp_c1:
+            st.markdown(f"""
+            <div class="quant-box" style="border-left: 5px solid #3B82F6; padding:16px;">
+                <h4 style="margin:0 0 8px 0; color:#3B82F6;">🎯 {corp_eval['project_title']}</h4>
+                <p style="margin:0 0 10px 0;"><b>🛠️ Fokus Alokasi Capex:</b><br>{corp_eval['capex_focus']}</p>
+                <p style="margin:0 0 10px 0;"><b>📈 Estimasi Dampak Pertumbuhan:</b><br>{corp_eval['catalyst_impact']}</p>
+                <p style="margin:0; font-size:0.85rem; color:#94A3B8;">Emiten: <b>{corp_eval['company_name']}</b> | Sektor: <b>{corp_eval['sector']}</b></p>
+            </div>
+            """, unsafe_allow_html=True)
+        with cp_c2:
+            st.metric("Skor Kekuatan Katalis", f"{corp_eval['catalyst_score']} / 100", "Potensi Pertumbuhan Jangka Panjang")
+            st.progress(corp_eval['catalyst_score'] / 100.0)
+            st.caption("Skor mengevaluasi visibilitas arus kas bebas (FCFF), kapabilitas eksekusi manajemen, dan efisiensi belanja modal terhadap ROIC.")
+
+    with eko_tabs[4]:
+        st.markdown(f"##### 🧠 Psikologi Investor & Siklus Keuangan Perilaku (Behavioral Finance)")
+        st.markdown(
+            "Memetakan spektrum emosi kerumunan ritel pada kurva psikologi keuangan legendaris "
+            "(dari *Disbelief* hingga *Euphoria* dan *Capitulation*) untuk menghindari bias kognitif dan mengeksekusi strategi kontrarian."
+        )
+
+        psy_c1, psy_c2 = st.columns([1, 1])
+        with psy_c1:
+            fig_fg = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=psychology_eval["fear_greed_index"],
+                title={'text': f"Fear & Greed Index: {ticker_clean}"},
+                gauge={
+                    'axis': {'range': [0, 100]},
+                    'bar': {'color': "#38BDF8"},
+                    'steps': [
+                        {'range': [0, 25], 'color': "#1E3A8A"},
+                        {'range': [25, 45], 'color': "#0284C7"},
+                        {'range': [45, 55], 'color': "#EAB308"},
+                        {'range': [55, 75], 'color': "#F97316"},
+                        {'range': [75, 100], 'color': "#DC2626"}
+                    ]
+                }
+            ))
+            fig_fg.update_layout(height=270, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor="rgba(0,0,0,0)")
+            st.plotly_chart(fig_fg, use_container_width=True)
+
+        with psy_c2:
+            st.markdown(f"""
+            <div class="quant-box" style="border-left: 5px solid #EC4899; padding:16px;">
+                <h4 style="margin:0 0 6px 0; color:#EC4899;">🎭 Fase Siklus: {psychology_eval['cycle_phase']}</h4>
+                <p style="margin:0 0 10px 0; font-style:italic; font-size:1.05rem;">{psychology_eval['cycle_quote']}</p>
+                <p style="margin:0 0 8px 0;"><b>⚠️ Peringatan Bias Kognitif:</b><br>{psychology_eval['bias_warning']}</p>
+                <p style="margin:0;"><b>💡 Tindakan Kontrarian Cerdas:</b><br><span style="color:#10B981; font-weight:700;">{psychology_eval['contrarian_action']}</span></p>
+            </div>
+            """, unsafe_allow_html=True)
+
+# TAB 14: BOT DISPATCHER
 with tab_bot:
     st.markdown("#### 📲 Konfigurasi Bot Dispatcher (Telegram & WhatsApp)")
     st.write(

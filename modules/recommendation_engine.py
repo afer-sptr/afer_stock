@@ -120,10 +120,25 @@ def generate_composite_recommendation(
     news_result: Optional[Dict[str, Any]] = None,
     order_book_result: Optional[Dict[str, Any]] = None,
     ai_suite_result: Optional[Dict[str, Any]] = None,
+    ihsg_result: Optional[Dict[str, Any]] = None,
+    broker_result: Optional[Dict[str, Any]] = None,
+    social_sentiment_result: Optional[Dict[str, Any]] = None,
+    corporate_projects_result: Optional[Dict[str, Any]] = None,
+    investor_psychology_result: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
-    Mengintegrasikan seluruh pilar keputusan multi-aspek ke dalam skor terpadu (0 - 100).
-    Dilengkapi deteksi Insolvency Veto dan News Veto institusional.
+    Mengintegrasikan seluruh pilar keputusan multi-aspek ke dalam skor terpadu (0 - 100):
+    1. Teknikal & Momentum
+    2. High/Low Price Action
+    3. Fundamental & Solvabilitas
+    4. Sentimen Berita FinBERT & Veto Alert
+    5. Machine Learning & AI Suite
+    6. Mikrostruktur Order Book
+    7. Makroekonomi & Proyeksi Masa Depan IHSG
+    8. Jejak Broker Dominan & Modal Rata-rata Bandar
+    9. Sentimen Multi-Platform Global (Twitter/Stockbit/Reddit/YouTube)
+    10. Proyek Strategis & Aksi Korporasi Perusahaan
+    11. Siklus Psikologi Investor & Fear-Greed Index
     """
     tech_score = tech_result.get("score", 50)
     fund_score = fund_result.get("score", 50)
@@ -146,16 +161,56 @@ def generate_composite_recommendation(
     if order_book_result:
         ob_score = round(float(order_book_result.get("pct_bid", 50.0)))
 
-    # Pembobotan Multi-Pilar Terkalibrasi:
-    # Teknikal 25%, High/Low 20%, Fundamental 20%, Sentimen Berita 15%, ML/AI 10%, Order Book 10%
-    raw_composite = (
-        (tech_score * 0.25)
-        + (hl_score * 0.20)
-        + (fund_score * 0.20)
-        + (news_score * 0.15)
-        + (ml_score * 0.10)
-        + (ob_score * 0.10)
-    )
+    # Skor IHSG Makro & Proyeksi
+    ihsg_score = 50
+    if ihsg_result:
+        ihsg_score = round(float(ihsg_result.get("macro_score", 50)))
+
+    # Skor Broker & Modal Bandar
+    broker_score = 50
+    if broker_result:
+        broker_score = round(float(broker_result.get("broker_score", 50)))
+
+    # Skor Sentimen Sosial Global
+    social_score = 50
+    if social_sentiment_result:
+        social_score = round(float(social_sentiment_result.get("composite_social_score", 50)))
+
+    # Skor Proyek Strategis Korporasi
+    catalyst_score = 50
+    if corporate_projects_result:
+        catalyst_score = round(float(corporate_projects_result.get("catalyst_score", 50)))
+
+    # Skor Psikologi Pasar
+    psychology_score = 50
+    if investor_psychology_result:
+        psychology_score = round(float(investor_psychology_result.get("fear_greed_index", 50)))
+
+    # Pembobotan Holistik Terkalibrasi Multi-Pilar:
+    # Jika parameter baru tersedia, gunakan pembobotan institusional terpadu:
+    if ihsg_result and broker_result:
+        raw_composite = (
+            (tech_score * 0.18)
+            + (hl_score * 0.12)
+            + (fund_score * 0.15)
+            + (news_score * 0.10)
+            + (ml_score * 0.08)
+            + (ob_score * 0.07)
+            + (ihsg_score * 0.10)
+            + (broker_score * 0.10)
+            + (social_score * 0.05)
+            + (catalyst_score * 0.05)
+        )
+    else:
+        raw_composite = (
+            (tech_score * 0.25)
+            + (hl_score * 0.20)
+            + (fund_score * 0.20)
+            + (news_score * 0.15)
+            + (ml_score * 0.10)
+            + (ob_score * 0.10)
+        )
+
     composite_score = int(round(raw_composite))
 
     # Cek Kondisi Veto Proteksi Modal (Insolvency Veto & News Veto)
@@ -173,25 +228,25 @@ def generate_composite_recommendation(
         else:
             action_desc = "NEWS VETO: Terdeteksi pemberitaan hukum/suspensi/delisting/PKPU. Posisi beli dibatalkan secara otomatis."
         badge_color = "red"
-    elif composite_score >= 76 and ob_score >= 55:
+    elif composite_score >= 76 and ob_score >= 52:
         action = "STRONG BUY"
-        action_desc = "Konvergensi positif menyeluruh: momentum teknikal kuat, posisi breakout, fundamental sehat, sentimen berita positif, dan dominasi order book beli."
+        action_desc = "Konvergensi positif menyeluruh: momentum teknikal kuat, posisi breakout, fundamental sehat, dukungan tren IHSG, akumulasi broker kuat, dan sentimen publik positif."
         badge_color = "green"
     elif composite_score >= 60:
         action = "BUY"
-        action_desc = "Setup akumulasi menguntungkan dengan rasio risk/reward sehat dan dukungan sentimen positif."
+        action_desc = "Setup akumulasi menguntungkan dengan rasio risk/reward sehat, posisi dekat modal rata-rata bandar, dan katalis proyek korporasi."
         badge_color = "cyan"
     elif composite_score <= 35:
         action = "STRONG SELL"
-        action_desc = "Tekanan jual dominan di area resisten, sentimen negatif, atau risiko penurunan lanjutan tinggi."
+        action_desc = "Tekanan jual dominan di area resisten, distribusi bandar aktif, atau risiko penurunan lanjutan pasar makro IHSG."
         badge_color = "red"
     elif composite_score <= 47:
         action = "SELL / TAKE PROFIT"
-        action_desc = "Momentum harga melemah atau antrean offer tebal menahan kenaikan. Disarankan mengamankan modal."
+        action_desc = "Momentum harga melemah, euforia ritel rawan koreksi, atau antrean offer tebal menahan kenaikan. Disarankan mengamankan modal."
         badge_color = "orange"
     else:
         action = "HOLD / WAIT & SEE"
-        action_desc = "Kondisi konsolidasi/netral. Dinamika harga dan sentimen berimbang, disarankan menunggu konfirmasi tren."
+        action_desc = "Kondisi konsolidasi netral. Dinamika harga, langkah broker, dan tren IHSG berimbang, disarankan menunggu konfirmasi tren."
         badge_color = "yellow"
 
     # Perhitungan Level Transaksi Berfraksi BEI
@@ -221,6 +276,11 @@ def generate_composite_recommendation(
             "news_sentiment": news_score,
             "ml_prediction": ml_score,
             "order_book": ob_score,
+            "ihsg_macro": ihsg_score,
+            "broker_flow": broker_score,
+            "global_social": social_score,
+            "corporate_catalysts": catalyst_score,
+            "investor_psychology": psychology_score,
         },
         "trading_plan": levels
     }
