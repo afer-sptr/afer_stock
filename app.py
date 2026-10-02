@@ -28,6 +28,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+import plotly.express as px
 from plotly.subplots import make_subplots
 import time
 import json
@@ -46,6 +47,8 @@ from modules.data_loader import (
     fetch_intraday_data,
     fetch_broker_summary_data,
     fetch_l2_order_book_data,
+    filter_idx_stocks,
+    get_stock_metadata,
 )
 from modules.broker_analyzer import render_broker_emiten_page
 from modules.candlestick_predictor import predict_candlestick_movement
