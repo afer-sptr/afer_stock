@@ -81,6 +81,10 @@ from modules.order_book_microstructure import (
     calculate_net_pnl,
 )
 from modules.finance_statistical_analysis import render_finance_statistical_analysis_page
+try:
+    from modules.technical_analysis_page import render_technical_analysis_page
+except Exception:
+    from technical_analysis_page import render_technical_analysis_page
 from modules.ihsg_market_driver import (
     get_cached_ihsg_data,
     calculate_emiten_market_beta,
@@ -686,6 +690,7 @@ app_menu = st.sidebar.radio(
     "📌 Navigasi Menu:",
     [
         "📊 Dashboard Analisis Saham",
+        "📈 Analisis Teknikal",
         "⚡ Lapis 3 Rally Hunter",
         "🏛️ Analisis Broker dan Emiten",
         "📊 Finance and Statistical Analysis"
@@ -1154,6 +1159,22 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
         },
         use_container_width=True,
         hide_index=True
+    )
+    st.stop()
+
+elif app_menu == "📈 Analisis Teknikal":
+    render_technical_analysis_page(
+        ticker=ticker_clean,
+        df_ohlcv=df_tech,
+        info=info,
+        current_price=current_price,
+        all_stocks=ALL_IDX_STOCKS,
+        chosen_tier=chosen_tier,
+        chosen_syariah=chosen_syariah,
+        chosen_sector=chosen_sector,
+        ihsg_eval=ihsg_eval,
+        broker_eval=broker_eval,
+        plan=plan,
     )
     st.stop()
 
