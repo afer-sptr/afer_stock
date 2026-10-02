@@ -33,6 +33,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
@@ -310,6 +311,107 @@ def render_finance_statistical_analysis_page(
     st.markdown("---")
 
     # 9 TAB NAVIGATION
+    st.markdown("""
+    <div style="background: linear-gradient(90deg, #EFF6FF 0%, #DBEAFE 100%); border: 1.5px solid #93C5FD; border-radius: 12px; padding: 12px 18px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; box-shadow: 0 2px 6px rgba(59,130,246,0.08);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.4rem;">↔️</span>
+            <div>
+                <div style="font-weight: 800; color: #1E3A8A; font-size: 1.05rem;">10 LANGKAH ANALISIS FINANSIAL & STATISTIKA KUANTITATIF (GESER KANAN-KIRI ↔️)</div>
+                <div style="color: #475569; font-size: 0.85rem; font-weight: 500;">
+                    Geser (scroll) baris tab ke kanan & kiri untuk menavigasi modul analisis kuantitatif secara praktis. Seluruh tulisan tampil utuh tanpa terpotong.
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: #2563EB; color: white; padding: 4px 12px; border-radius: 8px; font-size: 0.80rem; font-weight: 700;">9 Modul Kuantitatif</span>
+            <span style="background: #10B981; color: white; padding: 4px 12px; border-radius: 8px; font-size: 0.80rem; font-weight: 700;">Geser Kanan-Kiri ↔️</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    components.html("""
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 0; padding: 2px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <span style="font-size: 12px; font-weight: 700; color: #475569; margin-right: 4px;">Pilih Modul Selanjutnya:</span>
+        <button id="btn-quant-prev" title="Pindah ke Modul Sebelumnya" style="background: #F8FAFC; color: #1E293B; border: 1.5px solid #CBD5E1; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+            ◀ Modul Sebelumnya
+        </button>
+        <button id="btn-quant-scroll-left" title="Geser Tab ke Kiri" style="background: #2563EB; color: white; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(37,99,235,0.25);">
+            ◀ Geser Kiri
+        </button>
+        <button id="btn-quant-scroll-right" title="Geser Tab ke Kanan" style="background: #2563EB; color: white; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(37,99,235,0.25);">
+            Geser Kanan ▶
+        </button>
+        <button id="btn-quant-next" title="Pindah ke Modul Selanjutnya" style="background: #F8FAFC; color: #1E293B; border: 1.5px solid #CBD5E1; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+            Modul Selanjutnya ▶
+        </button>
+    </div>
+    <script>
+    function attachQuantScroller() {
+        try {
+            const pDoc = window.parent.document;
+            const tabList = pDoc.querySelector('.stTabs [data-baseweb="tab-list"]') || pDoc.querySelector('.stTabs [role="tablist"]');
+            if (!tabList) return;
+
+            if (!tabList.dataset.wheelBound) {
+                tabList.addEventListener('wheel', function(e) {
+                    if (e.deltaY !== 0) {
+                        e.preventDefault();
+                        tabList.scrollLeft += e.deltaY * 1.5;
+                    }
+                }, { passive: false });
+                tabList.dataset.wheelBound = "true";
+            }
+
+            const btnLeft = document.getElementById('btn-quant-scroll-left');
+            const btnRight = document.getElementById('btn-quant-scroll-right');
+            if (btnLeft) {
+                btnLeft.onclick = function() {
+                    tabList.scrollBy({ left: -350, behavior: 'smooth' });
+                };
+            }
+            if (btnRight) {
+                btnRight.onclick = function() {
+                    tabList.scrollBy({ left: 350, behavior: 'smooth' });
+                };
+            }
+
+            const btnPrev = document.getElementById('btn-quant-prev');
+            const btnNext = document.getElementById('btn-quant-next');
+            if (btnPrev) {
+                btnPrev.onclick = function() {
+                    const tabs = Array.from(tabList.querySelectorAll('[data-baseweb="tab"], [role="tab"]'));
+                    const currIdx = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
+                    if (currIdx > 0) {
+                        tabs[currIdx - 1].click();
+                        tabs[currIdx - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    } else {
+                        tabList.scrollBy({ left: -350, behavior: 'smooth' });
+                    }
+                };
+            }
+            if (btnNext) {
+                btnNext.onclick = function() {
+                    const tabs = Array.from(tabList.querySelectorAll('[data-baseweb="tab"], [role="tab"]'));
+                    const currIdx = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
+                    if (currIdx !== -1 && currIdx < tabs.length - 1) {
+                        tabs[currIdx + 1].click();
+                        tabs[currIdx + 1].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    } else {
+                        tabList.scrollBy({ left: 350, behavior: 'smooth' });
+                    }
+                };
+            }
+        } catch(e) {
+            console.log("Quant tab scroller:", e);
+        }
+    }
+    attachQuantScroller();
+    setTimeout(attachQuantScroller, 600);
+    setTimeout(attachQuantScroller, 1500);
+    setTimeout(attachQuantScroller, 3000);
+    </script>
+    """, height=40)
+
     t_names = [
         "👔 1. Executive Storytelling (CFO & Komite)",
         "🔍 2. Exploratory Data Analysis (EDA)",

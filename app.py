@@ -33,6 +33,7 @@ import time
 import json
 from datetime import datetime
 import urllib.parse
+import streamlit.components.v1 as components
 
 from modules.data_loader import (
     fetch_stock_data,
@@ -113,9 +114,228 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom Styling Mengikuti Tampilan idx_stock_analyzer
+# Custom Styling Mengikuti Tampilan idx_stock_analyzer & Anti-Truncation Terpadu
 st.markdown("""
 <style>
+    /* =========================================================================
+       1. GLOBAL RESET & CEGAH SELURUH TULISAN TERPOTONG (ANTI-TRUNCATION)
+       ========================================================================= */
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+    
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+        text-overflow: clip !important;
+    }
+
+    p, span, div, h1, h2, h3, h4, h5, h6, label, li, a {
+        text-overflow: clip !important;
+        word-break: normal !important;
+        overflow-wrap: break-word !important;
+    }
+
+    /* Mencegah Teks Metrik Streamlit Terpotong */
+    [data-testid="stMetric"],
+    [data-testid="stMetric"] * {
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+
+    [data-testid="stMetricLabel"],
+    [data-testid="stMetricLabel"] > div,
+    [data-testid="stMetricLabel"] p {
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        font-size: 0.90rem !important;
+        line-height: 1.3 !important;
+        font-weight: 600 !important;
+    }
+
+    [data-testid="stMetricValue"],
+    [data-testid="stMetricValue"] > div,
+    [data-testid="stMetricValue"] span {
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        font-size: 1.35rem !important;
+        line-height: 1.25 !important;
+    }
+
+    [data-testid="stMetricDelta"],
+    [data-testid="stMetricDelta"] > div,
+    [data-testid="stMetricDelta"] span {
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        line-height: 1.2 !important;
+    }
+
+    /* Alert Boxes (st.info, st.success, st.warning, st.error) */
+    [data-testid="stAlert"],
+    [data-testid="stAlert"] > div,
+    [data-testid="stAlert"] p {
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        line-height: 1.5 !important;
+    }
+
+    /* Kolom & Kontainer */
+    [data-testid="column"] {
+        min-width: 0 !important;
+        overflow: visible !important;
+    }
+
+    /* Tabel Markdown & Dataframe BEI */
+    [data-testid="stDataFrame"],
+    [data-testid="stTable"] {
+        width: 100% !important;
+        overflow-x: auto !important;
+    }
+
+    [data-testid="stMarkdownContainer"] table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        overflow-x: auto !important;
+        display: table !important;
+    }
+
+    [data-testid="stMarkdownContainer"] th,
+    [data-testid="stMarkdownContainer"] td {
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        padding: 8px 12px !important;
+    }
+
+    /* Expanders & Captions */
+    [data-testid="stExpander"] details summary span {
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+
+    [data-testid="stCaptionContainer"] p {
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+
+    /* =========================================================================
+       2. FITUR GESER KANAN-KIRI TAB (HORIZONTAL SCROLLABLE FEATURE TABS)
+       ========================================================================= */
+    .stTabs {
+        width: 100% !important;
+        position: relative !important;
+        overflow: visible !important;
+    }
+
+    /* Baris Tab: Satu Baris Rapi, Geser Kanan-Kiri Lancar */
+    .stTabs [data-baseweb="tab-list"],
+    .stTabs [role="tablist"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        scroll-behavior: smooth !important;
+        -webkit-overflow-scrolling: touch !important;
+        gap: 8px !important;
+        padding: 8px 4px 14px 4px !important;
+        margin-bottom: 14px !important;
+        border-bottom: 3px solid #E2E8F0 !important;
+        scrollbar-width: thin !important;
+        scrollbar-color: #2563EB #F1F5F9 !important;
+    }
+
+    /* Scrollbar Khusus untuk Geser Kanan-Kiri */
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar,
+    .stTabs [role="tablist"]::-webkit-scrollbar {
+        height: 8px !important;
+    }
+
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar-track,
+    .stTabs [role="tablist"]::-webkit-scrollbar-track {
+        background: #F1F5F9 !important;
+        border-radius: 12px !important;
+        border: 1px solid #E2E8F0 !important;
+    }
+
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar-thumb,
+    .stTabs [role="tablist"]::-webkit-scrollbar-thumb {
+        background: linear-gradient(90deg, #3B82F6, #1D4ED8) !important;
+        border-radius: 12px !important;
+    }
+
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar-thumb:hover,
+    .stTabs [role="tablist"]::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(90deg, #2563EB, #1E40AF) !important;
+    }
+
+    /* Tombol Tab: Teks Utuh & Fleksibel */
+    .stTabs [data-baseweb="tab"],
+    .stTabs [role="tab"] {
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        word-break: keep-all !important;
+        font-size: 0.94rem !important;
+        font-weight: 700 !important;
+        padding: 9px 18px !important;
+        border-radius: 10px !important;
+        background-color: #F8FAFC !important;
+        border: 1.5px solid #CBD5E1 !important;
+        color: #334155 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease-in-out !important;
+        user-select: none !important;
+    }
+
+    .stTabs [data-baseweb="tab"]:hover,
+    .stTabs [role="tab"]:hover {
+        background-color: #EFF6FF !important;
+        color: #1D4ED8 !important;
+        border-color: #60A5FA !important;
+        box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    .stTabs [aria-selected="true"],
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%) !important;
+        color: #FFFFFF !important;
+        border: 1.5px solid #1D4ED8 !important;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35) !important;
+    }
+
+    .stTabs [aria-selected="true"] p,
+    .stTabs [aria-selected="true"] span,
+    .stTabs [aria-selected="true"] div {
+        color: #FFFFFF !important;
+        font-weight: 800 !important;
+    }
+
+    .stTabs [data-baseweb="tab"] p,
+    .stTabs [data-baseweb="tab"] span,
+    .stTabs [data-baseweb="tab"] div {
+        white-space: nowrap !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        word-break: keep-all !important;
+    }
+
+    /* =========================================================================
+       3. TAMPILAN ELEMEN KARTU & BADGE ASLI (DIPERTAHANKAN LENGKAP)
+       ========================================================================= */
     .main-title {
         font-size: 2.2rem;
         font-weight: 800;
@@ -972,6 +1192,111 @@ with res_col2:
 st.markdown("---")
 
 # ----------------- TABS KONTEN TERPADU (DASHBOARD UTAMA) -----------------
+# Indikator dan Kontrol Geser Kanan-Kiri Daftar Fitur Lengkap
+st.markdown("""
+<div style="background: linear-gradient(90deg, #EFF6FF 0%, #DBEAFE 100%); border: 1.5px solid #93C5FD; border-radius: 12px; padding: 12px 18px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; box-shadow: 0 2px 6px rgba(59,130,246,0.08);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.4rem;">↔️</span>
+        <div>
+            <div style="font-weight: 800; color: #1E3A8A; font-size: 1.05rem;">DAFTAR FITUR ANALISIS TERPADU (GESER KANAN-KIRI ↔️)</div>
+            <div style="color: #475569; font-size: 0.85rem; font-weight: 500;">
+                Geser (scroll) baris tab di bawah ini ke kanan & kiri untuk memilih 14 fitur analisis lengkap. Seluruh tulisan tampil utuh tanpa terpotong.
+            </div>
+        </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="background: #2563EB; color: white; padding: 4px 12px; border-radius: 8px; font-size: 0.80rem; font-weight: 700;">14 Fitur Terpadu</span>
+        <span style="background: #10B981; color: white; padding: 4px 12px; border-radius: 8px; font-size: 0.80rem; font-weight: 700;">Geser Kanan-Kiri ↔️</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+components.html("""
+<div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 0; padding: 2px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <span style="font-size: 12px; font-weight: 700; color: #475569; margin-right: 4px;">Pilih Fitur Selanjutnya:</span>
+    <button id="btn-tab-prev" title="Pindah ke Fitur Sebelumnya" style="background: #F8FAFC; color: #1E293B; border: 1.5px solid #CBD5E1; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+        ◀ Fitur Sebelumnya
+    </button>
+    <button id="btn-tab-scroll-left" title="Geser Baris Tab ke Kiri" style="background: #2563EB; color: white; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(37,99,235,0.25);">
+        ◀ Geser Kiri
+    </button>
+    <button id="btn-tab-scroll-right" title="Geser Baris Tab ke Kanan" style="background: #2563EB; color: white; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(37,99,235,0.25);">
+        Geser Kanan ▶
+    </button>
+    <button id="btn-tab-next" title="Pindah ke Fitur Selanjutnya" style="background: #F8FAFC; color: #1E293B; border: 1.5px solid #CBD5E1; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+        Fitur Selanjutnya ▶
+    </button>
+</div>
+<script>
+function attachScroller() {
+    try {
+        const pDoc = window.parent.document;
+        const tabList = pDoc.querySelector('.stTabs [data-baseweb="tab-list"]') || pDoc.querySelector('.stTabs [role="tablist"]');
+        if (!tabList) return;
+
+        // Pasang listener mouse wheel untuk scroll horizontal langsung
+        if (!tabList.dataset.wheelBound) {
+            tabList.addEventListener('wheel', function(e) {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    tabList.scrollLeft += e.deltaY * 1.5;
+                }
+            }, { passive: false });
+            tabList.dataset.wheelBound = "true";
+        }
+
+        // Tombol Geser Kiri / Kanan Baris Tab
+        const btnLeft = document.getElementById('btn-tab-scroll-left');
+        const btnRight = document.getElementById('btn-tab-scroll-right');
+        if (btnLeft) {
+            btnLeft.onclick = function() {
+                tabList.scrollBy({ left: -350, behavior: 'smooth' });
+            };
+        }
+        if (btnRight) {
+            btnRight.onclick = function() {
+                tabList.scrollBy({ left: 350, behavior: 'smooth' });
+            };
+        }
+
+        // Tombol Pindah ke Tab Selanjutnya / Sebelumnya
+        const btnPrev = document.getElementById('btn-tab-prev');
+        const btnNext = document.getElementById('btn-tab-next');
+        if (btnPrev) {
+            btnPrev.onclick = function() {
+                const tabs = Array.from(tabList.querySelectorAll('[data-baseweb="tab"], [role="tab"]'));
+                const currIdx = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
+                if (currIdx > 0) {
+                    tabs[currIdx - 1].click();
+                    tabs[currIdx - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                } else {
+                    tabList.scrollBy({ left: -350, behavior: 'smooth' });
+                }
+            };
+        }
+        if (btnNext) {
+            btnNext.onclick = function() {
+                const tabs = Array.from(tabList.querySelectorAll('[data-baseweb="tab"], [role="tab"]'));
+                const currIdx = tabs.findIndex(t => t.getAttribute('aria-selected') === 'true');
+                if (currIdx !== -1 && currIdx < tabs.length - 1) {
+                    tabs[currIdx + 1].click();
+                    tabs[currIdx + 1].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                } else {
+                    tabList.scrollBy({ left: 350, behavior: 'smooth' });
+                }
+            };
+        }
+    } catch(e) {
+        console.log("Tab scroller:", e);
+    }
+}
+attachScroller();
+setTimeout(attachScroller, 600);
+setTimeout(attachScroller, 1500);
+setTimeout(attachScroller, 3000);
+</script>
+""", height=40)
+
 (
     tab_scalp,
     tab_fv,
