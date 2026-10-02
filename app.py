@@ -254,7 +254,7 @@ st.markdown("""
         gap: 8px !important;
         padding: 8px 4px 14px 4px !important;
         margin-bottom: 14px !important;
-        border-bottom: 3px solid #E2E8F0 !important;
+        border-bottom: 2px solid rgba(148, 163, 184, 0.25) !important;
         scrollbar-width: thin !important;
         scrollbar-color: #2563EB #F1F5F9 !important;
     }
@@ -334,6 +334,23 @@ st.markdown("""
         overflow: visible !important;
         text-overflow: clip !important;
         word-break: keep-all !important;
+    }
+
+    /* Hilangkan seluruh garis merah dan border bawaan BaseWeb Streamlit yang tumpang tindih */
+    .stTabs [data-baseweb="tab-highlight"],
+    div[data-baseweb="tab-highlight"],
+    [data-testid="stTabs"] [data-baseweb="tab-highlight"],
+    [data-baseweb="tab-highlight"],
+    div[data-baseweb="tab-border"],
+    .stTabs [data-baseweb="tab-border"],
+    [data-baseweb="tab-border"] {
+        display: none !important;
+        height: 0px !important;
+        width: 0px !important;
+        visibility: hidden !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
     }
 
     /* =========================================================================
@@ -449,11 +466,29 @@ st.markdown("""
         justify-content: center;
     }
     .quant-box {
-        background-color: #F8FAFC;
-        border: 1px solid #CBD5E1;
-        border-radius: 10px;
-        padding: 14px;
-        margin-bottom: 10px;
+        background: #1E293B !important;
+        border: 1px solid #334155 !important;
+        border-radius: 12px !important;
+        padding: 16px !important;
+        margin-bottom: 12px !important;
+        color: #F8FAFC !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25) !important;
+    }
+    .quant-box h1, .quant-box h2, .quant-box h3, .quant-box h4, .quant-box h5, .quant-box h6 {
+        color: #F8FAFC !important;
+        margin-top: 0 !important;
+    }
+    .quant-box p, .quant-box span, .quant-box div, .quant-box small, .quant-box b, .quant-box strong, .quant-box i {
+        color: #F1F5F9 !important;
+        line-height: 1.5 !important;
+    }
+    .quant-box code {
+        background: #0F172A !important;
+        color: #38BDF8 !important;
+        padding: 2px 8px !important;
+        border-radius: 6px !important;
+        border: 1px solid #1E293B !important;
+        font-weight: 700 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -2139,6 +2174,145 @@ with tab_eko:
     st.markdown("#### 🌐 Ekosistem Pasar Terpadu: Proyeksi Masa Depan IHSG, Broker Bandar, Sentimen & Psikologi")
     st.caption("Analisis makro multi-dimensi yang mengintegrasikan dinamika IHSG, footprint broker penggerak, sentimen multi-platform global, proyeksi korporasi, dan siklus psikologi investor.")
 
+    # -------------------------------------------------------------------------
+    # 0. PAPAN TATAKELOLA & SINTESIS EKOSISTEM 7 PILAR (EXECUTIVE GOVERNANCE BOARD)
+    # -------------------------------------------------------------------------
+    b_con = broker_eval.get("broker_consensus")
+    if not b_con:
+        from modules.instagram_sentiment_radar import evaluate_broker_research_consensus
+        b_con = evaluate_broker_research_consensus(ticker_clean, current_price, sector=meta_live.get("sector", ""))
+
+    insta_info = social_eval.get("instagram_feed")
+    if not insta_info:
+        from modules.instagram_sentiment_radar import fetch_instagram_sentiment_feed
+        insta_info = fetch_instagram_sentiment_feed(
+            ticker_clean,
+            company_name=meta_live.get("name") or ticker_clean,
+            sector=meta_live.get("sector") or "Umum"
+        )
+
+    # Sintesis Strategis Lintas 7 Pilar
+    fg_val = psychology_eval.get("fear_greed_index", 50.0)
+    b_fase = broker_eval.get("fase_bandar", "NETRAL")
+    b_diff = broker_eval.get("diff_from_cost_pct", 0.0)
+    ihsg_trend_lbl = ihsg_eval.get("future_trend", "KONSOLIDASI")
+    ihsg_prob = ihsg_eval.get("direction_prob_up", 50.0)
+
+    if fg_val < 40.0 and ("AKUMULASI" in b_fase or b_diff <= 6.0):
+        synth_badge = "💎 GOLDEN CONTRARIAN ACCUMULATION (Akumulasi Institusi di Zona Ketakutan Ritel)"
+        synth_badge_color = "#10B981"
+        synth_bg = "linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.95) 100%)"
+        synth_border = "#10B981"
+        synth_action = "SERAP LIKUIDITAS PANIK SECARA BERTAHAP BERSAMA SMART MONEY"
+        synth_thesis = (
+            f"Kondisi asimetris langka: Kerumunan ritel mengalami ketakutan ekstrem (Fear Index {fg_val:.1f} - {psychology_eval['cycle_phase']}) "
+            f"dan melakukan cut loss, namun Smart Money (Broker {broker_eval['lead_broker_code']} - {broker_eval['lead_broker_name']}) "
+            f"terdeteksi aktif menyerap suplai pada modal dasar Rp {broker_eval['bandar_cost']:,} (deviasi harga {b_diff:+.1f}%). "
+            f"Didukung konsensus sekuritas ({b_con['total_analysts']} analis) dengan target konsensus Rp {b_con['mean_target_price']:,} "
+            f"(upside +{b_con['upside_avg_pct']}%), titik ini merupakan zona akumulasi dengan margin of safety institusional tertinggi."
+        )
+    elif "MARKUP" in b_fase and ihsg_prob >= 50.0:
+        synth_badge = "🚀 INSTITUTIONAL MOMENTUM MARKUP (Akselerasi Pengawalan Tren Bersama Bandar)"
+        synth_badge_color = "#38BDF8"
+        synth_bg = "linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(15, 23, 42, 0.95) 100%)"
+        synth_border = "#38BDF8"
+        synth_action = "RIDING MOMENTUM DENGAN TRAILING STOP KETAT DI ATAS MODAL BANDAR"
+        synth_thesis = (
+            f"Fase akselerasi aktif: Broker pengendali ({broker_eval['lead_broker_code']}) sedang mengerek harga saham searah dengan "
+            f"arah tren makro IHSG ({ihsg_trend_lbl}, probabilitas naik {ihsg_prob:.1f}%). "
+            f"Sentimen media sosial global ({social_eval['composite_social_score']}/100) dan kebijakan otoritas ({insta_info['policy_status']}) "
+            f"mendukung katalis kenaikan. Pertahankan posisi dengan trailing stop protektif di Rp {broker_eval['bandar_cost']:,}."
+        )
+    elif fg_val > 70.0 and ("DISTRIBUSI" in b_fase or b_diff > 20.0):
+        synth_badge = "⚠️ INSTITUTIONAL DISTRIBUTION & TRAP (Waspada Guyuran Bandar ke Kerumunan Ritel)"
+        synth_badge_color = "#EF4444"
+        synth_bg = "linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(15, 23, 42, 0.95) 100%)"
+        synth_border = "#EF4444"
+        synth_action = "AMANKAN PROFIT (TAKE PROFIT) & HINDARI FOMO / PEMBELIAN DI PUCUK"
+        synth_thesis = (
+            f"Sinyal bahaya divergensi: Kerumunan ritel mengalami euforia berlebih (Fear & Greed {fg_val:.1f} - {psychology_eval['cycle_phase']}), "
+            f"sedangkan harga saham telah terbang +{b_diff:.1f}% di atas modal awal bandar (Rp {broker_eval['bandar_cost']:,}). "
+            f"Bandar mulai merealisasikan keuntungan (profit taking) dengan memanfaatkan likuiditas ritel yang sedang FOMO. "
+            f"Disiplin amankan modal dan tunggu retest support {ihsg_eval['support_1']:,}."
+        )
+    else:
+        synth_badge = "⏳ TACTICAL ACCUMULATION & CONSOLIDATION (Fase Pengujian Support & Titik Keseimbangan)"
+        synth_badge_color = "#F59E0B"
+        synth_bg = "linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(15, 23, 42, 0.95) 100%)"
+        synth_border = "#F59E0B"
+        synth_action = "AKUMULASI BERTAHAP (DCA) PADA ZONA HARGA MODAL BANDAR"
+        synth_thesis = (
+            f"Kondisi netral-konsolidatif: Pergerakan harga {ticker_clean} (Rp {current_price:,.0f}) berada di sekitar modal bandar "
+            f"(Rp {broker_eval['bandar_cost']:,}, margin {b_diff:+.1f}%), sementara tren IHSG menguji area konsolidasi {ihsg_eval['support_1']:,} - {ihsg_eval['resistance_1']:,}. "
+            f"Riset konsensus {b_con['total_analysts']} sekuritas menetapkan pandangan '{b_con['consensus_action']}' dengan target Rp {b_con['mean_target_price']:,}. "
+            f"Lakukan akumulasi bertahap dengan membatasi risiko sebelum konfirmasi breakout volume."
+        )
+
+    # 4 Baris Metrik Utama Tatakelola Ekosistem
+    gov_c1, gov_c2, gov_c3, gov_c4 = st.columns(4)
+    with gov_c1:
+        st.markdown(f"""
+        <div style="background:#1E293B; border-radius:10px; padding:12px; border:1px solid #334155; margin-bottom:8px;">
+            <div style="color:#94A3B8; font-size:0.8rem; font-weight:700; text-transform:uppercase;">🏛️ Makro IHSG (^JKSE)</div>
+            <div style="color:#F1F5F9; font-size:1.25rem; font-weight:800; margin:2px 0;">Rp {ihsg_eval['current_level']:,.2f}</div>
+            <div style="color:{'#10B981' if ihsg_eval['change_pct']>=0 else '#EF4444'}; font-size:0.82rem; font-weight:700;">{ihsg_eval['change_pct']:+.2f}% | Tren: {ihsg_eval['future_trend']}</div>
+            <div style="color:#94A3B8; font-size:0.75rem; margin-top:4px;">Beta: <b style="color:#38BDF8;">{beta_eval['beta']}x</b> ({beta_eval['category']})</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with gov_c2:
+        st.markdown(f"""
+        <div style="background:#1E293B; border-radius:10px; padding:12px; border:1px solid #334155; margin-bottom:8px;">
+            <div style="color:#94A3B8; font-size:0.8rem; font-weight:700; text-transform:uppercase;">🕵️ Smart Money / Bandar</div>
+            <div style="color:#F1F5F9; font-size:1.25rem; font-weight:800; margin:2px 0;">{broker_eval['lead_broker_code']} <span style="font-size:0.85rem; color:#94A3B8;">({broker_eval['lead_broker_name']})</span></div>
+            <div style="color:{'#10B981' if 'AKUMULASI' in broker_eval['fase_bandar'] else ('#38BDF8' if 'MARKUP' in broker_eval['fase_bandar'] else '#F59E0B')}; font-size:0.82rem; font-weight:700;">{broker_eval['fase_bandar']} (Skor {broker_eval['broker_score']}/100)</div>
+            <div style="color:#94A3B8; font-size:0.75rem; margin-top:4px;">Modal: <b style="color:#38BDF8;">Rp {broker_eval['bandar_cost']:,}</b> ({broker_eval['diff_from_cost_pct']:+.1f}%)</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with gov_c3:
+        st.markdown(f"""
+        <div style="background:#1E293B; border-radius:10px; padding:12px; border:1px solid #334155; margin-bottom:8px;">
+            <div style="color:#94A3B8; font-size:0.8rem; font-weight:700; text-transform:uppercase;">📑 Konsensus Sekuritas & SBN</div>
+            <div style="color:#F1F5F9; font-size:1.25rem; font-weight:800; margin:2px 0;">Rp {b_con['mean_target_price']:,}</div>
+            <div style="color:#10B981; font-size:0.82rem; font-weight:700;">Upside: +{b_con['upside_avg_pct']}% ({b_con['total_analysts']} Analis)</div>
+            <div style="color:#94A3B8; font-size:0.75rem; margin-top:4px;">SBN 10Y: <b style="color:#F59E0B;">{b_con['sbn_10y_yield']}%</b> | Spread: {b_con['yield_spread']:+.2f}%</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with gov_c4:
+        st.markdown(f"""
+        <div style="background:#1E293B; border-radius:10px; padding:12px; border:1px solid #334155; margin-bottom:8px;">
+            <div style="color:#94A3B8; font-size:0.8rem; font-weight:700; text-transform:uppercase;">🎭 Psikologi & Sentimen</div>
+            <div style="color:#F1F5F9; font-size:1.25rem; font-weight:800; margin:2px 0;">{psychology_eval['fear_greed_index']:.1f} <span style="font-size:0.85rem; color:#94A3B8;">/ 100</span></div>
+            <div style="color:#EC4899; font-size:0.82rem; font-weight:700;">{psychology_eval['cycle_phase']}</div>
+            <div style="color:#94A3B8; font-size:0.75rem; margin-top:4px;">IG: <b style="color:#38BDF8;">{insta_info['composite_instagram_score']:.0f}/100</b> | Global: <b style="color:#F59E0B;">{social_eval['composite_social_score']}/100</b></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Master Strategic Synthesis Box
+    st.markdown(f"""
+    <div style="background:{synth_bg}; border: 1.5px solid {synth_border}; border-left: 6px solid {synth_border}; border-radius: 12px; padding: 18px; margin-bottom: 18px; box-shadow: 0 8px 16px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+            <span style="background:{synth_badge_color}; color:#FFFFFF; padding:4px 12px; border-radius:20px; font-weight:800; font-size:0.88rem; letter-spacing:0.5px;">
+                {synth_badge}
+            </span>
+            <span style="color:#94A3B8; font-size:0.82rem; font-weight:600;">
+                Tatakelola Integrasi 7 Pilar Pasar Modal Indonesia
+            </span>
+        </div>
+        <p style="color:#F1F5F9; font-size:0.95rem; line-height:1.6; margin:8px 0 12px 0;">
+            {synth_thesis}
+        </p>
+        <div style="background:rgba(15, 23, 42, 0.7); border:1px solid #334155; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+                <b style="color:#F8FAFC; font-size:0.88rem;">🎯 Keputusan Aksi:</b>
+                <span style="color:{synth_badge_color}; font-weight:800; font-size:0.92rem; margin-left:6px;">{synth_action}</span>
+            </div>
+            <div style="font-size:0.82rem; color:#94A3B8;">
+                Harga Pasar: <b style="color:#38BDF8;">Rp {current_price:,.0f}</b> | Target Konsensus: <b style="color:#10B981;">Rp {b_con['mean_target_price']:,}</b> | Batas Proteksi Bandar: <b style="color:#F87171;">Rp {int(broker_eval['bandar_cost'] * 0.95):,}</b>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     eko_tabs = st.tabs([
         "📈 1. Makro IHSG & Proyeksi 30D",
         "🏛️ 2. Jejak Broker & Modal Bandar",
@@ -2228,10 +2402,10 @@ with tab_eko:
         
         phase_color_border = "#10B981" if "AKUMULASI" in broker_eval['fase_bandar'] else ("#3B82F6" if "KONSOLIDASI" in broker_eval['fase_bandar'] else ("#F59E0B" if "MARKUP" in broker_eval['fase_bandar'] else "#EF4444"))
         st.markdown(f"""
-        <div class="quant-box" style="border-left: 5px solid {phase_color_border}; padding:14px; margin-top:10px;">
+        <div style="background:linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border:1px solid #334155; border-left:5px solid {phase_color_border}; border-radius:10px; padding:16px; margin-top:10px; color:#F1F5F9;">
             <h5 style="margin:0 0 6px 0; color:{phase_color_border};">⚖️ {broker_eval['fase_bandar']}</h5>
-            <p style="margin:0 0 6px 0; font-size:0.95rem;">{broker_eval['fase_desc']}</p>
-            <b>👉 Rekomendasi Aksi:</b> <span style="color:{phase_color_border}; font-weight:700;">{broker_eval['action_bandar']}</span>
+            <p style="margin:0 0 8px 0; font-size:0.95rem; color:#F1F5F9;">{broker_eval['fase_desc']}</p>
+            <b style="color:#F8FAFC;">👉 Rekomendasi Aksi:</b> <span style="color:{phase_color_border}; font-weight:700;">{broker_eval['action_bandar']}</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2270,11 +2444,6 @@ with tab_eko:
             "serta menganalisis imbal hasil obligasi negara (SBN 10Y) dan aliran dana pasif ETF."
         )
 
-        b_con = broker_eval.get("broker_consensus")
-        if not b_con:
-            from modules.instagram_sentiment_radar import evaluate_broker_research_consensus
-            b_con = evaluate_broker_research_consensus(ticker_clean, current_price, sector=meta_live.get("sector", ""))
-
         bc_c1, bc_c2, bc_c3 = st.columns(3)
         with bc_c1:
             st.metric("Target Harga Konsensus Analis", f"Rp {b_con['mean_target_price']:,}", f"Potensi Upside: +{b_con['upside_avg_pct']}%")
@@ -2284,11 +2453,11 @@ with tab_eko:
             st.metric("Cakupan Riset Sekuritas", f"{b_con['total_analysts']} Lembaga Riset", f"Tertinggi: Rp {b_con['highest_target']:,}")
 
         st.markdown(f"""
-        <div class="quant-box" style="border-left: 5px solid {b_con['consensus_color']}; padding:14px; margin-top:8px; margin-bottom:12px;">
+        <div style="background:linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border:1px solid #334155; border-left:5px solid {b_con['consensus_color']}; border-radius:10px; padding:16px; margin-top:8px; margin-bottom:12px; color:#F1F5F9;">
             <h5 style="margin:0 0 6px 0; color:{b_con['consensus_color']};">🎯 {b_con['consensus_action']}</h5>
-            <p style="margin:0 0 6px 0; font-size:0.95rem;">{b_con['consensus_summary']}</p>
+            <p style="margin:0 0 6px 0; font-size:0.95rem; color:#F1F5F9;">{b_con['consensus_summary']}</p>
             <div style="font-size:0.85rem; color:#94A3B8;">
-                Rentang Target Harga Analis: <b>Rp {b_con['lowest_target']:,}</b> (Konservatif) s/d <b>Rp {b_con['highest_target']:,}</b> (Agresif).
+                Rentang Target Harga Analis: <b style="color:#F8FAFC;">Rp {b_con['lowest_target']:,}</b> (Konservatif) s/d <b style="color:#F8FAFC;">Rp {b_con['highest_target']:,}</b> (Agresif).
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -2302,10 +2471,10 @@ with tab_eko:
         with co_c1:
             st.markdown("###### 📜 Pasar Obligasi & Surat Berharga Negara (SBN / Fixed Income):")
             st.markdown(f"""
-            <div class="quant-box" style="border-left: 5px solid #F59E0B; padding:12px;">
-                <b>Benchmark Yield SBN 10Y:</b> <code style="font-size:1rem; color:#F59E0B;">{b_con['sbn_10y_yield']}%</code><br>
-                <b>Spread Yield vs Deviden:</b> <code>{b_con['yield_spread']:+.2f}%</code><br><br>
-                <small>{b_con['fixed_income_impact']}</small><br><br>
+            <div style="background:linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border:1px solid #334155; border-left:5px solid #F59E0B; border-radius:10px; padding:14px; color:#F1F5F9;">
+                <b>Benchmark Yield SBN 10Y:</b> <code style="font-size:1rem; color:#F59E0B; background:#0F172A; padding:2px 8px; border-radius:4px;">{b_con['sbn_10y_yield']}%</code><br><br>
+                <b>Spread Yield vs Deviden:</b> <code style="color:#38BDF8; background:#0F172A; padding:2px 8px; border-radius:4px;">{b_con['yield_spread']:+.2f}%</code><br><br>
+                <small style="color:#CBD5E1;">{b_con['fixed_income_impact']}</small><br><br>
                 <span style="font-size:0.8rem; color:#94A3B8;">Akun Resmi Terpantau: <b>@phei_id</b> (Penilai Harga Efek Indonesia), <b>@bareksa_id</b>, <b>@bibit.id</b>, <b>@pasar_modal_syariah</b></span>
             </div>
             """, unsafe_allow_html=True)
@@ -2313,9 +2482,9 @@ with tab_eko:
         with co_c2:
             st.markdown("###### 🧺 Aliran Likuiditas ETF & Index Rebalancing:")
             st.markdown(f"""
-            <div class="quant-box" style="border-left: 5px solid #38BDF8; padding:12px;">
-                <b>Indeks Acuan Utama:</b> <code>LQ45, IDX30, ISSI, MSCI Indonesia (EIDO)</code><br><br>
-                <small>{b_con['etf_flow_impact']}</small><br><br>
+            <div style="background:linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border:1px solid #334155; border-left:5px solid #38BDF8; border-radius:10px; padding:14px; color:#F1F5F9;">
+                <b>Indeks Acuan Utama:</b> <code style="color:#38BDF8; background:#0F172A; padding:2px 8px; border-radius:4px;">LQ45, IDX30, ISSI, MSCI Indonesia (EIDO)</code><br><br>
+                <small style="color:#CBD5E1;">{b_con['etf_flow_impact']}</small><br><br>
                 <span style="font-size:0.8rem; color:#94A3B8;">Akun Resmi Terpantau: <b>@indonesiaetf</b>, <b>@indopremier</b>, <b>@blackrock</b>, <b>@vanguardgroup</b></span>
             </div>
             """, unsafe_allow_html=True)
@@ -2329,15 +2498,6 @@ with tab_eko:
             "dan media finansial terpercaya (@cnbcindonesia, @bisniscom, @kontannews, @stockbit) yang dapat mengubah arah pergerakan harga saham."
         )
 
-        insta_info = social_eval.get("instagram_feed")
-        if not insta_info:
-            from modules.instagram_sentiment_radar import fetch_instagram_sentiment_feed
-            insta_info = fetch_instagram_sentiment_feed(
-                ticker_clean,
-                company_name=meta_live.get("name") or ticker_clean,
-                sector=meta_live.get("sector") or "Umum"
-            )
-
         ig_c1, ig_c2, ig_c3 = st.columns(3)
         with ig_c1:
             st.metric("Skor Sentimen Instagram", f"{insta_info['composite_instagram_score']:.0f} / 100", f"Status: {insta_info['policy_status'].split('(')[0].strip()}")
@@ -2347,12 +2507,12 @@ with tab_eko:
             st.metric("Akun Otoritas Terpantau", f"{insta_info['key_accounts_tracked_count']} Akun Resmi", "Terverifikasi")
 
         st.markdown(f"""
-        <div class="quant-box" style="border-left: 5px solid {insta_info['policy_color']}; padding:14px; margin-top:8px; margin-bottom:12px;">
+        <div style="background:linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border:1px solid #334155; border-left:5px solid {insta_info['policy_color']}; border-radius:10px; padding:16px; margin-top:8px; margin-bottom:12px; color:#F1F5F9;">
             <h5 style="margin:0 0 6px 0; color:{insta_info['policy_color']};">⚖️ Status Kebijakan: {insta_info['policy_status']}</h5>
-            <p style="margin:0 0 6px 0;"><b>🎯 Fokus Kebijakan & Regulasi Sektor:</b> {insta_info['policy_focus']}</p>
-            <p style="margin:0 0 6px 0;"><b>🟢 Faktor Pendorong (Booster):</b> {insta_info['policy_booster_theme']}</p>
-            <p style="margin:0 0 6px 0;"><b>🔴 Faktor Risiko (Pressure):</b> {insta_info['policy_risk_theme']}</p>
-            <b>🧭 Panduan Arah Pasar:</b> <span style="color:{insta_info['policy_color']}; font-weight:700;">{insta_info['policy_guidance']}</span>
+            <p style="margin:0 0 6px 0; color:#F1F5F9;"><b style="color:#38BDF8;">🎯 Fokus Kebijakan & Regulasi Sektor:</b> {insta_info['policy_focus']}</p>
+            <p style="margin:0 0 6px 0; color:#F1F5F9;"><b style="color:#10B981;">🟢 Faktor Pendorong (Booster):</b> {insta_info['policy_booster_theme']}</p>
+            <p style="margin:0 0 6px 0; color:#F1F5F9;"><b style="color:#EF4444;">🔴 Faktor Risiko (Pressure):</b> {insta_info['policy_risk_theme']}</p>
+            <b style="color:#F8FAFC;">🧭 Panduan Arah Pasar:</b> <span style="color:{insta_info['policy_color']}; font-weight:700;">{insta_info['policy_guidance']}</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2409,11 +2569,11 @@ with tab_eko:
         with soc_c1:
             st.metric("Skor Sentimen Komposit", f"{social_eval['composite_social_score']}/100", f"Status: {social_eval['crowd_status'].split('/')[0].strip()}")
             st.markdown(f"""
-            <div class="quant-box" style="border-left: 5px solid #F59E0B; padding:12px; margin-top:8px;">
-                <b>Status Kerumunan:</b><br>
+            <div style="background:linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border:1px solid #334155; border-left:5px solid #F59E0B; border-radius:10px; padding:14px; margin-top:8px; color:#F1F5F9;">
+                <b style="color:#F8FAFC;">Status Kerumunan:</b><br>
                 <span style="color:#F59E0B; font-weight:700;">{social_eval['crowd_status']}</span><br><br>
-                <b>Analisis Psikologis:</b><br>
-                <small>{social_eval['crowd_desc']}</small>
+                <b style="color:#F8FAFC;">Analisis Psikologis:</b><br>
+                <small style="color:#CBD5E1;">{social_eval['crowd_desc']}</small>
             </div>
             """, unsafe_allow_html=True)
 
@@ -2444,11 +2604,11 @@ with tab_eko:
         cp_c1, cp_c2 = st.columns([2, 1])
         with cp_c1:
             st.markdown(f"""
-            <div class="quant-box" style="border-left: 5px solid #3B82F6; padding:16px;">
-                <h4 style="margin:0 0 8px 0; color:#3B82F6;">🎯 {corp_eval['project_title']}</h4>
-                <p style="margin:0 0 10px 0;"><b>🛠️ Fokus Alokasi Capex:</b><br>{corp_eval['capex_focus']}</p>
-                <p style="margin:0 0 10px 0;"><b>📈 Estimasi Dampak Pertumbuhan:</b><br>{corp_eval['catalyst_impact']}</p>
-                <p style="margin:0; font-size:0.85rem; color:#94A3B8;">Emiten: <b>{corp_eval['company_name']}</b> | Sektor: <b>{corp_eval['sector']}</b></p>
+            <div style="background:linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border:1px solid #334155; border-left:5px solid #3B82F6; border-radius:10px; padding:16px; color:#F1F5F9;">
+                <h4 style="margin:0 0 8px 0; color:#38BDF8;">🎯 {corp_eval['project_title']}</h4>
+                <p style="margin:0 0 10px 0; color:#F1F5F9;"><b style="color:#F8FAFC;">🛠️ Fokus Alokasi Capex:</b><br>{corp_eval['capex_focus']}</p>
+                <p style="margin:0 0 10px 0; color:#F1F5F9;"><b style="color:#F8FAFC;">📈 Estimasi Dampak Pertumbuhan:</b><br>{corp_eval['catalyst_impact']}</p>
+                <p style="margin:0; font-size:0.85rem; color:#94A3B8;">Emiten: <b style="color:#F8FAFC;">{corp_eval['company_name']}</b> | Sektor: <b style="color:#F8FAFC;">{corp_eval['sector']}</b></p>
             </div>
             """, unsafe_allow_html=True)
         with cp_c2:
@@ -2486,13 +2646,49 @@ with tab_eko:
 
         with psy_c2:
             st.markdown(f"""
-            <div class="quant-box" style="border-left: 5px solid #EC4899; padding:16px;">
+            <div style="background:linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border:1px solid #334155; border-left:5px solid #EC4899; border-radius:12px; padding:16px; color:#F1F5F9;">
                 <h4 style="margin:0 0 6px 0; color:#EC4899;">🎭 Fase Siklus: {psychology_eval['cycle_phase']}</h4>
-                <p style="margin:0 0 10px 0; font-style:italic; font-size:1.05rem;">{psychology_eval['cycle_quote']}</p>
-                <p style="margin:0 0 8px 0;"><b>⚠️ Peringatan Bias Kognitif:</b><br>{psychology_eval['bias_warning']}</p>
-                <p style="margin:0;"><b>💡 Tindakan Kontrarian Cerdas:</b><br><span style="color:#10B981; font-weight:700;">{psychology_eval['contrarian_action']}</span></p>
+                <p style="margin:0 0 10px 0; font-style:italic; font-size:1.02rem; color:#38BDF8;">"{psychology_eval['cycle_quote']}"</p>
+                <p style="margin:0 0 8px 0; color:#F1F5F9;"><b style="color:#FBBF24;">⚠️ Peringatan Bias Kognitif:</b><br><span style="color:#E2E8F0;">{psychology_eval['bias_warning']}</span></p>
+                <p style="margin:0; color:#F1F5F9;"><b style="color:#34D399;">💡 Tindakan Kontrarian Cerdas:</b><br><span style="color:#10B981; font-weight:700;">{psychology_eval['contrarian_action']}</span></p>
             </div>
             """, unsafe_allow_html=True)
+
+        st.markdown("###### 🔄 Korelasi Silang: Psikologi Kerumunan Ritel vs Akumulasi Smart Money (Bandarmologi)")
+        st.caption(
+            "Menghubungkan kondisi emosi psikologis ritel saat ini secara langsung dengan posisi nyata Smart Money (Lead Broker), "
+            "titik modal bandar, sensitivitas IHSG, dan konsensus analis untuk memastikan Anda tidak terjebak psikologi massa."
+        )
+
+        cross_matrix_data = [
+            {
+                "Pilar Analisis": "🎭 Emosi Kerumunan Ritel",
+                "Kondisi Saat Ini": f"{psychology_eval['cycle_phase']} (Skor {psychology_eval['fear_greed_index']:.1f}/100)",
+                "Dampak & Bias": "Mayoritas ritel bereaksi emosional (Panik / FOMO) yang memicu pergeseran likuiditas",
+                "Tindakan Cerdas": psychology_eval['contrarian_action']
+            },
+            {
+                "Pilar Analisis": "🕵️ Posisi Smart Money",
+                "Kondisi Saat Ini": f"Broker {broker_eval['lead_broker_code']} ({broker_eval['fase_bandar']})",
+                "Dampak & Bias": f"Modal rata-rata bandar di Rp {broker_eval['bandar_cost']:,} (Margin {broker_eval['diff_from_cost_pct']:+.1f}%)",
+                "Tindakan Cerdas": broker_eval['action_bandar']
+            },
+            {
+                "Pilar Analisis": "📈 Arah Makro IHSG",
+                "Kondisi Saat Ini": f"{ihsg_eval['future_trend']} (Prob. Naik {ihsg_eval['direction_prob_up']:.0f}%)",
+                "Dampak & Bias": f"Sensitivitas Beta {beta_eval['beta']}x ({beta_eval['category']}) terhadap arah pasar umum",
+                "Tindakan Cerdas": f"Gunakan Support {ihsg_eval['support_1']:,} & Resisten {ihsg_eval['resistance_1']:,} sebagai batas aman"
+            },
+            {
+                "Pilar Analisis": "📑 Konsensus Lembaga Riset",
+                "Kondisi Saat Ini": f"{b_con['consensus_action']} ({b_con['total_analysts']} Analis)",
+                "Dampak & Bias": f"Target harga konsensus Rp {b_con['mean_target_price']:,} (Potensi Upside +{b_con['upside_avg_pct']}%)",
+                "Tindakan Cerdas": f"Beli jika harga di bawah modal bandar dan memiliki upside konsensus > 15%"
+            }
+        ]
+
+        df_cross = pd.DataFrame(cross_matrix_data)
+        st.dataframe(df_cross, hide_index=True, use_container_width=True)
 
 # TAB 14: BOT DISPATCHER
 with tab_bot:
