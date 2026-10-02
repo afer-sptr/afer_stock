@@ -55,6 +55,7 @@ def compute_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     # 1. Moving Averages & MA Ribbon
     df["MA_5"] = close.rolling(window=5, min_periods=1).mean()
     df["MA_10"] = close.rolling(window=10, min_periods=1).mean()
+    df["SMA_20"] = close.rolling(window=20, min_periods=1).mean()
     df["EMA_10"] = close.ewm(span=10, adjust=False).mean()
     df["EMA_20"] = close.ewm(span=20, adjust=False).mean()
     df["SMA_50"] = close.rolling(window=50, min_periods=10).mean()

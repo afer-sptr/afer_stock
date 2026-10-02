@@ -915,6 +915,27 @@ def render_technical_analysis_page(
     else:
         df_calc = df_ohlcv.copy()
 
+    # Pastikan Moving Average lengkap tersedia tanpa KeyError
+    if "SMA_20" not in df_calc.columns:
+        df_calc["SMA_20"] = df_calc["Close"].rolling(window=20, min_periods=1).mean()
+    if "SMA_50" not in df_calc.columns:
+        df_calc["SMA_50"] = df_calc["Close"].rolling(window=50, min_periods=1).mean()
+    if "SMA_100" not in df_calc.columns:
+        df_calc["SMA_100"] = df_calc["Close"].rolling(window=100, min_periods=1).mean()
+    if "SMA_200" not in df_calc.columns:
+        df_calc["SMA_200"] = df_calc["Close"].rolling(window=200, min_periods=1).mean()
+    if "EMA_10" not in df_calc.columns:
+        df_calc["EMA_10"] = df_calc["Close"].ewm(span=10, adjust=False).mean()
+    if "EMA_20" not in df_calc.columns:
+        df_calc["EMA_20"] = df_calc["Close"].ewm(span=20, adjust=False).mean()
+    if "BB_Upper" not in df_calc.columns:
+        bb_mid = df_calc["Close"].rolling(window=20, min_periods=1).mean()
+        bb_std = df_calc["Close"].rolling(window=20, min_periods=1).std().fillna(0)
+        df_calc["BB_Middle"] = bb_mid
+        df_calc["BB_Upper"] = bb_mid + (bb_std * 2)
+        df_calc["BB_Lower"] = bb_mid - (bb_std * 2)
+        df_calc["BB_Width"] = (df_calc["BB_Upper"] - df_calc["BB_Lower"]) / bb_mid.replace(0, np.nan)
+
     # Ekstrak indikator mutakhir
     df_calc = compute_ichimoku_cloud(df_calc)
     df_calc["PSAR"] = compute_parabolic_sar(df_calc)
@@ -926,6 +947,19 @@ def render_technical_analysis_page(
     df_calc["OBV"] = calculate_obv(df_calc)
     df_calc["WMA_20"] = compute_wma(df_calc["Close"], 20)
     channel_info = calculate_parallel_channel(df_calc, window=50)
+
+    def _safe_val(col: str, fallback: float = 0.0) -> float:
+        """Ekstraksi nilai terakhir kolom DataFrame secara aman tanpa risiko KeyError atau NaN."""
+        if col in df_calc.columns and len(df_calc) > 0:
+            s = df_calc[col].dropna()
+            if len(s) > 0:
+                try:
+                    val = float(s.iloc[-1])
+                    if not np.isnan(val) and not np.isinf(val):
+                        return val
+                except Exception:
+                    pass
+        return float(fallback)
 
     ha_df = compute_heikin_ashi(df_calc)
     volume_profile = compute_volume_profile(df_calc, bins=22)
@@ -948,7 +982,7 @@ def render_technical_analysis_page(
             support_strong=pivots["s2"],
             resistance_near=pivots["r1"],
             resistance_strong=pivots["r2"],
-            atr=float(df_calc["ATR_14"].iloc[-1]) if "ATR_14" in df_calc.columns else max(1.0, current_price * 0.02),
+            atr=_safe_val("ATR_14", max(1.0, current_price * 0.02)),
         )
 
     # ----------------- CSS INJECTION (ANTI TRUNCATION, ANTI OVERLAP & MULTISELECT FIX) -----------------
@@ -1173,13 +1207,15 @@ def render_technical_analysis_page(
         st.metric(f"Saham: {clean_t}", f"Rp {current_price:,.0f}", f"Skor: {tech_score}/100")
         st.caption(f"{company_name} | {'☪️ Syariah' if is_syariah else '⚪ Non-Syariah'}")
     with k2:
-        adx_val = float(df_calc["ADX_14"].iloc[-1])
+        adx_val = _safe_val("ADX_14", 25.0)
         st.metric("Rezim Tren (ADX 14)", f"{adx_val:.1f}", "Trending Kuat" if adx_val >= 22 else "Sideways Konsolidasi")
-        st.caption(f"Siklus Elliott: **{elliott['current_wave'].split('(')[0].strip()}**")
+        st.caption(f"Siklus Elliott: **{elliott.get('current_wave', 'N/A').split('(')[0].strip()}**")
     with k3:
-        rsi_val = float(df_calc["RSI_14"].iloc[-1])
+        rsi_val = _safe_val("RSI_14", 50.0)
         st.metric("Momentum RSI 14", f"{rsi_val:.1f}", "Overbought" if rsi_val >= 70 else ("Oversold" if rsi_val <= 30 else "Zona Sehat"))
-        st.caption(f"Stochastic: %K {df_calc['Stoch_K'].iloc[-1]:.1f} | %D {df_calc['Stoch_D'].iloc[-1]:.1f}")
+        stoch_k_val = _safe_val("Stoch_K", 50.0)
+        stoch_d_val = _safe_val("Stoch_D", 50.0)
+        st.caption(f"Stochastic: %K {stoch_k_val:.1f} | %D {stoch_d_val:.1f}")
     with k4:
         st.metric("Volume POC (Likuiditas)", f"Rp {volume_profile['poc']:,}", f"VAH: Rp {volume_profile['vah']:,}")
         st.caption(f"Support S1: Rp {pivots['s1']:,} | Resisten R1: Rp {pivots['r1']:,}")
@@ -1441,33 +1477,59 @@ def render_technical_analysis_page(
     # ==============================================================================
     def render_section_lib():
         st.markdown("##### 📚 Library Indikator Kuantitatif Terpadu (4 Kategori Analisis)")
+        
+        # Ekstrak nilai secara aman (defensive anti-KeyError)
+        sma20_v = _safe_val("SMA_20", current_price)
+        ema20_v = _safe_val("EMA_20", current_price)
+        wma20_v = _safe_val("WMA_20", current_price)
+        tenkan_v = _safe_val("Tenkan_sen", current_price)
+        kijun_v = _safe_val("Kijun_sen", current_price)
+        span_a_v = _safe_val("Senkou_Span_A", current_price)
+        span_b_v = _safe_val("Senkou_Span_B", current_price)
+        psar_v = _safe_val("PSAR", current_price)
+        sma50_v = _safe_val("SMA_50", current_price)
+        sma200_v = _safe_val("SMA_200", current_price)
+        rsi_v = _safe_val("RSI_14", 50.0)
+        stoch_k_v = _safe_val("Stoch_K", 50.0)
+        stoch_d_v = _safe_val("Stoch_D", 50.0)
+        cci_v = _safe_val("CCI", 0.0)
+        williams_v = _safe_val("Williams_R", -50.0)
+        bb_upper_v = _safe_val("BB_Upper", current_price * 1.05)
+        bb_lower_v = _safe_val("BB_Lower", current_price * 0.95)
+        bb_width_v = _safe_val("BB_Width", 0.05)
+        kelt_upper_v = _safe_val("Keltner_Upper", current_price * 1.04)
+        kelt_lower_v = _safe_val("Keltner_Lower", current_price * 0.96)
+        atr_v = _safe_val("ATR_14", current_price * 0.02)
+        cmf_v = _safe_val("CMF", 0.0)
+        obv_v = _safe_val("OBV", 0.0)
+
         l_c1, l_c2 = st.columns(2)
         with l_c1:
             st.markdown("###### 1. Indikator Tren & Ichimoku Kinko Hyo:")
-            st.write(f"• **Moving Average Trio (Tren)**: SMA 20 (Rp {df_calc['SMA_20'].iloc[-1]:,.1f}) | EMA 20 (Rp {df_calc['EMA_20'].iloc[-1]:,.1f}) | WMA 20 (Rp {df_calc['WMA_20'].iloc[-1]:,.1f})")
-            st.write(f"• **Tenkan-sen (9D)**: Rp {df_calc['Tenkan_sen'].iloc[-1]:,.1f} | **Kijun-sen (26D)**: Rp {df_calc['Kijun_sen'].iloc[-1]:,.1f}")
-            st.write(f"• **Kumo Cloud**: Span A Rp {df_calc['Senkou_Span_A'].iloc[-1]:,.1f} vs Span B Rp {df_calc['Senkou_Span_B'].iloc[-1]:,.1f} ({'Awan Hijau / Bullish' if df_calc['Senkou_Span_A'].iloc[-1] >= df_calc['Senkou_Span_B'].iloc[-1] else 'Awan Merah / Bearish'})")
-            st.write(f"• **Parabolic SAR**: Rp {df_calc['PSAR'].iloc[-1]:,.1f} ({'Sinyal Bullish (Di bawah Harga)' if current_price >= df_calc['PSAR'].iloc[-1] else 'Sinyal Bearish (Di atas Harga)'})")
-            st.write(f"• **Golden Cross**: {'🟢 Terkonfirmasi (SMA 50 > SMA 200)' if df_calc['SMA_50'].iloc[-1] > df_calc['SMA_200'].iloc[-1] else '🔴 Death Cross (SMA 50 < SMA 200)'}")
+            st.write(f"• **Moving Average Trio (Tren)**: SMA 20 (Rp {sma20_v:,.1f}) | EMA 20 (Rp {ema20_v:,.1f}) | WMA 20 (Rp {wma20_v:,.1f})")
+            st.write(f"• **Tenkan-sen (9D)**: Rp {tenkan_v:,.1f} | **Kijun-sen (26D)**: Rp {kijun_v:,.1f}")
+            st.write(f"• **Kumo Cloud**: Span A Rp {span_a_v:,.1f} vs Span B Rp {span_b_v:,.1f} ({'Awan Hijau / Bullish' if span_a_v >= span_b_v else 'Awan Merah / Bearish'})")
+            st.write(f"• **Parabolic SAR**: Rp {psar_v:,.1f} ({'Sinyal Bullish (Di bawah Harga)' if current_price >= psar_v else 'Sinyal Bearish (Di atas Harga)'})")
+            st.write(f"• **Golden Cross**: {'🟢 Terkonfirmasi (SMA 50 > SMA 200)' if sma50_v > sma200_v else '🔴 Death Cross (SMA 50 < SMA 200)'}")
 
             st.markdown("###### 2. Indikator Momentum & Oscillators:")
-            st.write(f"• **Relative Strength Index (RSI 14)**: **{df_calc['RSI_14'].iloc[-1]:.1f}**")
-            st.write(f"• **Stochastic %K / %D**: **{df_calc['Stoch_K'].iloc[-1]:.1f} / {df_calc['Stoch_D'].iloc[-1]:.1f}**")
-            st.write(f"• **Commodity Channel Index (CCI)**: **{df_calc['CCI'].iloc[-1]:.1f}** ({'Overbought' if df_calc['CCI'].iloc[-1] > 100 else ('Oversold' if df_calc['CCI'].iloc[-1] < -100 else 'Zona Netral')})")
-            st.write(f"• **Williams %R**: **{df_calc['Williams_R'].iloc[-1]:.1f}**")
+            st.write(f"• **Relative Strength Index (RSI 14)**: **{rsi_v:.1f}**")
+            st.write(f"• **Stochastic %K / %D**: **{stoch_k_v:.1f} / {stoch_d_v:.1f}**")
+            st.write(f"• **Commodity Channel Index (CCI)**: **{cci_v:.1f}** ({'Overbought' if cci_v > 100 else ('Oversold' if cci_v < -100 else 'Zona Netral')})")
+            st.write(f"• **Williams %R**: **{williams_v:.1f}**")
 
         with l_c2:
             st.markdown("###### 3. Indikator Volatilitas & Keltner Channels:")
-            st.write(f"• **Bollinger Upper**: Rp {df_calc['BB_Upper'].iloc[-1]:,.1f} | **Lower**: Rp {df_calc['BB_Lower'].iloc[-1]:,.1f}")
-            st.write(f"• **Bollinger Bandwidth**: {df_calc['BB_Width'].iloc[-1]*100:.2f}% ({'Squeeze / Kontraksi Volatilitas' if df_calc['BB_Width'].iloc[-1] < 0.05 else 'Volatilitas Ekspansif'})")
-            st.write(f"• **Keltner Channel Upper**: Rp {df_calc['Keltner_Upper'].iloc[-1]:,.1f} | **Lower**: Rp {df_calc['Keltner_Lower'].iloc[-1]:,.1f}")
-            st.write(f"• **Average True Range (ATR 14)**: Rp {df_calc['ATR_14'].iloc[-1]:,.0f} (Rentang fluktuasi harian wajar)")
+            st.write(f"• **Bollinger Upper**: Rp {bb_upper_v:,.1f} | **Lower**: Rp {bb_lower_v:,.1f}")
+            st.write(f"• **Bollinger Bandwidth**: {bb_width_v*100:.2f}% ({'Squeeze / Kontraksi Volatilitas' if bb_width_v < 0.05 else 'Volatilitas Ekspansif'})")
+            st.write(f"• **Keltner Channel Upper**: Rp {kelt_upper_v:,.1f} | **Lower**: Rp {kelt_lower_v:,.1f}")
+            st.write(f"• **Average True Range (ATR 14)**: Rp {atr_v:,.0f} (Rentang fluktuasi harian wajar)")
 
             st.markdown("###### 4. Indikator Volume & Horizontal Volume Profile:")
-            st.write(f"• **Chaikin Money Flow (CMF 20)**: **{df_calc['CMF'].iloc[-1]:+.3f}** ({'🟢 Inflow Uang Masuk' if df_calc['CMF'].iloc[-1] > 0.05 else ('🔴 Outflow Uang Keluar' if df_calc['CMF'].iloc[-1] < -0.05 else '⚪ Aliran Netral')})")
-            st.write(f"• **On-Balance Volume (OBV)**: {df_calc['OBV'].iloc[-1]:,.0f} (Akumulasi Berjalan)")
-            st.write(f"• **Point of Control (POC)**: **Rp {volume_profile['poc']:,}** (Level harga magnet likuiditas tertinggi)")
-            st.write(f"• **Value Area (70% Volume)**: Rp {volume_profile['val']:,} s/d Rp {volume_profile['vah']:,}")
+            st.write(f"• **Chaikin Money Flow (CMF 20)**: **{cmf_v:+.3f}** ({'🟢 Inflow Uang Masuk' if cmf_v > 0.05 else ('🔴 Outflow Uang Keluar' if cmf_v < -0.05 else '⚪ Aliran Netral')})")
+            st.write(f"• **On-Balance Volume (OBV)**: {obv_v:,.0f} (Akumulasi Berjalan)")
+            st.write(f"• **Point of Control (POC)**: **Rp {volume_profile.get('poc', 0):,}** (Level harga magnet likuiditas tertinggi)")
+            st.write(f"• **Value Area (70% Volume)**: Rp {volume_profile.get('val', 0):,} s/d Rp {volume_profile.get('vah', 0):,}")
 
     # ==============================================================================
     # 3. ALAT GEOMETRI, FIBONACCI & SIKLUS ELLIOTT / GANN
@@ -1570,7 +1632,7 @@ def render_technical_analysis_page(
             )
             custom_code = st.text_area("Script Formula Kuantitatif:", value=default_script, height=130, key="ta_custom_script_area")
             if st.button("🚀 Jalankan Script Kustom", key="btn_run_custom_script"):
-                st.success(f"✅ Script berhasil dieksekusi! Sinyal saat ini untuk {clean_t}: **BUY / ACCUMULATE** (Kondisi Close Rp {current_price:,.0f} > EMA 20 & RSI {df_calc['RSI_14'].iloc[-1]:.1f} terpenuhi).")
+                st.success(f"✅ Script berhasil dieksekusi! Sinyal saat ini untuk {clean_t}: **BUY / ACCUMULATE** (Kondisi Close Rp {current_price:,.0f} > EMA 20 & RSI {_safe_val('RSI_14', 50.0):.1f} terpenuhi).")
 
     # ==============================================================================
     # 5. TECHNICAL STOCK SCREENER
@@ -1675,7 +1737,7 @@ def render_technical_analysis_page(
                 support_strong=pivots["s2"],
                 resistance_near=pivots["r1"],
                 resistance_strong=pivots["r2"],
-                atr=float(df_calc["ATR_14"].iloc[-1]),
+                atr=_safe_val("ATR_14", max(1.0, current_price * 0.02)),
             )
 
         tp1_v = plan.get("take_profit_1", int(current_price * 1.05))
@@ -1830,8 +1892,8 @@ def render_technical_analysis_page(
     st.markdown("#### 🏛️ Kesimpulan Eksekutif & Tesis Aksi Trader Masa Depan:")
     exec_summary = (
         f"Berdasarkan evaluasi 5 pilar teknikal kuantitatif, saham **{clean_t}** ({company_name}) memiliki skor teknikal **{tech_score}/100** ({tech_verdict}). "
-        f"Pasar berada dalam rezim **{tech_suite.get('market_regime', 'Normal')}** (ADX 14: {df_calc['ADX_14'].iloc[-1]:.1f}) pada siklus **{elliott['current_wave']}**. "
-        f"Harga saat ini Rp {current_price:,.0f} berada di atas support kunci S1 Rp {pivots['s1']:,} dan menantang resisten R1 Rp {pivots['r1']:,} dengan level magnet likuiditas POC Rp {volume_profile['poc']:,}. "
+        f"Pasar berada dalam rezim **{tech_suite.get('market_regime', 'Normal')}** (ADX 14: {_safe_val('ADX_14', 25.0):.1f}) pada siklus **{elliott.get('current_wave', 'N/A')}**. "
+        f"Harga saat ini Rp {current_price:,.0f} berada di atas support kunci S1 Rp {pivots.get('s1', 0):,} dan menantang resisten R1 Rp {pivots.get('r1', 0):,} dengan level magnet likuiditas POC Rp {volume_profile.get('poc', 0):,}. "
         f"Tindakan yang direkomendasikan adalah **{tech_suite.get('recommended_strategy', 'Akumulasi Bertahap')}** dengan disiplin rasio risk-to-reward 1:{plan.get('risk_reward_ratio_tp1', 1.8)}."
     )
     st.success(f"📌 **Tesis Investasi Teknikal**: {exec_summary}")
