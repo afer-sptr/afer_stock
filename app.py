@@ -695,7 +695,8 @@ app_menu = st.sidebar.radio(
         "🏛️ Analisis Broker dan Emiten",
         "📊 Finance and Statistical Analysis"
     ],
-    index=0
+    index=0,
+    key="main_app_menu_radio"
 )
 st.sidebar.markdown("---")
 
@@ -937,6 +938,20 @@ prev_close = float(info.get("previous_close") or (df_tech["Close"].iloc[-2] if l
 price_diff = float(info.get("price_diff", current_price - prev_close))
 price_diff_pct = float(info.get("price_diff_pct", ((current_price - prev_close) / max(1.0, prev_close)) * 100.0))
 
+# ----------------- ROUTING CEPAT MENU ANALISIS TEKNIKAL -----------------
+if app_menu == "📈 Analisis Teknikal":
+    render_technical_analysis_page(
+        ticker=ticker_clean,
+        df_ohlcv=df_tech,
+        info=info,
+        current_price=current_price,
+        all_stocks=ALL_IDX_STOCKS,
+        chosen_tier=chosen_tier,
+        chosen_syariah=chosen_syariah,
+        chosen_sector=chosen_sector,
+    )
+    st.stop()
+
 # 2. Analisis High & Low (52W, Intraday, Breakout, Fibonacci 7 Level)
 hl_eval = evaluate_high_low_aspects(df_tech, fast_info)
 
@@ -1159,22 +1174,6 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
         },
         use_container_width=True,
         hide_index=True
-    )
-    st.stop()
-
-elif app_menu == "📈 Analisis Teknikal":
-    render_technical_analysis_page(
-        ticker=ticker_clean,
-        df_ohlcv=df_tech,
-        info=info,
-        current_price=current_price,
-        all_stocks=ALL_IDX_STOCKS,
-        chosen_tier=chosen_tier,
-        chosen_syariah=chosen_syariah,
-        chosen_sector=chosen_sector,
-        ihsg_eval=ihsg_eval,
-        broker_eval=broker_eval,
-        plan=plan,
     )
     st.stop()
 

@@ -1008,36 +1008,65 @@ def render_technical_analysis_page(
     )
 
     # ----------------- FILTER SAHAM MULTI-TIER, SYARIAH & SEKTOR -----------------
-    with st.expander("🔍 **Pilihan Saham Sesuai Tier, Syariah & Quick Technical Screener**", expanded=True):
-        f_c1, f_c2, f_c3 = st.columns(3)
-        with f_c1:
-            tier_sel = st.selectbox("Pilih Kategori Tingkatan (Tier):", TIER_OPTIONS, index=TIER_OPTIONS.index(chosen_tier) if chosen_tier in TIER_OPTIONS else 0, key="ta_tier_sel")
-        with f_c2:
-            syariah_sel = st.selectbox("Pilih Kepatuhan Syariah (ISSI/OJK):", ["Semua", "☪️ Hanya Syariah (ISSI)", "⚪ Non-Syariah"], index=0 if chosen_syariah == "Semua" else (1 if "Syariah" in chosen_syariah else 2), key="ta_syariah_sel")
-        with f_c3:
-            matched_stocks = filter_idx_stocks(tier_filter=tier_sel, syariah_filter=syariah_sel, sector_filter=chosen_sector)
-            stock_opts = [f"{s['code']} - {s['name']}" for s in matched_stocks] if matched_stocks else [f"{clean_t} - {company_name}"]
-            curr_idx = 0
-            for idx, opt in enumerate(stock_opts):
-                if opt.startswith(clean_t):
-                    curr_idx = idx
-                    break
-            selected_stock_label = st.selectbox(f"Pilih Emiten ({len(matched_stocks)} Saham Tersedia):", stock_opts, index=curr_idx, key="ta_stock_picker")
-            selected_code = selected_stock_label.split(" - ")[0].strip()
-            if selected_code != clean_t:
-                st.session_state["selected_ticker"] = selected_code
-                st.rerun()
+    st.markdown(
+        """
+        <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
+            <span style="font-size: 13.5px; font-weight: 700; color: #38BDF8;">
+                🎯 Pilihan Saham Sesuai Tier, Syariah & Katalog 900+ Emiten BEI:
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    f_c1, f_c2, f_c3 = st.columns(3)
+    with f_c1:
+        tier_sel = st.selectbox(
+            "Pilih Tingkatan Saham (Tier):",
+            TIER_OPTIONS,
+            index=TIER_OPTIONS.index(chosen_tier) if chosen_tier in TIER_OPTIONS else 0,
+            key="ta_tier_sel"
+        )
+    with f_c2:
+        syariah_sel = st.selectbox(
+            "Kepatuhan Syariah (ISSI/OJK):",
+            ["Semua", "☪️ Hanya Syariah (ISSI)", "⚪ Non-Syariah"],
+            index=0 if chosen_syariah == "Semua" else (1 if "Syariah" in chosen_syariah else 2),
+            key="ta_syariah_sel"
+        )
+    with f_c3:
+        matched_stocks = filter_idx_stocks(tier_filter=tier_sel, syariah_filter=syariah_sel, sector_filter=chosen_sector)
+        stock_opts = [f"{s['ticker']} - {s['name']}" for s in matched_stocks] if matched_stocks else [f"{clean_t} - {company_name}"]
+        curr_idx = 0
+        for idx, opt in enumerate(stock_opts):
+            if opt.startswith(clean_t + " -") or opt.startswith(clean_t + " "):
+                curr_idx = idx
+                break
 
-        # Quick Screener Cards
-        st.markdown("##### ⚡ Radar Saham Setup Teknikal Unggulan (Real-Time):")
-        screener_items = scan_technical_screener(tier_sel, syariah_sel, chosen_sector)
-        if screener_items:
+        def _on_ta_picker_stock_change():
+            val = st.session_state.get("ta_stock_picker", "")
+            if val:
+                t_code = val.split(" - ")[0].strip().replace(".JK", "").upper()
+                if t_code:
+                    st.session_state["selected_ticker"] = t_code
+
+        selected_stock_label = st.selectbox(
+            f"Pilih Emiten ({len(matched_stocks)} Saham Tersedia):",
+            stock_opts,
+            index=curr_idx,
+            key="ta_stock_picker",
+            on_change=_on_ta_picker_stock_change
+        )
+
+    # Quick Screener Cards
+    screener_items = scan_technical_screener(tier_sel, syariah_sel, chosen_sector)
+    if screener_items:
+        with st.expander("⚡ **Radar Setup Teknikal Unggulan Real-Time (Klik untuk Analisis)**", expanded=False):
             s_cols = st.columns(min(4, len(screener_items)))
             for idx_s, item in enumerate(screener_items[:4]):
                 with s_cols[idx_s]:
                     st.markdown(
                         f"""
-                        <div class="quant-box" style="border-left: 4px solid #10B981; padding: 10px; margin-bottom: 8px; background: #1E293B;">
+                        <div class="quant-box" style="border-left: 4px solid #10B981; padding: 10px; margin-bottom: 8px; background: #1E293B; border-radius: 6px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                                 <strong style="color: #FFFFFF; font-size: 14px;">{item['ticker']}</strong>
                                 <span style="background: rgba(16, 185, 129, 0.2); color: #34D399; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700;">
@@ -1123,15 +1152,18 @@ def render_technical_analysis_page(
             st.rerun()
 
     with nav_col2:
+        def _on_ta_feat_dropdown_change():
+            chosen = st.session_state.get("ta_feature_dropdown", "")
+            if chosen in FEATURE_LIST:
+                st.session_state["ta_active_feature_idx"] = FEATURE_LIST.index(chosen)
+
         selected_feat = st.selectbox(
             "Pilih Langsung / Geser Fitur:",
             FEATURE_LIST,
             index=st.session_state["ta_active_feature_idx"],
-            key="ta_feature_dropdown"
+            key="ta_feature_dropdown",
+            on_change=_on_ta_feat_dropdown_change
         )
-        if FEATURE_LIST.index(selected_feat) != st.session_state["ta_active_feature_idx"]:
-            st.session_state["ta_active_feature_idx"] = FEATURE_LIST.index(selected_feat)
-            st.rerun()
 
     # ----------------- TABS UTAMA 5 PILAR TEKNIKAL MUTAKHIR -----------------
     tab_chart, tab_lib, tab_geo, tab_auto, tab_screener, tab_backtest, tab_plan = st.tabs(FEATURE_LIST)
