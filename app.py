@@ -582,9 +582,9 @@ st.markdown("""
         color: #F8FAFC !important;
         margin-top: 0 !important;
     }
-    .quant-box p, .quant-box span, .quant-box div, .quant-box small, .quant-box b, .quant-box strong, .quant-box i {
-        color: #F1F5F9 !important;
-        line-height: 1.5 !important;
+    .quant-box p, .quant-box small, .quant-box b, .quant-box strong, .quant-box i {
+        color: #F1F5F9;
+        line-height: 1.5;
     }
     .quant-box code {
         background: #0F172A !important;
@@ -1257,7 +1257,7 @@ with st.expander("🌐 **Ekosistem Pasar Terpadu: Proyeksi Masa Depan IHSG, Jeja
         st.caption(f"{insta_st} | Status: **{social_eval['crowd_status'].split('/')[0].strip()}**\n- Otoritas (@smindrawati, @idx): `{social_eval['channels'].get(list(social_eval['channels'].keys())[0], 70):.0f}`\n- Stockbit: `{social_eval['channels'].get('Stockbit Stream & Retail IDX', 65):.0f}` | Twitter/X: `{social_eval['channels'].get('Twitter / X (FinTwit Global)', 65):.0f}`")
     with eko_c4:
         st.markdown(f"**🧠 Psikologi Pasar & Proyek:**")
-        st.caption(f"Fear & Greed Index: **{psychology_eval['fear_greed_index']}/100** ({psychology_eval['cycle_phase']})\n- Bias Kognitif: _{psychology_eval['bias_warning'][:38]}..._\n- Proyek Kunci: **{corp_eval['project_title'][:32]}...**")
+        st.caption(f"Fear & Greed Index: **{psychology_eval['fear_greed_index']}/100** ({psychology_eval['cycle_phase']})\n- Bias Kognitif: _{psychology_eval['bias_warning']}_\n- Proyek Kunci: **{corp_eval['project_title']}**")
 
     # Daftar Konstelasi Broker Penentu Arah (Top Akumulator vs Distribusi dari Lampiran 2)
     eco_buyers = promoter_eval.get("top_buyers_detail", [])
@@ -1366,7 +1366,7 @@ with res_col1:
             f"• **Lead Broker**: `{lead_b_code}` ({lead_b_name}) | **Modal Bandar**: Rp {bandar_cost:,} ({broker_eval.get('diff_from_cost_pct', 0.0):+.1f}%)\n"
             f"• **Makro IHSG**: {ihsg_trend} ({ihsg_lev:,.1f}) | **Beta Emiten**: {beta_eval['beta']}x ({beta_eval['category']})\n"
             f"• **Psikologi Pasar**: Fear & Greed {psychology_eval['fear_greed_index']}/100 ({psychology_eval['cycle_phase']})\n"
-            f"• **Katalis Korporasi**: {corp_eval['project_title'][:40]}..."
+            f"• **Katalis Korporasi**: {corp_eval['project_title']}"
         )
 
     # Tombol Kirim Cepat WhatsApp & Telegram
@@ -1605,37 +1605,41 @@ with tab_scalp:
                     with pair_cols[j]:
                         with st.container():
                             st.markdown(f"""
-                            <div class="quant-box" style="border-left: 5px solid #10B981; padding:12px; margin-bottom:12px;">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <h4 style="margin:0; color:#0F172A;">#{idx_s+1} {s['ticker']} <span style="font-size:12px; color:#64748B;">({s['company_name'][:22]})</span></h4>
-                                    <span style="background-color:#DCFCE7; color:#166534; padding:3px 8px; border-radius:6px; font-weight:bold; font-size:12px;">Skor: {s['scalp_score']}/100 ⭐</span>
+                            <div class="quant-box" style="border-left: 5px solid #10B981; padding: 14px; margin-bottom: 14px; background: #1E293B; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25);">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px;">
+                                    <h4 style="margin: 0; color: #FFFFFF; font-size: 1.05rem; font-weight: 700; line-height: 1.3;">
+                                        #{idx_s+1} {s['ticker']} <span style="font-size: 0.85rem; color: #94A3B8; font-weight: 400;">({s['company_name']})</span>
+                                    </h4>
+                                    <span style="background: rgba(16, 185, 129, 0.25); color: #4ADE80; border: 1px solid #10B981; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 12px; white-space: nowrap;">
+                                        Skor: {s['scalp_score']}/100 ⭐
+                                    </span>
                                 </div>
-                                <p style="margin:4px 0; font-size:12px; color:#475569;">
-                                    🏷️ <b>{s['tier']}</b> | {s['sector']} | {'☪️ Syariah' if s['is_syariah'] else '⚪ Non-Syariah'}
+                                <p style="margin: 0 0 10px 0; font-size: 12px; color: #CBD5E1; line-height: 1.4;">
+                                    🏷️ <b style="color: #F8FAFC;">{s['tier']}</b> | <span style="color: #94A3B8;">{s['sector']}</span> | <span style="color: {'#34D399' if s['is_syariah'] else '#94A3B8'};">{'☪️ Syariah' if s['is_syariah'] else '⚪ Non-Syariah'}</span>
                                 </p>
-                                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; margin:8px 0; text-align:center;">
-                                    <div style="background:#F1F5F9; padding:6px; border-radius:6px;">
-                                        <div style="font-size:10px; color:#64748B;">ZONA ENTRY</div>
-                                        <div style="font-weight:bold; color:#0284C7; font-size:14px;">Rp {s['entry_price']:,}</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; text-align: center;">
+                                    <div style="background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.4); padding: 8px 4px; border-radius: 8px;">
+                                        <div style="font-size: 10px; font-weight: 700; color: #38BDF8; letter-spacing: 0.5px;">ZONA ENTRY</div>
+                                        <div style="font-weight: 800; color: #F0F9FF; font-size: 15px; margin-top: 2px;">Rp {s['entry_price']:,}</div>
                                     </div>
-                                    <div style="background:#ECFDF5; padding:6px; border-radius:6px;">
-                                        <div style="font-size:10px; color:#059669;">TAKE PROFIT 1</div>
-                                        <div style="font-weight:bold; color:#059669; font-size:14px;">Rp {s['tp1']:,} <span style="font-size:11px;">({s['tp1_net_pct']:+.2f}%)</span></div>
+                                    <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 8px 4px; border-radius: 8px;">
+                                        <div style="font-size: 10px; font-weight: 700; color: #34D399; letter-spacing: 0.5px;">TAKE PROFIT 1</div>
+                                        <div style="font-weight: 800; color: #ECFDF5; font-size: 15px; margin-top: 2px;">Rp {s['tp1']:,} <span style="font-size: 11px; color: #6EE7B7; font-weight: 600;">({s['tp1_net_pct']:+.2f}%)</span></div>
                                     </div>
-                                    <div style="background:#FEF2F2; padding:6px; border-radius:6px;">
-                                        <div style="font-size:10px; color:#DC2626;">CUT LOSS (SL)</div>
-                                        <div style="font-weight:bold; color:#DC2626; font-size:14px;">Rp {s['stop_loss']:,} <span style="font-size:11px;">({s['sl_net_pct']:+.2f}%)</span></div>
+                                    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); padding: 8px 4px; border-radius: 8px;">
+                                        <div style="font-size: 10px; font-weight: 700; color: #F87171; letter-spacing: 0.5px;">CUT LOSS (SL)</div>
+                                        <div style="font-weight: 800; color: #FEF2F2; font-size: 15px; margin-top: 2px;">Rp {s['stop_loss']:,} <span style="font-size: 11px; color: #FCA5A5; font-weight: 600;">({s['sl_net_pct']:+.2f}%)</span></div>
                                     </div>
                                 </div>
-                                <div style="font-size:11px; color:#334155; margin-bottom:6px;">
-                                    🏆 <b>TP2 (Target Lanjutan):</b> Rp {s['tp2']:,} ({s['tp2_net_pct']:+.2f}%) | ⚖️ <b>RRR:</b> 1:{s['rrr']} | 🛡️ <b>Maksimal Lot Aman:</b> {s['safe_exit_lot']:,} Lot
+                                <div style="font-size: 11.5px; color: #E2E8F0; margin-bottom: 8px; line-height: 1.5; padding: 2px 0;">
+                                    🏆 <b style="color: #F8FAFC;">TP2 (Target Lanjutan):</b> <span style="color: #6EE7B7; font-weight: 600;">Rp {s['tp2']:,} ({s['tp2_net_pct']:+.2f}%)</span> | ⚖️ <b style="color: #F8FAFC;">RRR:</b> <span style="color: #38BDF8; font-weight: 600;">1:{s['rrr']}</span> | 🛡️ <b style="color: #F8FAFC;">Maksimal Lot Aman:</b> <span style="color: #FCD34D; font-weight: 600;">{s['safe_exit_lot']:,} Lot</span>
                                 </div>
-                                <div style="font-size:11px; color:#1E293B; margin-bottom:6px; background:#F0FDF4; padding:6px 10px; border-radius:6px; border:1px solid #BBF7D0;">
-                                    🏛️ <b>Broker Penggerak:</b> {s.get('lead_broker_code', 'CC')} — {s.get('lead_broker_name', 'PT Mandiri Sekuritas')} ({s.get('lead_broker_category', 'BUMN & Domestik')})<br>
-                                    🔮 <b>Proyeksi Arah Harga:</b> {s.get('lead_broker_impact', 'Akumulasi bertahap menuju kenaikan harga.')}
+                                <div style="font-size: 11.5px; line-height: 1.5; margin-bottom: 8px; background: rgba(15, 23, 42, 0.8); padding: 8px 12px; border-radius: 8px; border: 1px solid #334155; border-left: 3px solid #38BDF8;">
+                                    🏛️ <b style="color: #38BDF8;">Broker Penggerak:</b> <span style="color: #F8FAFC; font-weight: 600;">{s.get('lead_broker_code', 'CC')} — {s.get('lead_broker_name', 'PT Mandiri Sekuritas')}</span> <span style="color: #94A3B8;">({s.get('lead_broker_category', 'BUMN & Domestik')})</span><br>
+                                    🔮 <b style="color: #C084FC;">Proyeksi Arah Harga:</b> <span style="color: #E2E8F0;">{s.get('lead_broker_impact', 'Akumulasi bertahap menuju kenaikan harga.')}</span>
                                 </div>
-                                <div style="font-size:11px; color:#64748B; background:#F8FAFC; padding:4px 8px; border-radius:4px; border:1px dashed #CBD5E1;">
-                                    ⚡ <b>Katalis:</b> {s['catalyst']}
+                                <div style="font-size: 11.5px; line-height: 1.5; background: rgba(15, 23, 42, 0.6); padding: 8px 12px; border-radius: 8px; border: 1px dashed #475569; border-left: 3px solid #F59E0B;">
+                                    ⚡ <b style="color: #FBBF24;">Katalis:</b> <span style="color: #CBD5E1;">{s['catalyst']}</span>
                                 </div>
                             </div>
                             """, unsafe_allow_html=True)
