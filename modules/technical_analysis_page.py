@@ -1735,35 +1735,25 @@ def render_technical_analysis_page(
         prev_name = FEATURE_LIST[prev_idx].split(". ")[1] if ". " in FEATURE_LIST[prev_idx] else FEATURE_LIST[prev_idx]
         if st.button(f"◀️ Geser Kiri\n({prev_name[:12]}..)", key="btn_ta_slide_left", use_container_width=True, help=f"Beralih ke: {FEATURE_LIST[prev_idx]}"):
             st.session_state["ta_active_feature_idx"] = prev_idx
-            active_idx = prev_idx
-            if "ta_feature_dropdown" in st.session_state:
-                st.session_state["ta_feature_dropdown"] = FEATURE_LIST[prev_idx]
+            st.rerun()
 
     with nav_col3:
         next_idx = (active_idx + 1) % len(FEATURE_LIST)
         next_name = FEATURE_LIST[next_idx].split(". ")[1] if ". " in FEATURE_LIST[next_idx] else FEATURE_LIST[next_idx]
         if st.button(f"Geser Kanan ▶️\n({next_name[:12]}..)", key="btn_ta_slide_right", use_container_width=True, help=f"Beralih ke: {FEATURE_LIST[next_idx]}"):
             st.session_state["ta_active_feature_idx"] = next_idx
-            active_idx = next_idx
-            if "ta_feature_dropdown" in st.session_state:
-                st.session_state["ta_feature_dropdown"] = FEATURE_LIST[next_idx]
+            st.rerun()
 
     with nav_col2:
-        def _on_ta_feat_dropdown_change():
-            chosen = st.session_state.get("ta_feature_dropdown", "")
-            if chosen in FEATURE_LIST:
-                st.session_state["ta_active_feature_idx"] = FEATURE_LIST.index(chosen)
-
-        if st.session_state.get("ta_feature_dropdown") != FEATURE_LIST[active_idx]:
-            st.session_state["ta_feature_dropdown"] = FEATURE_LIST[active_idx]
-
         selected_feat = st.selectbox(
             "Pilih Langsung / Geser Fitur:",
             FEATURE_LIST,
             index=active_idx,
-            key="ta_feature_dropdown",
-            on_change=_on_ta_feat_dropdown_change
+            key=f"ta_feature_selector_dyn_{active_idx}",
         )
+        if selected_feat in FEATURE_LIST and selected_feat != FEATURE_LIST[active_idx]:
+            st.session_state["ta_active_feature_idx"] = FEATURE_LIST.index(selected_feat)
+            st.rerun()
 
     # Baris Tombol Cepat (Pill Buttons) Berjejer Horizontal
     pill_cols = st.columns(len(FEATURE_LIST) + 1)
@@ -1774,15 +1764,13 @@ def render_technical_analysis_page(
             btn_t = "primary" if is_cur else "secondary"
             if st.button(f"{'🎯 ' if is_cur else ''}{s_name}", key=f"btn_p_nav_{p_i}", type=btn_t, use_container_width=True):
                 st.session_state["ta_active_feature_idx"] = p_i
-                if "ta_feature_dropdown" in st.session_state:
-                    st.session_state["ta_feature_dropdown"] = FEATURE_LIST[p_i]
-                active_idx = p_i
+                st.rerun()
 
     with pill_cols[-1]:
         show_all = st.session_state.get("ta_show_all", False)
         if st.button(f"{'📑 Mode Tunggal' if show_all else '🌐 Semua Tab'}", key="btn_toggle_show_all", use_container_width=True, help="Tampilkan semua tab pilar sekaligus"):
             st.session_state["ta_show_all"] = not show_all
-            show_all = st.session_state["ta_show_all"]
+            st.rerun()
 
     # ==============================================================================
     # RENDER TAMPILAN FITUR (FOCUS MODE VS ALL TABS MODE)
