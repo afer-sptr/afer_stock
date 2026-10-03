@@ -28,7 +28,23 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
+import re
 import streamlit as st
+
+
+def render_safe_html(html_str: str) -> None:
+    """
+    Menampilkan HTML secara aman, native, dan terjamin tanpa pernah
+    terinterpretasi sebagai markdown code block.
+    Menggunakan st.html jika tersedia (Streamlit >= 1.35), atau
+    membersihkan leading whitespace per baris dan komentar sebelum st.markdown.
+    """
+    clean = re.sub(r'<!--.*?-->', '', html_str, flags=re.DOTALL)
+    clean = '\n'.join(line.strip() for line in clean.splitlines() if line.strip())
+    if hasattr(st, 'html'):
+        st.html(clean)
+    else:
+        st.markdown(clean, unsafe_allow_html=True)
 
 try:
     from modules.idx_ticks import round_to_idx_tick, get_idx_tick_size
@@ -831,7 +847,7 @@ def render_visual_flow_strategy_page(
     params = st.session_state["flow_params"]
 
     # ----------------- TOP HEADER & ACTION BAR -----------------
-    st.markdown(
+    render_safe_html(
         """
         <div style="margin-bottom: 10px;">
             <div style="display: flex; align-items: center; gap: 10px;">
@@ -846,8 +862,7 @@ def render_visual_flow_strategy_page(
                 Terminal kuantitatif visual pipeline berbasis 11-node bertingkat untuk penyaringan disiplin tingkat institusional, eksekusi lot mikrostruktur, dan manajemen risiko terukur di Bursa Efek Indonesia.
             </p>
         </div>
-        """,
-        unsafe_allow_html=True
+        """
     )
 
     # ACTION BAR: STRATEGY SELECTOR + BUTTONS
@@ -971,7 +986,7 @@ def render_visual_flow_strategy_page(
 
     # ----------------- SECTION 1: VISUAL FLOW CANVAS -----------------
     canvas_html = render_visual_flow_canvas_html(eval_result, selected_strat)
-    st.markdown(canvas_html, unsafe_allow_html=True)
+    render_safe_html(canvas_html)
 
     # ----------------- SECTION 2: PARAMETER TUNING ACCORDION -----------------
     with st.expander("⚙️ Buka Editor & Penyesuaian Parameter Tiap Node (Live Tuning)", expanded=False):
@@ -1093,7 +1108,7 @@ def render_visual_flow_strategy_page(
             p_cols = st.columns(min(4, len(passed_stocks)))
             for i, p_stk in enumerate(passed_stocks[:4]):
                 with p_cols[i]:
-                    st.markdown(
+                    render_safe_html(
                         f"""
                         <div style="background: #0f172a; border: 1px solid #10B981; border-radius: 10px; padding: 12px; margin-bottom: 10px; box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1108,8 +1123,7 @@ def render_visual_flow_strategy_page(
                                 • OFI: <b>{p_stk['ofi']}</b> | Power: <b>{p_stk['buyer_power']}x</b>
                             </div>
                         </div>
-                        """,
-                        unsafe_allow_html=True
+                        """
                     )
                     if st.button(f"🔍 Evaluasi {p_stk['ticker']} di Kanvas", key=f"btn_eval_passed_{p_stk['ticker']}", use_container_width=True):
                         st.session_state["selected_ticker"] = p_stk["ticker"]
@@ -1263,7 +1277,7 @@ def render_visual_flow_strategy_page(
         st.markdown("#### 🔮 Keputusan Taktis yang Wajib Diambil User")
         
         if eval_result["is_decision_gate_open"]:
-            st.markdown(
+            render_safe_html(
                 f"""
                 <div style="background: rgba(16, 185, 129, 0.15); border: 2px solid #10B981; border-radius: 10px; padding: 14px; margin-bottom: 12px;">
                     <div style="font-size: 1.1rem; font-weight: 900; color: #10B981;">
@@ -1276,12 +1290,11 @@ def render_visual_flow_strategy_page(
                         • <b>Disiplin Stop Loss</b>: Wajib Cut Loss tanpa tawar-menawar jika harga turun ke <b>Rp {node10['sl_price']:,}</b> (-{params.get('sl_pct', 4.0)}%).
                     </div>
                 </div>
-                """,
-                unsafe_allow_html=True
+                """
             )
         else:
             missing_nodes = [eval_result["nodes"][f"node_{i}"]["title"] for i in range(8) if not eval_result["nodes"][f"node_{i}"]["passed"]]
-            st.markdown(
+            render_safe_html(
                 f"""
                 <div style="background: rgba(239, 68, 68, 0.15); border: 2px solid #EF4444; border-radius: 10px; padding: 14px; margin-bottom: 12px;">
                     <div style="font-size: 1.1rem; font-weight: 900; color: #EF4444;">
@@ -1293,8 +1306,7 @@ def render_visual_flow_strategy_page(
                         • <b>Skenario Beli</b>: Tunggu hingga lonjakan volume transaksi mencapai target baku atau alihkan dana ke emiten yang sudah <b>7/7 Lolos</b> di tabel pemindai di atas.
                     </div>
                 </div>
-                """,
-                unsafe_allow_html=True
+                """
             )
 
         st.caption("⏱️ *Waktu terbaik untuk eksekusi scalping flow: Sesi I (09:00 – 09:30 WIB) dan Sesi II (14:00 – 14:45 WIB).*")
