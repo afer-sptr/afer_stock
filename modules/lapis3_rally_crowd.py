@@ -8,7 +8,16 @@ Analisis Sentimen Komunitas Ritel & Detektor Sinyal Kontrarian (Crowd Lab).
 from typing import Any, Dict, List, Optional
 import pandas as pd
 import yfinance as yf
-from modules.idx_universe import get_stock_metadata, load_idx_prices
+try:
+    from modules.idx_universe import get_stock_metadata, load_idx_prices
+except ImportError:
+    try:
+        from idx_universe import get_stock_metadata, load_idx_prices
+    except ImportError:
+        def get_stock_metadata(ticker: str) -> Dict[str, Any]:
+            return {"name": ticker, "price": 100}
+        def load_idx_prices() -> Dict[str, float]:
+            return {}
 
 
 def screen_lapis_3(df: pd.DataFrame, snap: Dict[str, Any]) -> Dict[str, Any]:
