@@ -65,6 +65,50 @@ except ImportError:
         filter_idx_stocks,
     )
 
+try:
+    from modules.data_loader import fetch_stock_data, normalize_ticker
+except ImportError:
+    from data_loader import fetch_stock_data, normalize_ticker
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def get_flow_cached_stock_data(ticker_symbol: str) -> Tuple[Optional[pd.DataFrame], Dict[str, Any], float]:
+    """
+    Mengambil data historis OHLCV dan info emiten secara berkecepatan tinggi
+    dengan in-memory caching untuk evaluasi independen Visual Flow Strategy.
+    """
+    clean_sym = ticker_symbol.replace(".JK", "").upper().strip()
+    norm_sym = normalize_ticker(clean_sym)
+    
+    df_raw, inf, err = fetch_stock_data(norm_sym, period="6mo", interval="1d")
+    meta = get_stock_metadata(clean_sym)
+    prices = load_idx_prices()
+    
+    if inf is None:
+        inf = {}
+    
+    real_price = 0.0
+    if df_raw is not None and not df_raw.empty:
+        real_price = float(df_raw["Close"].iloc[-1])
+    if real_price <= 0:
+        real_price = float(prices.get(clean_sym, meta.get("price", 100.0)))
+    if real_price <= 0:
+        real_price = 100.0
+        
+    inf["ticker"] = clean_sym
+    inf["price"] = real_price
+    inf["realtime_last_price"] = real_price
+    inf["is_syariah"] = meta.get("is_syariah", False)
+    inf["syariah_label"] = meta.get("syariah_label", "⚪ Non-Syariah" if not meta.get("is_syariah") else "☪️ Syariah (ISSI)")
+    inf["tier"] = meta.get("tier", "Regular")
+    inf["tier_code"] = meta.get("tier_code", "REGULAR")
+    inf["tier_short"] = meta.get("tier_short", "Regular")
+    inf["sector"] = meta.get("sector", "Bursa Efek Indonesia")
+    inf["longName"] = meta.get("name", clean_sym)
+    inf["shortName"] = meta.get("name", clean_sym)
+    
+    return df_raw, inf, real_price
+
 
 # ==============================================================================
 # 1. PRESET STRATEGI KUANTITATIF RESMI
@@ -570,7 +614,13 @@ def scan_visual_flow_universe(
     Mendukung penyaringan Tingkatan (Tier) dan Status Syariah / Non-Syariah resmi OJK/DSN-MUI.
     Diproses sangat cepat menggunakan cache data harga & mikrostruktur.
     """
-    tickers = candidate_tickers or REPRESENTATIVE_SCANNER_TICKERS
+    if candidate_tickers is not None:
+        tickers = candidate_tickers
+    else:
+        # Pindai seluruh saham yang sesuai kriteria dari semesta 938+ saham BEI (< 0.05s)
+        matched_universe = filter_idx_stocks(tier_filter=tier_filter, syariah_filter=syariah_filter)
+        tickers = [s["ticker"] for s in matched_universe] if matched_universe else REPRESENTATIVE_SCANNER_TICKERS
+
     idx_prices = load_idx_prices()
     results = []
 
@@ -1001,7 +1051,30 @@ def render_visual_flow_strategy_page(
             horizontal=True
         )
 
-    current_flow_ticker = str(st.session_state.get("selected_ticker", ticker)).replace(".JK", "").upper().strip()
+    # Saring katalog saham berdasarkan Tier & Syariah yang dipilih
+    filtered_flow_stocks = filter_idx_stocks(
+        tier_filter=flow_chosen_tier,
+        syariah_filter=flow_chosen_syariah,
+        sector_filter="Semua",
+        search_query=""
+    )
+
+    if not filtered_flow_stocks:
+        st.warning(f"⚠️ Tidak ditemukan emiten di BEI untuk kombinasi filter ({flow_chosen_tier} | {flow_chosen_syariah}). Menampilkan seluruh emiten.")
+        filtered_flow_stocks = filter_idx_stocks(tier_filter="Semua Tingkatan", syariah_filter="Semua")
+
+    # Deteksi perubahan filter agar state selectbox ter-reset bersih
+    filter_state_sig = f"{flow_chosen_tier}___{flow_chosen_syariah}"
+    if st.session_state.get("_last_flow_filter_sig") != filter_state_sig:
+        st.session_state["_last_flow_filter_sig"] = filter_state_sig
+        if "flow_catalog_selector" in st.session_state:
+            del st.session_state["flow_catalog_selector"]
+
+    flow_tickers_list = [s["ticker"] for s in filtered_flow_stocks]
+    flow_stock_labels = [s.get("display_label", s.get("ticker", "")) for s in filtered_flow_stocks]
+
+    # Ambil emiten aktif saat ini dari session_state
+    current_flow_ticker = str(st.session_state.get("flow_active_ticker", st.session_state.get("selected_ticker", ticker))).replace(".JK", "").upper().strip()
 
     if flow_input_mode == "Ketik Manual Ticker":
         with st.form("flow_manual_ticker_form"):
@@ -1018,40 +1091,29 @@ def render_visual_flow_strategy_page(
             if btn_submit_manual and manual_t:
                 clean_m = manual_t.replace(".JK", "").strip()
                 if len(clean_m) >= 2:
+                    current_flow_ticker = clean_m
+                    st.session_state["flow_active_ticker"] = clean_m
                     st.session_state["selected_ticker"] = clean_m
                     st.rerun()
                 else:
                     st.warning("⚠️ Masukkan minimal 2-4 huruf kode emiten BEI.")
     else:
-        # Saring katalog saham berdasarkan Tier & Syariah yang dipilih
-        filtered_flow_stocks = filter_idx_stocks(
-            tier_filter=flow_chosen_tier,
-            syariah_filter=flow_chosen_syariah,
-            sector_filter="Semua",
-            search_query=""
-        )
-
-        flow_stock_labels = [s.get("display_label", s.get("ticker", "")) for s in filtered_flow_stocks]
-        matching_flow_idx = None
-        for i, s in enumerate(filtered_flow_stocks):
-            if s.get("ticker") == current_flow_ticker:
-                matching_flow_idx = i
-                break
-
-        # Jika emiten yang sedang aktif saat ini tidak ada di hasil filter,
-        # sisipkan emiten aktif di baris pertama agar pilihan tidak ter-reset paksa
-        if matching_flow_idx is None:
-            active_flow_meta = get_stock_metadata(current_flow_ticker)
-            active_label = f"📌 [Aktif] {active_flow_meta.get('display_label', current_flow_ticker)}"
-            flow_stock_labels.insert(0, active_label)
-            selected_flow_idx = 0
+        # Cek apakah emiten aktif saat ini ada di dalam daftar hasil filter
+        if current_flow_ticker in flow_tickers_list:
+            selected_flow_idx = flow_tickers_list.index(current_flow_ticker)
         else:
-            selected_flow_idx = matching_flow_idx
+            # Emiten lama (misal BBCA) TIDAK lolos filter baru (misal Gocap + Syariah).
+            # Otomatis pilih emiten pertama yang lolos filter user, JANGAN PERNAH menyisipkan emiten yang tidak sesuai kriteria filter!
+            selected_flow_idx = 0
+            current_flow_ticker = flow_tickers_list[0]
+            st.session_state["flow_active_ticker"] = current_flow_ticker
+            st.session_state["selected_ticker"] = current_flow_ticker
 
         def _on_flow_catalog_change():
             chosen_val = st.session_state.get("flow_catalog_selector")
             if chosen_val:
-                clean_t = chosen_val.replace("📌 [Aktif] ", "").split(" - ")[0].split(" [")[0].strip().upper()
+                clean_t = chosen_val.split(" - ")[0].split(" [")[0].strip().upper()
+                st.session_state["flow_active_ticker"] = clean_t
                 st.session_state["selected_ticker"] = clean_t
 
         chosen_cat_label = st.selectbox(
@@ -1061,21 +1123,35 @@ def render_visual_flow_strategy_page(
             key="flow_catalog_selector",
             on_change=_on_flow_catalog_change
         )
-        current_flow_ticker = chosen_cat_label.replace("📌 [Aktif] ", "").split(" - ")[0].split(" [")[0].strip().upper()
+        current_flow_ticker = chosen_cat_label.split(" - ")[0].split(" [")[0].strip().upper()
+        st.session_state["flow_active_ticker"] = current_flow_ticker
         st.session_state["selected_ticker"] = current_flow_ticker
 
-    # Ambil metadata otoritatif saham terpilih
+    # Ambil data real-time & metadata otoritatif untuk emiten terpilih
+    if current_flow_ticker == ticker and df_ohlcv is not None and not df_ohlcv.empty:
+        active_df = df_ohlcv
+        active_info = dict(info) if info else {}
+        active_price = float(current_price)
+    else:
+        active_df, active_info, active_price = get_flow_cached_stock_data(current_flow_ticker)
+
+    # Kalibrasi metadata otoritatif saham terpilih
     live_flow_meta = get_stock_metadata(current_flow_ticker)
-    live_tier = live_flow_meta.get("tier", chosen_tier)
+    live_tier = live_flow_meta.get("tier", active_info.get("tier", chosen_tier))
     live_syariah = live_flow_meta.get("syariah_label", "⚪ Non-Syariah" if not live_flow_meta.get("is_syariah") else "☪️ Syariah (ISSI)")
-    live_sector = live_flow_meta.get("sector", chosen_sector)
+    live_sector = live_flow_meta.get("sector", active_info.get("sector", chosen_sector))
+    active_info["ticker"] = current_flow_ticker
+    active_info["tier"] = live_tier
+    active_info["syariah_label"] = live_syariah
+    active_info["sector"] = live_sector
+    active_info["price"] = active_price
 
     # Info Badge Saham Aktif yang sedang diinspeksi
-    st.info(f"🎯 **Emiten Aktif Terpilih**: **{current_flow_ticker}** ({live_flow_meta.get('name', current_flow_ticker)}) | Harga Terakhir: **Rp {current_price:,.0f}** | Sektor: **{live_sector}** | Kategori: **{live_tier}** | Syariah: **{live_syariah}**")
+    st.info(f"🎯 **Emiten Aktif Terpilih**: **{current_flow_ticker}** ({live_flow_meta.get('name', current_flow_ticker)}) | Harga Terakhir: **Rp {active_price:,.0f}** | Sektor: **{live_sector}** | Kategori: **{live_tier}** | Syariah: **{live_syariah}**")
 
     # ----------------- STOCK EVALUATION ENGINE -----------------
     clean_ticker = current_flow_ticker
-    eval_result = calculate_visual_flow_metrics(df_ohlcv, info, current_price, params)
+    eval_result = calculate_visual_flow_metrics(active_df, active_info, active_price, params)
 
     # ----------------- SECTION 1: VISUAL FLOW CANVAS -----------------
     canvas_html = render_visual_flow_canvas_html(eval_result, selected_strat)
@@ -1223,6 +1299,7 @@ def render_visual_flow_strategy_page(
                         """
                     )
                     if st.button(f"🔍 Evaluasi {p_stk['ticker']} di Kanvas", key=f"btn_eval_passed_{p_stk['ticker']}", use_container_width=True):
+                        st.session_state["flow_active_ticker"] = p_stk["ticker"]
                         st.session_state["selected_ticker"] = p_stk["ticker"]
                         st.rerun()
         else:
@@ -1230,6 +1307,31 @@ def render_visual_flow_strategy_page(
 
         if approaching_stocks:
             st.markdown("##### ⚡ Emiten Mendekati Kriteria (Lolos 5 - 6 Filter):")
+            ap_cols = st.columns(min(4, len(approaching_stocks)))
+            for j, a_stk in enumerate(approaching_stocks[:4]):
+                with ap_cols[j]:
+                    render_safe_html(
+                        f"""
+                        <div style="background: #0f172a; border: 1px solid #F59E0B; border-radius: 10px; padding: 12px; margin-bottom: 10px; box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 1.15rem; font-weight: 900; color: #38bdf8;">{a_stk['ticker']}</span>
+                                <span style="font-size: 0.72rem; font-weight: 800; background: rgba(245, 158, 11, 0.2); color: #F59E0B; padding: 2px 7px; border-radius: 6px;">{a_stk['passed_count']}/8 LOLOS</span>
+                            </div>
+                            <div style="font-size: 0.78rem; color: #94a3b8; margin: 3px 0;">{a_stk['name'][:22]}</div>
+                            <div style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin-bottom: 6px;">Rp {a_stk['price']:,.0f}</div>
+                            <div style="font-size: 0.74rem; color: #cbd5e1; border-top: 1px dashed #334155; padding-top: 6px;">
+                                • Mola: <b>{a_stk['mola_lot']:,.0f} Lot</b><br>
+                                • RVOL: <b>{a_stk['rvol']}x</b> | NATR: <b>{a_stk['natr_pct']}%</b><br>
+                                • OFI: <b>{a_stk['ofi']}</b> | Power: <b>{a_stk['buyer_power']}x</b>
+                            </div>
+                        </div>
+                        """
+                    )
+                    if st.button(f"🔍 Evaluasi {a_stk['ticker']} di Kanvas", key=f"btn_eval_appr_{a_stk['ticker']}", use_container_width=True):
+                        st.session_state["flow_active_ticker"] = a_stk["ticker"]
+                        st.session_state["selected_ticker"] = a_stk["ticker"]
+                        st.rerun()
+
             appr_df = pd.DataFrame([
                 {
                     "Kode": s["ticker"],
@@ -1384,7 +1486,7 @@ def render_visual_flow_strategy_page(
                         🟢 KEPUTUSAN: EKSEKUSI HAKA INSTAN (BUY APPROVED)
                     </div>
                     <div style="font-size: 0.85rem; color: #f8fafc; margin-top: 6px; line-height: 1.5;">
-                        • <b>Aksi</b>: Pasang order beli pada antrian Best Offer (HAKA) atau di harga <b>Rp {current_price:,.0f}</b>.<br>
+                        • <b>Aksi</b>: Pasang order beli pada antrian Best Offer (HAKA) atau di harga <b>Rp {active_price:,.0f}</b>.<br>
                         • <b>Pembagian Lot</b>: Eksekusi Slot 1 segera. Jika harga naik menembus 1 fraksi, tambah Slot 2.<br>
                         • <b>Target Jual (TP)</b>: Pasang otomatis Take Profit di <b>Rp {node10['tp_price']:,}</b> (+{params.get('tp_pct', 4.5)}%).<br>
                         • <b>Disiplin Stop Loss</b>: Wajib Cut Loss tanpa tawar-menawar jika harga turun ke <b>Rp {node10['sl_price']:,}</b> (-{params.get('sl_pct', 4.0)}%).
