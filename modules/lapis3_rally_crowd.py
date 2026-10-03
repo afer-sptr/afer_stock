@@ -132,9 +132,14 @@ DEFAULT_LAPIS3_CANDIDATES: List[str] = [
     "DEWA", "KIJA", "ELSA", "PSAB", "RAJA", "DOID", "BUMI", "BRMS", "ENRG"
 ]
 
+GOCAP_LAPIS3_CANDIDATES: List[str] = [
+    "GOTO", "BKSL", "LPKR", "MLPL", "SLIS", "BHIT", "GZCO", "FREN", "ZATA", "ASRI"
+]
+
 EXPANDED_LAPIS3_CANDIDATES: List[str] = [
     "DEWA", "KIJA", "ELSA", "PSAB", "RAJA", "DOID", "BUMI", "BRMS", "ENRG",
-    "GOTO", "BKSL", "LPKR", "MLPL", "SLIS", "CUAN", "MBMA", "BUKA", "MNCN"
+    "GOTO", "BKSL", "LPKR", "MLPL", "SLIS", "CUAN", "MBMA", "BUKA", "MNCN",
+    "BHIT", "GZCO", "FREN", "ZATA", "ASRI"
 ]
 
 

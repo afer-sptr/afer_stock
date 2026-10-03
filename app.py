@@ -222,6 +222,7 @@ try:
         evaluate_crowd_contrarian,
         scan_real_lapis3_rally,
         DEFAULT_LAPIS3_CANDIDATES,
+        GOCAP_LAPIS3_CANDIDATES,
         EXPANDED_LAPIS3_CANDIDATES,
     )
 except Exception:
@@ -231,14 +232,18 @@ except Exception:
             evaluate_crowd_contrarian,
             scan_real_lapis3_rally,
             DEFAULT_LAPIS3_CANDIDATES,
+            GOCAP_LAPIS3_CANDIDATES,
             EXPANDED_LAPIS3_CANDIDATES,
         )
     except Exception:
         DEFAULT_LAPIS3_CANDIDATES = [
             "DEWA", "KIJA", "ELSA", "PSAB", "RAJA", "DOID", "BUMI", "BRMS", "ENRG"
         ]
-        EXPANDED_LAPIS3_CANDIDATES = DEFAULT_LAPIS3_CANDIDATES + [
-            "GOTO", "BKSL", "LPKR", "MLPL", "SLIS", "CUAN", "MBMA", "BUKA", "MNCN"
+        GOCAP_LAPIS3_CANDIDATES = [
+            "GOTO", "BKSL", "LPKR", "MLPL", "SLIS", "BHIT", "GZCO", "FREN", "ZATA", "ASRI"
+        ]
+        EXPANDED_LAPIS3_CANDIDATES = DEFAULT_LAPIS3_CANDIDATES + GOCAP_LAPIS3_CANDIDATES + [
+            "CUAN", "MBMA", "BUKA", "MNCN"
         ]
         def screen_lapis_3(df, snap):
             return {"is_rally": False, "score": 0.0, "rvol": 1.0, "is_squeeze": False, "turnover_idr": 0.0}
@@ -1115,93 +1120,22 @@ net_pnl_calc = calculate_net_pnl(current_price, plan["take_profit_1"], pos["shar
 # ----------------- ROUTER MENU NAVIGASI (SIDEBAR) -----------------
 if app_menu == "⚡ Lapis 3 Rally Hunter":
     st.markdown('<div class="main-title">⚡ Lapis 3 Rally Hunter & Sentimen Kerumunan Ritel (Crowd Lab)</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">Detektor Momentum Ledakan Saham Small-Cap (Lapis 3) Berbasis Relative Volume (RVol > 2.0x), Bollinger Band Squeeze & Dominasi Antrian Beli</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Detektor Khusus Momentum Saham Lapis 3 (Saham Gocap Rp 50 – Rp 100 & Saham Receh Rp 100 – Rp 1.000) yang Sedang Rally Berbasis Relative Volume (RVol > 2.0x), Bollinger Band Squeeze & Dominasi Antrian Beli</div>', unsafe_allow_html=True)
 
-    company_name = info.get("longName") or info.get("shortName") or ticker_clean
-    st.info(f"📌 **Saham Sedang Dianalisis**: **{ticker_clean}** ({company_name}) | **Rp {current_price:,.0f}** | {info.get('tier', 'Lapis 3')} | Sektor: {info.get('sector', 'Bursa Efek Indonesia')}")
+    # =========================================================================
+    # 1. RADAR & PEMINDAI PASAR RIIL SAHAM LAPIS 3 RALLY
+    # =========================================================================
+    st.markdown("#### 🚀 Radar & Pemindai Saham Lapis 3 Berpotensi Rally (Gocap & Receh BEI)")
+    st.caption("Peringkat saham lapis 3 yang terdeteksi memiliki anomali lonjakan volume, kompresi volatilitas (squeeze), dan dominasi buku pesanan secara real-time dari bursa:")
 
-    # 1. Metrik Ringkasan Saham Terpilih
-    rally_status = "🟢 TERPENUHI (SIAP MELEDAK)" if lapis3_eval.get("is_rally") else "⚪ BELUM TERPENUHI"
-    rc1, rc2, rc3, rc4 = st.columns(4)
-    with rc1:
-        st.metric("Status Sinyal Rally", rally_status, f"Skor {lapis3_eval.get('score', 0):.1f} / 100")
-    with rc2:
-        rvol_val = lapis3_eval.get('rvol', 1.0)
-        st.metric("Relative Volume (RVol)", f"{rvol_val}x", "Target >= 2.0x")
-    with rc3:
-        sq_status = "🟢 Squeeze Aktif" if lapis3_eval.get("is_squeeze") else "⚪ Normal"
-        st.metric("Bollinger Squeeze", sq_status)
-    with rc4:
-        st.metric("Turnover Harian", f"Rp {lapis3_eval.get('turnover_idr', 0):,.0f}")
-
-    st.markdown("---")
-
-    col_l1, col_l2 = st.columns(2)
-    with col_l1:
-        st.markdown(f"#### 🔍 Analisis Mikrostruktur Saham: **{ticker_clean}**")
-        st.write(f"• **Kategori Tingkatan**: **{info.get('tier', 'Saham Lapis 3 / Small-Cap')}**")
-        st.write(f"• **Harga Pasar Terakhir**: **Rp {info.get('price', current_price):,.0f}**")
-        st.write(f"• **Dominasi Buku Pesanan**: **{order_book_eval.get('pct_bid', 50):.1f}% Bid** vs **{order_book_eval.get('pct_offer', 50):.1f}% Offer**")
-        st.write(f"• **Status HAKA**: **{order_book_eval.get('haka_badge', '-')}**")
-        st.write(f"• **Safe Exit Lot Size**: **{order_book_eval.get('safe_exit_lot', 0):,} Lot** ({order_book_eval.get('exit_speed', '')})")
-        st.info(f"💡 {order_book_eval.get('haka_desc', '')}")
-
-    with col_l2:
-        st.markdown("#### 👥 Sentimen Kerumunan Ritel & Sinyal Kontrarian")
-        st.metric("Sinyal Kontrarian", crowd_eval.get("contrarian_signal", "NORMAL"))
-        st.write(f"• **Keterangan Kontrarian**: {crowd_eval.get('contrarian_desc')}")
-        st.write(f"• **Skor Sentimen Kerumunan**: {crowd_eval.get('crowd_sentiment')}")
-        st.write(f"• **Kecepatan Obrolan (Buzz Velocity)**: {crowd_eval.get('buzz_velocity')}x")
-        
-        st.markdown("##### 🎯 Rencana Transaksi Saham Lapis 3:")
-        entry_str = plan.get('entry_range') or f"Rp {plan.get('buy_entry_min', 0):,} s/d Rp {plan.get('buy_entry_max', 0):,}"
-        tp1_val = plan.get('take_profit_1', 0)
-        tp1_net = plan.get('reward_tp1_net_pct', 0.0)
-        tp2_val = plan.get('take_profit_2', 0)
-        tp2_net = plan.get('reward_tp2_net_pct', 0.0)
-        sl_val = plan.get('stop_loss', 0)
-        sl_net = plan.get('risk_net_pct', 0.0)
-        st.success(
-            f"• **Zona Beli (Entry)**: {entry_str}\n"
-            f"• **Target Cuan 1 (TP1)**: Rp {tp1_val:,} (Net +{tp1_net:.1f}%)\n"
-            f"• **Target Cuan 2 (TP2)**: Rp {tp2_val:,} (Net +{tp2_net:.1f}%)\n"
-            f"• **Batas Cut Loss (SL Ketat)**: Rp {sl_val:,} (Net -{sl_net:.1f}%)"
-        )
-
-    st.markdown("---")
-    st.markdown(f"#### 🕵️ Jejak Broker & Sifat Smart Money Saham Lapis 3: **{ticker_clean}**")
-    st.caption("Memetakan karakteristik sekuritas pengendali transaksi pada saham lapis 3 dan proyeksi arah pergerakan harganya:")
-    col_br1, col_br2 = st.columns(2)
-    with col_br1:
-        lead_b_display = promoter_eval.get('top_buyers', ['Broker Penggerak Terdeteksi'])[0]
-        lead_b_arch = promoter_eval.get('top_buyer_archetype', 'Smart Money & Penggerak Likuiditas')
-        lead_b_behav = promoter_eval.get('top_buyer_behavior', 'Akumulasi bertahap dengan pengawalan likuiditas di pasar reguler.')
-        st.info(
-            f"**🏛️ Profil Broker Penggerak Utama {ticker_clean}:**\n\n"
-            f"• **Broker Terdeteksi**: {lead_b_display}\n"
-            f"• **Arketipe / Karakter**: {lead_b_arch}\n"
-            f"• **Sifat Transaksi**: {lead_b_behav}"
-        )
-    with col_br2:
-        lead_b_impact = promoter_eval.get('top_buyer_impact', 'Potensi penguatan harga bertahap didukung akumulasi terukur.')
-        st.success(
-            f"**🔮 Proyeksi Arah Harga Masa Depan {ticker_clean}:**\n\n"
-            f"• **Status Bandarmologi**: {promoter_eval.get('bandar_status', '🟢 Akumulasi Bertahap')}\n"
-            f"• **Proyeksi Arah**: **{lead_b_impact}**"
-        )
-
-    st.markdown("---")
-    st.markdown("#### 🚀 Pemindai Saham Potensi Rally (Katalog Small-Cap / Lapis 3)")
-    st.caption("Peringkat saham lapis 3 yang terdeteksi memiliki anomali lonjakan volume, kompresi volatilitas, dan jejak broker terkalibrasi secara real-time dari bursa:")
-
-    # Filter & Pengendali Pemindai Pasar Riil
     col_opt1, col_opt2 = st.columns([3, 1])
     with col_opt1:
         rally_mode = st.radio(
-            "Cakupan Katalog Saham Small-Cap:",
+            "Cakupan Katalog Saham Small-Cap / Lapis 3:",
             options=[
-                "🌟 9 Saham Terpantau Utama (DEWA, KIJA, ELSA, PSAB, RAJA, DOID, BUMI, BRMS, ENRG)",
-                "🔥 Seluruh Katalog Small-Cap Aktif BEI (+ GOTO, CUAN, MBMA, BKSL, dll)",
+                "🌟 Saham Lapis 3 Terpantau Utama (DEWA, BUMI, BRMS, ENRG, PSAB, RAJA, ELSA, KIJA, DOID)",
+                "🔥 Saham Gocap & Tidur (Rp 50 – Rp 100) (GOTO, BKSL, SLIS, LPKR, MLPL, BHIT, GZCO, FREN, ZATA, ASRI)",
+                "⚡ Seluruh Katalog Small-Cap Aktif BEI (+ CUAN, MBMA, BUKA, MNCN, dll)",
                 "✏️ Pilihan Kustom (Ketik Kode Saham Bebas)"
             ],
             index=0,
@@ -1214,26 +1148,48 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
             st.rerun()
 
     # Tentukan daftar ticker berdasarkan pilihan
-    if "9 Saham Terpantau" in rally_mode:
+    if "Saham Lapis 3 Terpantau Utama" in rally_mode:
         active_scan_tickers = DEFAULT_LAPIS3_CANDIDATES
+    elif "Saham Gocap & Tidur" in rally_mode:
+        active_scan_tickers = GOCAP_LAPIS3_CANDIDATES
     elif "Seluruh Katalog" in rally_mode:
         active_scan_tickers = EXPANDED_LAPIS3_CANDIDATES
     else:
         custom_input = st.text_input(
-            "Ketik Kode Saham (Pisahkan dengan koma, cth: DEWA, BUMI, BRMS, ENRG, PSAB):",
-            value="DEWA, BUMI, BRMS, ENRG, PSAB, RAJA, ELSA, KIJA, DOID",
+            "Ketik Kode Saham (Pisahkan dengan koma, cth: DEWA, BUMI, BRMS, ENRG, PSAB, GOTO, BKSL):",
+            value="DEWA, BUMI, BRMS, ENRG, PSAB, RAJA, ELSA, KIJA, DOID, GOTO, BKSL",
             key="custom_rally_tickers"
         )
         active_scan_tickers = [c.strip().upper() for c in custom_input.split(",") if c.strip()]
 
-    # Eksekusi Pemindaian Real-Time
-    with st.spinner("⚡ Mengambil data transaksi pasar riil seluruh emiten..."):
+    # Eksekusi Pemindaian Real-Time Berkecepatan Tinggi
+    with st.spinner("⚡ Memindai radar saham lapis 3 yang sedang rally..."):
         df_rally = get_cached_lapis3_rally_scan(tuple(active_scan_tickers))
 
-    # Tampilkan Tabel Hasil Pemindaian Riil
+    # Pengurutan: Prioritaskan Saham yang sedang Rally / Siap Meledak
     if df_rally is not None and not df_rally.empty:
+        status_rank = {"🟢 SIAP MELEDAK": 3, "🟡 AKUMULASI": 2, "⚪ KONSOLIDASI": 1}
+        df_rally["_rank"] = df_rally["status"].map(lambda s: status_rank.get(s, 1))
+        df_rally = df_rally.sort_values(by=["_rank", "rvol", "bid_pct"], ascending=[False, False, False]).reset_index(drop=True)
+        df_rally.drop(columns=["_rank"], inplace=True)
+
+    # Filter Tampilan Tabel
+    col_tb_f1, col_tb_f2 = st.columns([3, 1])
+    with col_tb_f1:
+        only_rally_toggle = st.checkbox("🔥 Hanya Tampilkan Saham yang Sedang Rally / Akumulasi Aktif", value=False, key="filter_only_rally")
+    with col_tb_f2:
+        st.caption(f"Total Terpantau: **{len(df_rally) if df_rally is not None else 0} Emiten**")
+
+    df_display = df_rally
+    if df_rally is not None and not df_rally.empty and only_rally_toggle:
+        df_filtered = df_rally[df_rally["status"].str.contains("MELEDAK|AKUMULASI", na=False)]
+        if not df_filtered.empty:
+            df_display = df_filtered
+
+    # Tampilkan Tabel Hasil Pemindaian Riil
+    if df_display is not None and not df_display.empty:
         st.dataframe(
-            df_rally,
+            df_display,
             column_order=["ticker", "nama", "harga", "rvol", "squeeze", "bid_pct", "turnover", "broker_utama", "proyeksi_harga", "status"],
             column_config={
                 "ticker": "Kode Saham",
@@ -1250,27 +1206,325 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
             use_container_width=True,
             hide_index=True
         )
-
-        # Pintasan Aksi: Langsung Analisis Saham Terpilih
-        sub_c1, sub_c2 = st.columns([3, 1])
-        with sub_c1:
-            picked_t = st.selectbox(
-                "🔍 Pilih salah satu saham dari tabel di atas untuk langsung dianalisis mikrostrukturnya:",
-                options=df_rally["ticker"].tolist(),
-                index=0 if ticker_clean not in df_rally["ticker"].tolist() else df_rally["ticker"].tolist().index(ticker_clean),
-                key="picked_smallcap_ticker"
-            )
-        with sub_c2:
-            st.write("")
-            st.write("")
-            if st.button("📊 Analisis Saham Ini", key="btn_apply_picked_smallcap", use_container_width=True):
-                st.session_state["ticker_input"] = picked_t
-                st.session_state["manual_ticker_text"] = picked_t
-                st.rerun()
     else:
         st.warning("⚠️ Data pasar riil belum dapat dimuat. Silakan klik tombol 'Perbarui Data Pasar Riil' di atas.")
 
+    st.markdown("---")
+
+    # =========================================================================
+    # 2. PEMILIHAN SAHAM LAPIS 3 KHUSUS & TERISOLASI (TIDAK TERCAMPUR DASHBOARD)
+    # =========================================================================
+    st.markdown("### 🎯 Analisis Mendalam & Tajam Saham Lapis 3 Terpilih")
+    st.caption("Pilih salah satu saham lapis 3 dari hasil pemindai di atas atau masukkan kode saham small-cap secara manual:")
+
+    # Default saham lapis 3 yang dianalisis:
+    # Ambil peringkat #1 dari pemindai rally (misal DEWA / BUMI) jika belum diset
+    top_rally_default = df_rally.iloc[0]["ticker"] if (df_rally is not None and not df_rally.empty) else "DEWA"
+    if "lapis3_active_symbol" not in st.session_state or not st.session_state["lapis3_active_symbol"]:
+        st.session_state["lapis3_active_symbol"] = top_rally_default
+
+    available_tickers = df_rally["ticker"].tolist() if (df_rally is not None and not df_rally.empty) else [top_rally_default]
+    current_selected = st.session_state["lapis3_active_symbol"]
+    if current_selected not in available_tickers:
+        available_tickers = [current_selected] + available_tickers
+
+    sel_col1, sel_col2, sel_col3 = st.columns([2, 2, 1])
+    with sel_col1:
+        chosen_lapis_ticker = st.selectbox(
+            "📌 Pilih dari Daftar Saham Lapis 3 Sedang Rally:",
+            options=available_tickers,
+            index=available_tickers.index(current_selected) if current_selected in available_tickers else 0,
+            key="sb_lapis3_picker"
+        )
+    with sel_col2:
+        custom_lapis_input = st.text_input(
+            "Atau Ketik Manual Kode Saham Lapis 3 BEI Lainnya:",
+            value=chosen_lapis_ticker,
+            key="txt_lapis3_custom"
+        ).strip().upper()
+    with sel_col3:
+        st.write("")
+        st.write("")
+        if st.button("🔎 Analisis Saham Ini", key="btn_confirm_lapis3", use_container_width=True):
+            if custom_lapis_input:
+                st.session_state["lapis3_active_symbol"] = custom_lapis_input
+                st.rerun()
+
+    # Pastikan simbol aktif terupdate jika selectbox berubah
+    if chosen_lapis_ticker != st.session_state.get("lapis3_active_symbol") and not (custom_lapis_input and custom_lapis_input != chosen_lapis_ticker):
+        st.session_state["lapis3_active_symbol"] = chosen_lapis_ticker
+
+    active_lapis_ticker = st.session_state.get("lapis3_active_symbol", top_rally_default)
+
+    # =========================================================================
+    # 3. PENGAMBILAN DATA & PERHITUNGAN KHUSUS SAHAM LAPIS 3 TERPILIH
+    # =========================================================================
+    with st.spinner(f"⚡ Menganalisis mikrostruktur & bandarmologi saham {active_lapis_ticker}..."):
+        lapis_df, lapis_info, lapis_err = fetch_stock_data(active_lapis_ticker, period="3mo")
+
+    if lapis_df is None or lapis_df.empty or len(lapis_df) < 5:
+        st.error(f"❌ Gagal memuat data historis untuk saham {active_lapis_ticker}. Kode saham mungkin tidak valid atau sedang disuspensi bursa.")
+        st.stop()
+
+    lapis_price = float(lapis_df["Close"].iloc[-1])
+    lapis_vol = float(lapis_df["Volume"].iloc[-1])
+    lapis_meta = get_stock_metadata(active_lapis_ticker)
+    lapis_name = lapis_info.get("longName") or lapis_info.get("shortName") or lapis_meta.get("name", active_lapis_ticker)
+    lapis_sector = lapis_info.get("sector") or lapis_meta.get("sector", "Bursa Efek Indonesia")
+
+    # Klasifikasi Tingkatan (Tier) Khusus Saham Lapis 3
+    if 50.0 <= lapis_price <= 100.0:
+        tier_title = "Saham Gocap / Saham Tidur (Rp 50 – Rp 100)"
+    elif 100.0 < lapis_price <= 1000.0:
+        tier_title = "Saham Receh / Saham Murah (Rp 100 – Rp 1.000)"
+    else:
+        tier_title = f"Saham Small-Cap Lapis 3 (Rp {lapis_price:,.0f})"
+
+    # Evaluasi Teknis, Mikrostruktur, dan Sentimen Khusus Saham Terpilih
+    lapis_eval = screen_lapis_3(lapis_df, lapis_info)
+    lapis_candle_signal = {"signal": "BUY" if lapis_price >= float(lapis_df["Open"].iloc[-1]) else "SELL"}
+    lapis_ob = evaluate_order_book_execution(lapis_info, lapis_candle_signal)
+    lapis_crowd = evaluate_crowd_contrarian(lapis_info, 0.40)
+
+    # Bandarmologi & Jejak Broker Khusus Saham Terpilih
+    lapis_turnover = float(lapis_price * lapis_vol)
+    lapis_pct_bid = float(lapis_info.get("pct_bid", 55.0))
+    lapis_pct_offer = float(lapis_info.get("pct_offer", 45.0))
+    lapis_promoter = analyze_promoter_and_broker_footprint(
+        ticker=active_lapis_ticker,
+        price=lapis_price,
+        daily_turnover=lapis_turnover,
+        pct_bid=lapis_pct_bid,
+        pct_offer=lapis_pct_offer
+    )
+    lapis_broker_eval = evaluate_lead_broker_and_bandar_cost(
+        active_lapis_ticker,
+        lapis_price,
+        lapis_df,
+        lead_broker_code=lapis_promoter.get("lead_broker_code")
+    )
+    lapis_broker_conc = generate_broker_interpretation_conclusion(lapis_promoter, lapis_broker_eval)
+
+    # Rencana Transaksi Scalp / Fast Swing Khusus Saham Terpilih
+    high_vals = lapis_df["High"].tail(14).values
+    low_vals = lapis_df["Low"].tail(14).values
+    lapis_atr = float(np.mean(high_vals - low_vals)) if len(high_vals) >= 14 else float(lapis_price * 0.03)
+    lapis_plan = generate_scalp_trading_plan(
+        ticker=active_lapis_ticker,
+        last_price=lapis_price,
+        atr=lapis_atr,
+        pct_bid=lapis_pct_bid,
+        volume=lapis_vol,
+        turnover_idr=lapis_turnover,
+        sector=lapis_sector,
+        tier=tier_title,
+        is_syariah=lapis_info.get("is_syariah", True)
+    )
+
+    # TAMPILKAN HEADER STATUS SAHAM TERPILIH (100% TERISOLASI!)
+    st.info(f"📌 **Saham Lapis 3 Terpilih**: **{active_lapis_ticker}** ({lapis_name}) | **Rp {lapis_price:,.0f}** | 🏷️ **{tier_title}** | Sektor: **{lapis_sector}**")
+
+    # 1. Metrik Ringkasan Saham Terpilih
+    lapis_rally_status = "🟢 TERPENUHI (SIAP MELEDAK)" if lapis_eval.get("is_rally") else ("🟡 AKUMULASI AKTIF" if lapis_eval.get("rvol", 1.0) >= 1.5 or lapis_eval.get("is_squeeze") else "⚪ KONSOLIDASI")
+    rc1, rc2, rc3, rc4 = st.columns(4)
+    with rc1:
+        st.metric("Status Sinyal Rally", lapis_rally_status, f"Skor {lapis_eval.get('score', 0):.1f} / 100")
+    with rc2:
+        rvol_val = lapis_eval.get('rvol', 1.0)
+        st.metric("Relative Volume (RVol)", f"{rvol_val}x", "Target >= 2.0x (Anomali Lonjakan)")
+    with rc3:
+        sq_status = "🟢 Squeeze Aktif (Pegas Tertekan)" if lapis_eval.get("is_squeeze") else "⚪ Normal / Ekspansi"
+        st.metric("Bollinger Squeeze", sq_status)
+    with rc4:
+        st.metric("Turnover Harian Riil", f"Rp {lapis_eval.get('turnover_idr', lapis_turnover):,.0f}")
+
+    st.markdown("---")
+
+    # 2. Analisis Mikrostruktur & Sentimen Kerumunan
+    col_l1, col_l2 = st.columns(2)
+    with col_l1:
+        st.markdown(f"#### 🔍 Analisis Mikrostruktur Saham: **{active_lapis_ticker}**")
+        st.write(f"• **Kategori Tingkatan**: **{tier_title}**")
+        st.write(f"• **Harga Pasar Terakhir**: **Rp {lapis_price:,.0f}**")
+        st.write(f"• **Dominasi Buku Pesanan**: **{lapis_ob.get('pct_bid', 50):.1f}% Bid** vs **{lapis_ob.get('pct_offer', 50):.1f}% Offer**")
+        st.write(f"• **Status HAKA**: **{lapis_ob.get('haka_badge', '-')}**")
+        st.write(f"• **Safe Exit Lot Size**: **{lapis_ob.get('safe_exit_lot', 0):,} Lot** ({lapis_ob.get('exit_speed', 'Kilat')})")
+        st.info(f"💡 {lapis_ob.get('haka_desc', '')}")
+
+    with col_l2:
+        st.markdown("#### 👥 Sentimen Kerumunan Ritel & Sinyal Kontrarian (Crowd Lab)")
+        st.metric("Sinyal Kontrarian", lapis_crowd.get("contrarian_signal", "NORMAL FLOW"))
+        st.write(f"• **Keterangan Kontrarian**: {lapis_crowd.get('contrarian_desc')}")
+        st.write(f"• **Skor Sentimen Kerumunan**: {lapis_crowd.get('crowd_sentiment')}")
+        st.write(f"• **Kecepatan Obrolan (Buzz Velocity)**: {lapis_crowd.get('buzz_velocity')}x")
+
+        st.markdown("##### 🎯 Rencana Transaksi Saham Lapis 3 (Scalp & Fast Swing):")
+        entry_str = lapis_plan.get('entry_range') or f"Rp {lapis_plan.get('buy_entry_min', lapis_price):,} s/d Rp {lapis_plan.get('buy_entry_max', lapis_price):,}"
+        tp1_val = lapis_plan.get('take_profit_1', int(round(lapis_price * 1.02)))
+        tp1_net = lapis_plan.get('reward_tp1_net_pct', 1.8)
+        tp2_val = lapis_plan.get('take_profit_2', int(round(lapis_price * 1.05)))
+        tp2_net = lapis_plan.get('reward_tp2_net_pct', 4.5)
+        sl_val = lapis_plan.get('stop_loss', int(round(lapis_price * 0.98)))
+        sl_net = lapis_plan.get('risk_net_pct', 1.8)
+        st.success(
+            f"• **Zona Beli (Entry Area)**: {entry_str}\n"
+            f"• **Target Cuan 1 (TP1)**: Rp {tp1_val:,} (Net +{tp1_net:.1f}%)\n"
+            f"• **Target Cuan 2 (TP2)**: Rp {tp2_val:,} (Net +{tp2_net:.1f}%)\n"
+            f"• **Batas Cut Loss (SL Ketat)**: Rp {sl_val:,} (Net -{sl_net:.1f}%)"
+        )
+
+    st.markdown("---")
+
+    # 3. Jejak Broker & Sifat Smart Money
+    st.markdown(f"#### 🕵️ Jejak Broker & Sifat Smart Money Saham Lapis 3: **{active_lapis_ticker}**")
+    st.caption("Memetakan karakteristik sekuritas pengendali transaksi pada saham lapis 3 dan proyeksi arah pergerakan harganya:")
+    col_br1, col_br2 = st.columns(2)
+    with col_br1:
+        lead_b_display = lapis_promoter.get('top_buyers', ['Broker Penggerak Terdeteksi'])[0]
+        lead_b_arch = lapis_promoter.get('top_buyer_archetype', 'Smart Money & Penggerak Likuiditas')
+        lead_b_behav = lapis_promoter.get('top_buyer_behavior', 'Akumulasi bertahap dengan pengawalan likuiditas di pasar reguler.')
+        b_cost = lapis_broker_eval.get("bandar_cost", 0)
+        st.info(
+            f"**🏛️ Profil Broker Penggerak Utama {active_lapis_ticker}:**\n\n"
+            f"• **Broker Terdeteksi**: {lead_b_display}\n"
+            f"• **Arketipe / Karakter**: {lead_b_arch}\n"
+            f"• **Sifat Transaksi**: {lead_b_behav}\n"
+            f"• **Estimasi Modal Bandar**: Rp {b_cost:,} ({lapis_broker_eval.get('diff_from_cost_pct', 0.0):+.1f}% dari harga saat ini)"
+        )
+    with col_br2:
+        lead_b_impact = lapis_promoter.get('top_buyer_impact', 'Potensi penguatan harga bertahap didukung akumulasi terukur.')
+        st.success(
+            f"**🔮 Proyeksi Arah Harga Masa Depan {active_lapis_ticker}:**\n\n"
+            f"• **Status Bandarmologi**: {lapis_promoter.get('bandar_status', '🟢 Akumulasi Bertahap')}\n"
+            f"• **Proyeksi Arah**: **{lead_b_impact}**\n"
+            f"• **Rekomendasi Aksi**: **{lapis_broker_conc.get('action_recommendation', 'Ikuti Aliran Smart Money')}**"
+        )
+
+    st.markdown("---")
+
+    # 4. ANALISIS TAJAM & PENJELASAN YANG SANGAT MUDAH DIPAHAMI
+    st.markdown("### 📖 Analisis Tajam & Penjelasan Dinamika Saham Lapis 3 (Edukasi Praktis)")
+    st.caption("Membedah psikologi transaksi, jebakan bandar, dan strategi mengamankan keuntungan di saham gocap & receh:")
+
+    t1, t2, t3 = st.tabs([
+        "⚡ Mengapa Saham Ini Berpotensi Rally?",
+        "🚨 Anatomi Jebakan Bandar di Saham Gocap & Receh",
+        "⏱️ Mengapa Safe Exit Lot Sangat Krusial?"
+    ])
+
+    with t1:
+        st.markdown(
+            f"""
+            #### ⚡ Hubungan Antara Lonjakan Volume (RVol) & Bollinger Band Squeeze
+            Pada saham lapis 3 seperti **{active_lapis_ticker}**, lonjakan harga eksplosif hampir selalu diawali oleh dua fenomena matematis:
+            1. **Bollinger Band Squeeze (Kompresi Volatilitas Ekstrem)**:
+               - Ketika pita Bollinger menyempit ke titik terendah dalam 20-60 hari, artinya pergerakan harga sedang "ditahan" dalam rentang yang sangat sempit.
+               - Ini adalah tanda bahwa **Smart Money sedang melakukan akumulasi senyap** tanpa menaikkan harga agar ritel tidak menyadarinya. Ibarat pegas yang ditekan ke bawah, energi potensialnya terus bertumpuk.
+            2. **Relative Volume (RVol) > 2.0x**:
+               - Ketika volume harian melonjak lebih dari 2 kali lipat rata-rata 20 hari terakhir disertai tembusnya batas Bollinger atas, ini adalah tanda bahwa **pegas tersebut telah dilepas (Markup Dimulai)**.
+               - Saat ini, saham **{active_lapis_ticker}** mencatatkan RVol sebesar **{lapis_eval.get('rvol', 1.0)}x** dengan status **{lapis_rally_status}**.
+            """
+        )
+
+    with t2:
+        st.markdown(
+            f"""
+            #### 🚨 Membedakan Antrean Beli Asli vs Fake Bid (Jebakan Distribusi)
+            Salah satu risiko terbesar di saham gocap (Rp 50 – Rp 100) dan saham receh (Rp 100 – Rp 1.000) adalah **Fake Bid**:
+            - **Cara Kerja Fake Bid**: Bandar memasang antrean beli (Bid) puluhan ribu hingga ratusan ribu lot di beberapa fraksi harga di bawah. Tujuannya adalah memberi ilusi kepada investor ritel bahwa ada "penyangga harga yang sangat kuat".
+            - **Jebakan Distribusi**: Begitu ritel tergiur dan melakukan HAKA (Hajar Kanan) di sisi Offer, bandar secara perlahan membuang barangnya ke ritel. Begitu barang bandar habis, **antrean Bid palsu tadi tiba-tiba dicabut dalam 1 detik**, menyebabkan harga anjlok drastis (guyuran).
+            - **Cara Menghindarinya di {active_lapis_ticker}**:
+              - Perhatikan status Crowd Lab: Saat ini sinyal kontrarian berada pada status **{lapis_crowd.get('contrarian_signal')}**.
+              - Jika muncul status `⚠️ DISTRIBUTION TRAP`, jangan pernah lakukan HAKA meskipun antrean Bid terlihat sangat tebal!
+            """
+        )
+
+    with t3:
+        st.markdown(
+            f"""
+            #### ⏱️ Pentingnya Safe Exit Lot Size ({lapis_ob.get('safe_exit_lot', 500):,} Lot)
+            Di saham blue-chip (BBCA, BMRI), Anda bisa menjual 10.000 lot kapan saja tanpa membuat harga turun 1 fraksi pun. Namun di saham lapis 3 seperti **{active_lapis_ticker}**, **likuiditas bisa menguap dalam hitungan detik**:
+            - **Risiko Terkunci (Illiquidity Trap)**: Jika Anda membeli 5.000 lot di saham yang antrean belinya hanya 1.000 lot per fraksi, maka saat harga mulai diguyur, Anda terpaksa membanting harga 5 fraksi ke bawah hanya untuk bisa keluar.
+            - **Batas Aman Sistem**: Sistem menghitung batas **Safe Exit Lot** untuk {active_lapis_ticker} sebesar **{lapis_ob.get('safe_exit_lot', 500):,} Lot**.
+            - **Aturan Eksekusi**: Selalu batasi pembelian maksimal sebesar jumlah lot tersebut agar Anda bisa keluar dalam tempo **{lapis_ob.get('exit_speed', 'Kilat')}** jika arah pasar berbalik arah.
+            """
+        )
+
+    st.markdown("---")
+
+    # 5. PANDUAN KEPUTUSAN TRADING MASA DEPAN (ACTIONABLE TRADING DECISION)
+    st.markdown(f"### 🎯 Panduan Keputusan Trading Masa Depan: Saham **{active_lapis_ticker}**")
+    st.caption("Instruksi keputusan konkret, langkah demi langkah, terukur dengan manajemen risiko ketat untuk user:")
+
+    dec_col1, dec_col2 = st.columns(2)
+
+    with dec_col1:
+        st.markdown(
+            f"""
+            <div style="background-color: #F0FDF4; border: 1.5px solid #86EFAC; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+                <h4 style="color: #15803D; margin-top: 0;">🟢 SKENARIO 1: JIKA ANDA BELUM MEMILIKI SAHAM INI</h4>
+                <p style="font-size: 0.9rem; color: #166534; margin-bottom: 8px;"><b>Tindakan Calon Pembeli:</b></p>
+                <ul style="font-size: 0.88rem; color: #14532D; padding-left: 20px;">
+                    <li><b>Trigger Masuk (Entry Confirmation)</b>: Beli hanya jika harga berada di area <b>{entry_str}</b> dan status order book mengonfirmasi <b>{lapis_ob.get('haka_badge')}</b>.</li>
+                    <li><b>Syarat Volume</b>: Pastikan volume transaksi terus bertambah (RVol > 1.5x) saat harga menyentuh fraksi offer.</li>
+                    <li><b>Pantangan Keras (DILARANG FOMO)</b>: Jangan pernah HAKA jika harga sudah naik lebih dari +7% pada hari ini atau jika antrean offer tiba-tiba menebal di atas 60%.</li>
+                    <li><b>Metode Antre</b>: Pasang antrean beli bertahap (piramida terbalik) di Best Bid dan 1 tick di bawahnya, jangan serakah hajar semua offer sekaligus.</li>
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with dec_col2:
+        st.markdown(
+            f"""
+            <div style="background-color: #EFF6FF; border: 1.5px solid #93C5FD; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+                <h4 style="color: #1E40AF; margin-top: 0;">🔵 SKENARIO 2: JIKA ANDA SUDAH MEMILIKI SAHAM INI</h4>
+                <p style="font-size: 0.9rem; color: #1E3A8A; margin-bottom: 8px;"><b>Tindakan Pengawalan Posisi (Holding / Profit Taking):</b></p>
+                <ul style="font-size: 0.88rem; color: #172554; padding-left: 20px;">
+                    <li><b>Kondisi Floating Profit (Cuan)</b>:
+                        <ul>
+                            <li>Kunci <b>50% posisi</b> di Target Cuan 1 (TP1): <b>Rp {tp1_val:,}</b> (Net +{tp1_net:.1f}%).</li>
+                            <li>Kawal <b>50% sisa posisi</b> dengan menaikkan Stop Loss ke harga modal (Trailing Stop / Break-Even) menuju Target Cuan 2: <b>Rp {tp2_val:,}</b> (Net +{tp2_net:.1f}%).</li>
+                        </ul>
+                    </li>
+                    <li><b>Kondisi Berbalik Arah / Guyuran (Stop Loss Ketat)</b>:
+                        <ul>
+                            <li>Jika harga turun menembus batas <b>Rp {sl_val:,}</b> (Net -{sl_net:.1f}%), <b>WAJIB CUT LOSS SEKETIKA</b> tanpa kompromi!</li>
+                            <li><b>Pantangan Average Down</b>: Dilarang keras melakukan average down di saham lapis 3 yang sedang breakdown, untuk mencegah modal terkunci di harga gocap (Rp 50).</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.markdown(
+        f"""
+        <div style="background-color: #FFFBEB; border: 1.5px solid #FCD34D; border-radius: 12px; padding: 16px;">
+            <h4 style="color: #92400E; margin-top: 0;">🛡️ 3 ATURAN EMAS MANAJEMEN MODAL KHUSUS SAHAM LAPIS 3</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; font-size: 0.85rem; color: #78350F;">
+                <div>
+                    <b>1. Alokasi Modal Maksimal</b><br>
+                    Maksimal <b>5% s/d 10%</b> dari total dana portofolio Anda. Jangan pernah menaruh modal besar pada saham berkapitalisasi mikro.
+                </div>
+                <div>
+                    <b>2. Batas Lot Aman (Safe Exit Cap)</b><br>
+                    Maksimal pembelian dibatasi <b>{lapis_ob.get('safe_exit_lot', 500):,} Lot</b> per transaksi agar bisa keluar seketika saat darurat.
+                </div>
+                <div>
+                    <b>3. Disiplin Stop Loss Otomatis</b><br>
+                    Selalu pasang fitur Automatic Order (Trailing Stop / Stop Loss) di aplikasi sekuritas Anda tepat setelah order beli match.
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     st.stop()
+
 
 elif app_menu == "🏛️ Analisis Broker dan Emiten":
     intraday_df, _ = get_cached_intraday(ticker_clean)
