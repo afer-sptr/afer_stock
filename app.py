@@ -2002,123 +2002,203 @@ with tab_chart:
     if "SMA_200" in df_tech.columns:
         fig.add_trace(go.Scatter(x=df_tech.index, y=df_tech["SMA_200"], name="SMA 200", line=dict(color="#8B5CF6", width=2.0)), row=1, col=1)
 
-    # 1. Garis Fibonacci 61.8% di sisi KIRI grafik (mencegah tabrakan dengan level target di sisi kanan)
+    # HUD Banner: Ringkasan Level Target & Risiko (Bebas Tabrakan & Anti-Potong)
+    entry_c = candle_pred.get("entry_price", 0)
+    tp1_c = candle_pred.get("tp1", 0)
+    tp2_c = candle_pred.get("tp2", 0)
+    tp1_s = plan.get("take_profit_1", 0)
+    sl_c = candle_pred.get("stop_loss", 0)
+    sl_s = plan.get("stop_loss", 0)
     fibo_618 = hl_eval.get("fib_levels", {}).get("fib_618", 0)
+
+    hud_badges = []
+    if entry_c > 0:
+        hud_badges.append(f'<span style="background: rgba(56, 189, 248, 0.15); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; white-space: nowrap;">🔵 Entry Lilin: Rp {entry_c:,}</span>')
+    if tp1_c > 0:
+        hud_badges.append(f'<span style="background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; white-space: nowrap;">🎯 TP1 Lilin: Rp {tp1_c:,} ({candle_pred.get("tp1_net_pct", 0):+.1f}%)</span>')
+    if tp2_c > 0:
+        hud_badges.append(f'<span style="background: rgba(5, 150, 105, 0.15); color: #34D399; border: 1px solid rgba(5, 150, 105, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; white-space: nowrap;">🚀 TP2 Lilin: Rp {tp2_c:,} ({candle_pred.get("tp2_net_pct", 0):+.1f}%)</span>')
+    if tp1_s > 0:
+        hud_badges.append(f'<span style="background: rgba(52, 211, 153, 0.15); color: #6EE7B7; border: 1px solid rgba(52, 211, 153, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; white-space: nowrap;">🎯 TP1 Sistem: Rp {tp1_s:,}</span>')
+    if sl_c > 0:
+        hud_badges.append(f'<span style="background: rgba(220, 38, 38, 0.15); color: #F87171; border: 1px solid rgba(220, 38, 38, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; white-space: nowrap;">🛑 Cut Loss Lilin: Rp {sl_c:,} ({candle_pred.get("sl_net_pct", 0):+.1f}%)</span>')
+    if sl_s > 0:
+        hud_badges.append(f'<span style="background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; white-space: nowrap;">🛡️ SL Sistem: Rp {sl_s:,}</span>')
     if fibo_618 > 0:
-        fig.add_hline(
-            y=fibo_618,
-            line_dash="dot",
-            line_color="#F59E0B",
-            annotation_text=f"Fib 61.8% (Rp {fibo_618:,})",
-            annotation_position="top left",
-            annotation_font=dict(size=10.5, color="#FBBF24"),
-            row=1, col=1
+        hud_badges.append(f'<span style="background: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; white-space: nowrap;">📐 Fib 61.8%: Rp {fibo_618:,}</span>')
+
+    if hud_badges:
+        st.markdown(
+            f"""
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; margin-bottom: 12px; background: rgba(15, 23, 42, 0.7); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(51, 65, 85, 0.5); align-items: center;">
+                <span style="font-weight: 700; color: #94A3B8; font-size: 0.82rem; margin-right: 6px; letter-spacing: 0.5px;">🎯 TARGET & RISK LEVELS:</span>
+                {' '.join(hud_badges)}
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
-    # 2. Garis Entry Lilin di sisi KIRI grafik
-    entry_c = candle_pred.get("entry_price", 0)
-    if entry_c > 0:
+    # 1. Garis Sisi KIRI: Fibonacci 61.8% & Entry Lilin (Anti-Tabrakan Kiri)
+    if fibo_618 > 0 and entry_c > 0 and abs(fibo_618 - entry_c) / max(entry_c, 1) <= 0.018:
         fig.add_hline(
             y=entry_c,
             line_dash="dot",
             line_color="#38BDF8",
-            annotation_text=f"Entry Lilin (Rp {entry_c:,})",
+            annotation_text=f"Entry: Rp {entry_c:,} | Fib 61.8%: Rp {fibo_618:,}",
             annotation_position="bottom left",
             annotation_font=dict(size=10.5, color="#38BDF8"),
+            annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+            annotation_bordercolor="#38BDF8",
+            annotation_borderwidth=1,
+            annotation_borderpad=3,
             row=1, col=1
         )
+    else:
+        if fibo_618 > 0:
+            fig.add_hline(
+                y=fibo_618,
+                line_dash="dot",
+                line_color="#F59E0B",
+                annotation_text=f"Fib 61.8% (Rp {fibo_618:,})",
+                annotation_position="top left",
+                annotation_font=dict(size=10.5, color="#FBBF24"),
+                annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+                annotation_bordercolor="#F59E0B",
+                annotation_borderwidth=1,
+                annotation_borderpad=3,
+                row=1, col=1
+            )
+        if entry_c > 0:
+            fig.add_hline(
+                y=entry_c,
+                line_dash="dot",
+                line_color="#38BDF8",
+                annotation_text=f"Entry Lilin (Rp {entry_c:,})",
+                annotation_position="bottom left",
+                annotation_font=dict(size=10.5, color="#38BDF8"),
+                annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+                annotation_bordercolor="#38BDF8",
+                annotation_borderwidth=1,
+                annotation_borderpad=3,
+                row=1, col=1
+            )
 
-    # 3. Take Profit 2 (TP2) di sisi KANAN ATAS
-    tp2_c = candle_pred.get("tp2", 0)
+    # 2. Garis Sisi KANAN: Take Profit (TP) - Algoritma Dynamic Anti-Collision Clustering
+    tp_raw = []
     if tp2_c > 0:
+        tp_raw.append({"name": "TP2 Lilin", "price": tp2_c, "pct": candle_pred.get("tp2_net_pct", 0), "line_dash": "solid", "color": "#059669"})
+    if tp1_c > 0:
+        tp_raw.append({"name": "TP1 Lilin", "price": tp1_c, "pct": candle_pred.get("tp1_net_pct", 0), "line_dash": "dash", "color": "#10B981"})
+    if tp1_s > 0:
+        tp_raw.append({"name": "TP1 Sistem", "price": tp1_s, "pct": 0, "line_dash": "dot", "color": "#34D399"})
+
+    tp_raw.sort(key=lambda x: x["price"], reverse=True)
+
+    tp_clusters = []
+    for item in tp_raw:
+        placed = False
+        for cl in tp_clusters:
+            if abs(cl["price"] - item["price"]) / max(cl["price"], 1) <= 0.018:
+                cl["items"].append(item)
+                placed = True
+                break
+        if not placed:
+            tp_clusters.append({"price": item["price"], "items": [item]})
+
+    for i, cl in enumerate(tp_clusters):
+        pos = "top right" if i == 0 else "bottom right"
+        if len(cl["items"]) == 1:
+            item = cl["items"][0]
+            pct_str = f" | {item['pct']:+.1f}%" if item.get('pct', 0) != 0 else ""
+            label = f"{item['name']} (Rp {item['price']:,}{pct_str})"
+            color = item["color"]
+            dash = item["line_dash"]
+        else:
+            names = " & ".join([it["name"] for it in cl["items"]])
+            prices = [it["price"] for it in cl["items"]]
+            if len(set(prices)) == 1:
+                pct_val = cl["items"][0].get("pct", 0)
+                pct_str = f" | {pct_val:+.1f}%" if pct_val != 0 else ""
+                label = f"{names} (Rp {prices[0]:,}{pct_str})"
+            else:
+                label = " | ".join([f"{it['name']}: Rp {it['price']:,}" for it in cl["items"]])
+            color = "#10B981"
+            dash = "dash"
+
         fig.add_hline(
-            y=tp2_c,
-            line_dash="solid",
-            line_color="#059669",
-            annotation_text=f"TP2 Lilin (Rp {tp2_c:,} | {candle_pred.get('tp2_net_pct', 0):+.1f}%)",
-            annotation_position="top right",
-            annotation_font=dict(size=10.5, color="#34D399"),
+            y=cl["price"],
+            line_dash=dash,
+            line_color=color,
+            annotation_text=label,
+            annotation_position=pos,
+            annotation_font=dict(size=10.5, color=color),
+            annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+            annotation_bordercolor=color,
+            annotation_borderwidth=1,
+            annotation_borderpad=3,
             row=1, col=1
         )
 
-    # 4. Take Profit 1 (TP1) - Bersih dan Bebas Tabrakan
-    tp1_c = candle_pred.get("tp1", 0)
-    tp1_s = plan.get("take_profit_1", 0)
-    if tp1_c > 0 and (tp1_s == 0 or abs(tp1_c - tp1_s) <= 2):
-        # Gabungkan jika level harga sama/hampir sama persis
-        fig.add_hline(
-            y=tp1_c,
-            line_dash="dash",
-            line_color="#10B981",
-            annotation_text=f"TP1 Target (Rp {tp1_c:,} | {candle_pred.get('tp1_net_pct', 0):+.1f}%)",
-            annotation_position="bottom right",
-            annotation_font=dict(size=10.5, color="#10B981"),
-            row=1, col=1
-        )
-    else:
-        if tp1_c > 0:
-            fig.add_hline(
-                y=tp1_c,
-                line_dash="dash",
-                line_color="#10B981",
-                annotation_text=f"TP1 Lilin (Rp {tp1_c:,})",
-                annotation_position="bottom right",
-                annotation_font=dict(size=10.5, color="#10B981"),
-                row=1, col=1
-            )
-        if tp1_s > 0:
-            fig.add_hline(
-                y=tp1_s,
-                line_dash="dot",
-                line_color="#34D399",
-                annotation_text=f"TP1 Sistem (Rp {tp1_s:,})",
-                annotation_position="top right",
-                annotation_font=dict(size=10.5, color="#34D399"),
-                row=1, col=1
-            )
+    # 3. Garis Sisi KANAN: Cut Loss & Stop Loss (SL) - Algoritma Dynamic Anti-Collision Clustering
+    sl_raw = []
+    if sl_c > 0:
+        sl_raw.append({"name": "Cut Loss Lilin", "price": sl_c, "pct": candle_pred.get("sl_net_pct", 0), "line_dash": "dash", "color": "#DC2626"})
+    if sl_s > 0:
+        sl_raw.append({"name": "SL Sistem", "price": sl_s, "pct": 0, "line_dash": "dot", "color": "#EF4444"})
 
-    # 5. Cut Loss / Stop Loss (SL) - Bersih dan Bebas Tabrakan
-    sl_c = candle_pred.get("stop_loss", 0)
-    sl_s = plan.get("stop_loss", 0)
-    if sl_c > 0 and (sl_s == 0 or abs(sl_c - sl_s) <= 2):
+    sl_raw.sort(key=lambda x: x["price"], reverse=True)
+
+    sl_clusters = []
+    for item in sl_raw:
+        placed = False
+        for cl in sl_clusters:
+            if abs(cl["price"] - item["price"]) / max(cl["price"], 1) <= 0.02:
+                cl["items"].append(item)
+                placed = True
+                break
+        if not placed:
+            sl_clusters.append({"price": item["price"], "items": [item]})
+
+    for i, cl in enumerate(sl_clusters):
+        pos = "top right" if (len(sl_clusters) > 1 and i == 0) else "bottom right"
+        if len(cl["items"]) == 1:
+            item = cl["items"][0]
+            pct_str = f" | {item['pct']:+.1f}%" if item.get('pct', 0) != 0 else ""
+            label = f"{item['name']} (Rp {item['price']:,}{pct_str})"
+            color = item["color"]
+            dash = item["line_dash"]
+        else:
+            prices = [it["price"] for it in cl["items"]]
+            if len(set(prices)) == 1:
+                pct_val = cl["items"][0].get("pct", 0)
+                pct_str = f" | {pct_val:+.1f}%" if pct_val != 0 else ""
+                label = f"Cut Loss & SL Sistem (Rp {prices[0]:,}{pct_str})"
+            else:
+                label = f"Cut Loss: Rp {sl_c:,} | SL: Rp {sl_s:,}"
+            color = "#DC2626"
+            dash = "dash"
+
         fig.add_hline(
-            y=sl_c,
-            line_dash="dash",
-            line_color="#DC2626",
-            annotation_text=f"Cut Loss (Rp {sl_c:,} | {candle_pred.get('sl_net_pct', 0):+.1f}%)",
-            annotation_position="bottom right",
-            annotation_font=dict(size=10.5, color="#F87171"),
+            y=cl["price"],
+            line_dash=dash,
+            line_color=color,
+            annotation_text=label,
+            annotation_position=pos,
+            annotation_font=dict(size=10.5, color=color),
+            annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+            annotation_bordercolor=color,
+            annotation_borderwidth=1,
+            annotation_borderpad=3,
             row=1, col=1
         )
-    else:
-        if sl_c > 0:
-            fig.add_hline(
-                y=sl_c,
-                line_dash="dash",
-                line_color="#DC2626",
-                annotation_text=f"Cut Loss Lilin (Rp {sl_c:,})",
-                annotation_position="top right",
-                annotation_font=dict(size=10.5, color="#F87171"),
-                row=1, col=1
-            )
-        if sl_s > 0:
-            fig.add_hline(
-                y=sl_s,
-                line_dash="dot",
-                line_color="#EF4444",
-                annotation_text=f"SL Sistem (Rp {sl_s:,})",
-                annotation_position="bottom right",
-                annotation_font=dict(size=10.5, color="#EF4444"),
-                row=1, col=1
-            )
 
     # Volume Bar
     vol_colors = ['#22C55E' if c >= o else '#EF4444' for c, o in zip(df_tech["Close"], df_tech["Open"])]
     fig.add_trace(go.Bar(x=df_tech.index, y=df_tech["Volume"], name="Volume", marker_color=vol_colors), row=2, col=1)
 
     fig.update_layout(
-        height=660,
-        margin=dict(l=35, r=135, t=45, b=25),
+        height=670,
+        margin=dict(l=40, r=160, t=45, b=25),
         xaxis_rangeslider_visible=False,
         legend=dict(
             orientation="h",

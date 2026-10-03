@@ -1369,9 +1369,31 @@ def render_technical_analysis_page(
                     last_high = max([c["high"] for c in columns[-5:] if c["type"] == "X"], default=None)
                     last_low = min([c["low"] for c in columns[-5:] if c["type"] == "O"], default=None)
                     if last_high:
-                        fig_pnf.add_hline(y=last_high, line_dash="dash", line_color="#34D399", annotation_text=f"Resisten P&F Rp {last_high:,.0f}")
+                        fig_pnf.add_hline(
+                            y=last_high,
+                            line_dash="dash",
+                            line_color="#34D399",
+                            annotation_text=f"Resisten P&F Rp {last_high:,.0f}",
+                            annotation_position="top right",
+                            annotation_font=dict(size=10.5, color="#34D399"),
+                            annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+                            annotation_bordercolor="#34D399",
+                            annotation_borderwidth=1,
+                            annotation_borderpad=3
+                        )
                     if last_low:
-                        fig_pnf.add_hline(y=last_low, line_dash="dash", line_color="#F87171", annotation_text=f"Support P&F Rp {last_low:,.0f}")
+                        fig_pnf.add_hline(
+                            y=last_low,
+                            line_dash="dash",
+                            line_color="#F87171",
+                            annotation_text=f"Support P&F Rp {last_low:,.0f}",
+                            annotation_position="bottom right",
+                            annotation_font=dict(size=10.5, color="#F87171"),
+                            annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+                            annotation_bordercolor="#F87171",
+                            annotation_borderwidth=1,
+                            annotation_borderpad=3
+                        )
 
                 fig_pnf.update_layout(
                     height=520,
@@ -1379,7 +1401,7 @@ def render_technical_analysis_page(
                     title=f"Point & Figure (P&F) Chart {clean_t} - Pure Price Action (Box: Rp {box_sz:,.1f}, Rev: 3)",
                     xaxis=dict(title="Nomor Kolom Perubahan Tren (Independen Waktu)", showgrid=True, gridcolor="#334155"),
                     yaxis=dict(title="Level Harga (Rp)", showgrid=True, gridcolor="#334155"),
-                    margin=dict(l=20, r=20, t=40, b=20)
+                    margin=dict(l=25, r=150, t=40, b=25)
                 )
                 st.plotly_chart(fig_pnf, use_container_width=True)
             else:
@@ -1438,12 +1460,83 @@ def render_technical_analysis_page(
 
             # Anotasi Garis: Pivot S/R di KANAN, Fibonacci di KIRI (Anti-Tabrakan)
             if "Pivot S/R" in overlay_choice:
-                fig.add_hline(y=pivots["r1"], line_dash="dot", line_color="#F87171", annotation_text=f"R1: Rp {pivots['r1']:,}", annotation_position="top right", annotation_font=dict(size=10.5, color="#F87171"), row=1, col=1)
-                fig.add_hline(y=pivots["s1"], line_dash="dot", line_color="#34D399", annotation_text=f"S1: Rp {pivots['s1']:,}", annotation_position="bottom right", annotation_font=dict(size=10.5, color="#34D399"), row=1, col=1)
+                r1_val = pivots.get("r1", 0)
+                s1_val = pivots.get("s1", 0)
+                if r1_val > 0 and s1_val > 0 and abs(r1_val - s1_val) / max(r1_val, 1) <= 0.02:
+                    fig.add_hline(
+                        y=r1_val,
+                        line_dash="dot",
+                        line_color="#F87171",
+                        annotation_text=f"Pivot S/R: R1 Rp {r1_val:,} | S1 Rp {s1_val:,}",
+                        annotation_position="top right",
+                        annotation_font=dict(size=10.5, color="#F87171"),
+                        annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+                        annotation_bordercolor="#F87171",
+                        annotation_borderwidth=1,
+                        annotation_borderpad=3,
+                        row=1, col=1
+                    )
+                else:
+                    if r1_val > 0:
+                        fig.add_hline(
+                            y=r1_val,
+                            line_dash="dot",
+                            line_color="#F87171",
+                            annotation_text=f"R1: Rp {r1_val:,}",
+                            annotation_position="top right",
+                            annotation_font=dict(size=10.5, color="#F87171"),
+                            annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+                            annotation_bordercolor="#F87171",
+                            annotation_borderwidth=1,
+                            annotation_borderpad=3,
+                            row=1, col=1
+                        )
+                    if s1_val > 0:
+                        fig.add_hline(
+                            y=s1_val,
+                            line_dash="dot",
+                            line_color="#34D399",
+                            annotation_text=f"S1: Rp {s1_val:,}",
+                            annotation_position="bottom right",
+                            annotation_font=dict(size=10.5, color="#34D399"),
+                            annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+                            annotation_bordercolor="#34D399",
+                            annotation_borderwidth=1,
+                            annotation_borderpad=3,
+                            row=1, col=1
+                        )
 
             if "Fibonacci" in overlay_choice:
-                fig.add_hline(y=fibs["fib_618"], line_dash="dash", line_color="#C084FC", annotation_text=f"Fibo 61.8%: Rp {fibs['fib_618']:,}", annotation_position="top left", annotation_font=dict(size=10.5, color="#C084FC"), row=1, col=1)
-                fig.add_hline(y=fibs["fib_382"], line_dash="dash", line_color="#818CF8", annotation_text=f"Fibo 38.2%: Rp {fibs['fib_382']:,}", annotation_position="bottom left", annotation_font=dict(size=10.5, color="#818CF8"), row=1, col=1)
+                f618 = fibs.get("fib_618", 0)
+                f382 = fibs.get("fib_382", 0)
+                if f618 > 0:
+                    fig.add_hline(
+                        y=f618,
+                        line_dash="dash",
+                        line_color="#C084FC",
+                        annotation_text=f"Fibo 61.8%: Rp {f618:,}",
+                        annotation_position="top left",
+                        annotation_font=dict(size=10.5, color="#C084FC"),
+                        annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+                        annotation_bordercolor="#C084FC",
+                        annotation_borderwidth=1,
+                        annotation_borderpad=3,
+                        row=1, col=1
+                    )
+                if f382 > 0:
+                    fig.add_hline(
+                        y=f382,
+                        line_dash="dash",
+                        line_color="#818CF8",
+                        annotation_text=f"Fibo 38.2%: Rp {f382:,}",
+                        annotation_position="bottom left",
+                        annotation_font=dict(size=10.5, color="#818CF8"),
+                        annotation_bgcolor="rgba(15, 23, 42, 0.85)",
+                        annotation_bordercolor="#818CF8",
+                        annotation_borderwidth=1,
+                        annotation_borderpad=3,
+                        row=1, col=1
+                    )
 
             # Row 2: Volume & CMF
             vol_cols = ['#22C55E' if c >= o else '#EF4444' for c, o in zip(plot_df["Close"], plot_df["Open"])]
@@ -1473,7 +1566,7 @@ def render_technical_analysis_page(
             fig.update_layout(
                 height=780,
                 template="plotly_dark",
-                margin=dict(l=35, r=135, t=45, b=20),
+                margin=dict(l=40, r=160, t=45, b=25),
                 xaxis_rangeslider_visible=False,
                 legend=dict(
                     orientation="h",
