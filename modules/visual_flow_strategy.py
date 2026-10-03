@@ -628,33 +628,35 @@ def scan_visual_flow_universe(
         clean_t = t.replace(".JK", "").upper().strip()
         meta = get_stock_metadata(clean_t)
 
-        # Filter Tingkatan (Tier)
-        if tier_filter not in {"Semua", "Semua Tingkatan"}:
-            t_code = meta.get("tier_code", "")
-            if "Gocap" in tier_filter or "Tidur" in tier_filter or "Rp50" in tier_filter:
-                if t_code != "GOCAP":
-                    continue
-            elif "Receh" in tier_filter or "Murah" in tier_filter or "Rp100 – Rp1.000" in tier_filter:
-                if t_code != "RECEH":
-                    continue
-            elif "Menengah" in tier_filter or "Rp1.000 – Rp5.000" in tier_filter:
-                if t_code != "MENENGAH":
-                    continue
-            elif "Premium" in tier_filter or "Blue Chip" in tier_filter or "5.000" in tier_filter:
-                if t_code != "PREMIUM":
-                    continue
-
-        # Filter Syariah
-        if syariah_filter != "Semua":
-            is_s = meta.get("is_syariah", False)
-            if "Non-Syariah" in syariah_filter and is_s:
-                continue
-            elif "Syariah" in syariah_filter and not is_s:
-                continue
-
         price = float(idx_prices.get(clean_t, meta.get("price", 100.0)))
         if price <= 0:
             price = 100.0
+
+        # Filter Tingkatan (Tier) Berdasarkan Rentang Harga Nominal Riil BEI
+        if tier_filter not in {"Semua", "Semua Tingkatan"}:
+            t_code = meta.get("tier_code", "")
+            if "Gocap" in tier_filter or "Tidur" in tier_filter or "Rp50" in tier_filter:
+                if t_code != "GOCAP" or price < 50.0 or price > 100.0:
+                    continue
+            elif "Receh" in tier_filter or "Murah" in tier_filter or "Rp100 – Rp1.000" in tier_filter:
+                if t_code != "RECEH" or price <= 100.0 or price > 1000.0:
+                    continue
+            elif "Menengah" in tier_filter or "Rp1.000 – Rp5.000" in tier_filter:
+                if t_code != "MENENGAH" or price <= 1000.0 or price > 5000.0:
+                    continue
+            elif "Premium" in tier_filter or "Blue Chip" in tier_filter or "5.000" in tier_filter:
+                if t_code != "PREMIUM" or price <= 5000.0:
+                    continue
+
+        # Filter Syariah Presisi OJK / DSN-MUI
+        if syariah_filter != "Semua":
+            is_s = meta.get("is_syariah", False)
+            if "Non-Syariah" in syariah_filter:
+                if is_s:
+                    continue
+            elif "Syariah" in syariah_filter:
+                if not is_s:
+                    continue
 
         # Buat data simulasi mikrostruktur yang konsisten berbasis seed ticker
         seed_val = sum(ord(c) for c in clean_t)
@@ -728,8 +730,8 @@ def scan_visual_flow_universe(
             }
         })
 
-    # Urutkan berdasarkan lolos terbanyak, lalu buyer power tertinggi
-    results.sort(key=lambda x: (x["all_passed"], x["passed_count"], x["buyer_power"]), reverse=True)
+    # Urutkan berdasarkan lolos terbanyak, harga aktif riil >= 50, lalu buyer power tertinggi
+    results.sort(key=lambda x: (x["all_passed"], x["passed_count"], 1 if x["price"] >= 50.0 else 0, x["buyer_power"]), reverse=True)
     return results
 
 
@@ -1014,6 +1016,12 @@ def render_visual_flow_strategy_page(
             "Saham Menengah (Rp1.000 – Rp5.000)",
             "Saham Premium / Blue Chip (Di atas Rp5.000)",
         ]
+        # Sinkronkan nilai filter dari sidebar jika pengguna memilih di sidebar
+        if st.session_state.get("_last_synced_sidebar_tier") != chosen_tier:
+            st.session_state["_last_synced_sidebar_tier"] = chosen_tier
+            if chosen_tier in flow_tier_options:
+                st.session_state["flow_chosen_tier_box"] = chosen_tier
+
         tier_def_idx = 0
         if chosen_tier in flow_tier_options:
             tier_def_idx = flow_tier_options.index(chosen_tier)
@@ -1031,6 +1039,12 @@ def render_visual_flow_strategy_page(
             "☪️ Hanya Syariah (ISSI)",
             "⚪ Non-Syariah"
         ]
+        # Sinkronkan nilai filter syariah dari sidebar jika dipilih di sidebar
+        if st.session_state.get("_last_synced_sidebar_syariah") != chosen_syariah:
+            st.session_state["_last_synced_sidebar_syariah"] = chosen_syariah
+            if chosen_syariah in flow_syariah_options:
+                st.session_state["flow_chosen_syariah_box"] = chosen_syariah
+
         syariah_def_idx = 0
         if chosen_syariah in flow_syariah_options:
             syariah_def_idx = flow_syariah_options.index(chosen_syariah)
@@ -1094,6 +1108,7 @@ def render_visual_flow_strategy_page(
                     current_flow_ticker = clean_m
                     st.session_state["flow_active_ticker"] = clean_m
                     st.session_state["selected_ticker"] = clean_m
+                    st.session_state["_prev_flow_active_ticker"] = clean_m
                     st.rerun()
                 else:
                     st.warning("⚠️ Masukkan minimal 2-4 huruf kode emiten BEI.")
@@ -1109,12 +1124,20 @@ def render_visual_flow_strategy_page(
             st.session_state["flow_active_ticker"] = current_flow_ticker
             st.session_state["selected_ticker"] = current_flow_ticker
 
+        cur_flow_label = st.session_state.get("flow_catalog_selector")
+        # Pastikan widget flow_catalog_selector selalu sinkron dengan emiten terpilih
+        if cur_flow_label not in flow_stock_labels or (st.session_state.get("_prev_flow_active_ticker") != current_flow_ticker):
+            if "flow_catalog_selector" in st.session_state:
+                del st.session_state["flow_catalog_selector"]
+        st.session_state["_prev_flow_active_ticker"] = current_flow_ticker
+
         def _on_flow_catalog_change():
             chosen_val = st.session_state.get("flow_catalog_selector")
             if chosen_val:
                 clean_t = chosen_val.split(" - ")[0].split(" [")[0].strip().upper()
                 st.session_state["flow_active_ticker"] = clean_t
                 st.session_state["selected_ticker"] = clean_t
+                st.session_state["_prev_flow_active_ticker"] = clean_t
 
         chosen_cat_label = st.selectbox(
             f"Katalog Saham BEI Terfilter ({len(filtered_flow_stocks)} Saham):",
@@ -1126,6 +1149,7 @@ def render_visual_flow_strategy_page(
         current_flow_ticker = chosen_cat_label.split(" - ")[0].split(" [")[0].strip().upper()
         st.session_state["flow_active_ticker"] = current_flow_ticker
         st.session_state["selected_ticker"] = current_flow_ticker
+        st.session_state["_prev_flow_active_ticker"] = current_flow_ticker
 
     # Ambil data real-time & metadata otoritatif untuk emiten terpilih
     if current_flow_ticker == ticker and df_ohlcv is not None and not df_ohlcv.empty:
@@ -1301,6 +1325,7 @@ def render_visual_flow_strategy_page(
                     if st.button(f"🔍 Evaluasi {p_stk['ticker']} di Kanvas", key=f"btn_eval_passed_{p_stk['ticker']}", use_container_width=True):
                         st.session_state["flow_active_ticker"] = p_stk["ticker"]
                         st.session_state["selected_ticker"] = p_stk["ticker"]
+                        st.session_state["_prev_flow_active_ticker"] = ""
                         st.rerun()
         else:
             st.info(f"ℹ️ Belum ada emiten dengan filter ({flow_chosen_tier} | {flow_chosen_syariah}) yang memenuhi 100% dari ke-7 filter ketat saat ini. Menampilkan emiten dengan setup terdekat (Lolos ≥ 5 Filter):")
@@ -1330,6 +1355,7 @@ def render_visual_flow_strategy_page(
                     if st.button(f"🔍 Evaluasi {a_stk['ticker']} di Kanvas", key=f"btn_eval_appr_{a_stk['ticker']}", use_container_width=True):
                         st.session_state["flow_active_ticker"] = a_stk["ticker"]
                         st.session_state["selected_ticker"] = a_stk["ticker"]
+                        st.session_state["_prev_flow_active_ticker"] = ""
                         st.rerun()
 
             appr_df = pd.DataFrame([

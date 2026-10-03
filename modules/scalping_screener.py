@@ -292,6 +292,7 @@ def generate_scalp_trading_plan(
         "lead_broker_name": lead_b["name"],
         "lead_broker_category": lead_b["category"],
         "lead_broker_impact": lead_b["future_price_impact"],
+        "rrr": round(float(rrr), 2),
     }
 
 

@@ -247,32 +247,44 @@ def filter_idx_stocks(
     stocks = get_all_idx_stocks_enriched()
     filtered = []
 
+    rep_set = {
+        "BBCA", "BBRI", "BMRI", "BBNI", "ASII", "TLKM", "AMMN", "BREN", "TPIA",
+        "BRMS", "BUMI", "MEDC", "ANTM", "PGAS", "ENRG", "MDKA", "PSAB", "RAJA",
+        "CSMI", "SLIS", "ZATA", "POLA", "NASI", "REAL", "ATLA", "WINR", "NINE",
+        "BBSS", "HOMI", "ESTA", "BOBA", "KOCI", "PURI", "LUCK", "BAPA", "OILS",
+        "ACRO", "BATR", "AEGS", "BAUT", "BATA", "ALMI", "ARKA", "ABBA", "AYLS",
+        "DEWA", "DOID", "TOBA", "KIJA", "ELSA", "HRUM", "PANI", "CUAN", "ESSA",
+        "AGRS", "AHAP", "BEER", "BVIC", "DEFI", "ADMF", "GGRM"
+    }
+
     for s in stocks:
-        # Filter Tier
+        p = float(s.get("price", 0.0))
+
+        # Filter Tier Berdasarkan Rentang Harga Nominal Riil BEI
         if tier_filter not in {"Semua", "Semua Tingkatan"}:
             if "Gocap" in tier_filter or "Tidur" in tier_filter or "Rp50" in tier_filter:
-                if s["tier_code"] != "GOCAP":
+                if s["tier_code"] != "GOCAP" or p < 50.0 or p > 100.0:
                     continue
             elif "Receh" in tier_filter or "Murah" in tier_filter or "Rp100 – Rp1.000" in tier_filter:
-                if s["tier_code"] != "RECEH":
+                if s["tier_code"] != "RECEH" or p <= 100.0 or p > 1000.0:
                     continue
             elif "Menengah" in tier_filter or "Rp1.000 – Rp5.000" in tier_filter:
-                if s["tier_code"] != "MENENGAH":
+                if s["tier_code"] != "MENENGAH" or p <= 1000.0 or p > 5000.0:
                     continue
             elif "Premium" in tier_filter or "Blue Chip" in tier_filter or "5.000" in tier_filter:
-                if s["tier_code"] != "PREMIUM":
+                if s["tier_code"] != "PREMIUM" or p <= 5000.0:
                     continue
             elif "Lapis 1" in tier_filter:
-                if s["tier_code"] != "PREMIUM":
+                if s["tier_code"] != "PREMIUM" or p <= 5000.0:
                     continue
             elif "Lapis 2" in tier_filter:
-                if s["tier_code"] not in {"MENENGAH", "RECEH"}:
+                if s["tier_code"] not in {"MENENGAH", "RECEH"} or not (100.0 < p <= 5000.0):
                     continue
             elif "Lapis 3" in tier_filter:
-                if s["tier_code"] != "GOCAP":
+                if s["tier_code"] != "GOCAP" or not (50.0 <= p <= 100.0):
                     continue
 
-        # Filter Syariah
+        # Filter Syariah Presisi OJK / DSN-MUI
         if syariah_filter != "Semua":
             if "Non-Syariah" in syariah_filter:
                 if s["is_syariah"]:
@@ -292,6 +304,16 @@ def filter_idx_stocks(
                 continue
 
         filtered.append(s)
+
+    # Prioritaskan emiten yang aktif diperdagangkan (harga >= 50) dan likuid di urutan teratas
+    filtered.sort(
+        key=lambda x: (
+            0 if x["ticker"] in rep_set and x.get("price", 0.0) >= 50.0 else (
+                1 if x.get("price", 0.0) >= 50.0 else 2
+            ),
+            x["ticker"]
+        )
+    )
 
     return filtered
 

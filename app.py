@@ -844,28 +844,27 @@ if mode_input == "Pilih dari Katalog":
                 break
         
         # Jika emiten yang aktif saat ini tidak ada di kombinasi filter (misal user ubah filter tier),
-        # sisipkan emiten aktif di urutan pertama agar tidak ter-reset secara paksa ke saham lain
+        # otomatis pilih emiten pertama yang benar-benar memenuhi kriteria filter pengguna
         if matching_idx is None:
-            active_meta = get_stock_metadata(current_target_ticker)
-            active_label = f"📌 [Aktif] {active_meta['display_label']}"
-            stock_labels.insert(0, active_label)
             selected_idx = 0
+            current_target_ticker = filtered_stocks[0]["ticker"]
+            st.session_state["selected_ticker"] = current_target_ticker
         else:
             selected_idx = matching_idx
 
         def _on_catalog_change():
             chosen_val = st.session_state.get("catalog_stock_selector")
             if chosen_val:
-                clean_t = chosen_val.replace("📌 [Aktif] ", "").split(" - ")[0].strip().upper()
+                clean_t = chosen_val.split(" - ")[0].strip().upper()
                 st.session_state["selected_ticker"] = clean_t
+                st.session_state["_prev_sidebar_selected_ticker"] = clean_t
 
-        # Pastikan catalog_stock_selector selalu sinkron dengan current_target_ticker
+        # Pastikan catalog_stock_selector selalu sinkron dengan daftar opsi yang valid
         cur_cat = st.session_state.get("catalog_stock_selector", "")
-        if not (cur_cat.startswith(current_target_ticker + " -") or cur_cat.startswith(f"📌 [Aktif] {current_target_ticker} -")):
-            for lbl in stock_labels:
-                if lbl.startswith(current_target_ticker + " -") or lbl.startswith(f"📌 [Aktif] {current_target_ticker} -"):
-                    st.session_state["catalog_stock_selector"] = lbl
-                    break
+        if cur_cat not in stock_labels or (st.session_state.get("_prev_sidebar_selected_ticker") != current_target_ticker):
+            if "catalog_stock_selector" in st.session_state:
+                del st.session_state["catalog_stock_selector"]
+        st.session_state["_prev_sidebar_selected_ticker"] = current_target_ticker
 
         selected_stock_label = st.sidebar.selectbox(
             "Katalog Saham Terfilter:",
@@ -874,8 +873,9 @@ if mode_input == "Pilih dari Katalog":
             key="catalog_stock_selector",
             on_change=_on_catalog_change
         )
-        selected_ticker = selected_stock_label.replace("📌 [Aktif] ", "").split(" - ")[0].strip().upper()
+        selected_ticker = selected_stock_label.split(" - ")[0].strip().upper()
         st.session_state["selected_ticker"] = selected_ticker
+        st.session_state["_prev_sidebar_selected_ticker"] = selected_ticker
     else:
         st.sidebar.warning("Tidak ada saham yang cocok dengan kombinasi filter.")
         selected_ticker = current_target_ticker
@@ -1007,6 +1007,25 @@ if info is not None:
         info["shortName"] = meta_live.get("name", ticker_clean)
 
 if err or df is None or df.empty:
+    # Jika pengguna membuka menu Visual Flow Strategy, alihkan secara aman ke mesin Visual Flow
+    # yang memiliki fallback mikrostruktur mandiri dan penanganan data instan
+    if "Visual Flow Strategy" in app_menu:
+        meta_live = get_stock_metadata(ticker_clean)
+        from modules.idx_universe import load_idx_prices
+        prices_map = load_idx_prices()
+        p_fallback = float(prices_map.get(ticker_clean.replace(".JK", ""), meta_live.get("price", 100.0)))
+        render_visual_flow_strategy_page(
+            ticker=ticker_clean,
+            df_ohlcv=None,
+            info=info or {},
+            current_price=p_fallback,
+            all_stocks=ALL_IDX_STOCKS,
+            chosen_tier=chosen_tier,
+            chosen_syariah=chosen_syariah,
+            chosen_sector=chosen_sector,
+        )
+        st.stop()
+
     st.error(f"❌ Terjadi kesalahan saat memuat data {ticker_clean}: {err}")
     st.warning(f"⚠️ Emiten **{ticker_clean}** kemungkinan sedang dalam status suspensi bursa, delisting, atau belum memiliki data aktif di penyedia pasar Yahoo Finance.")
     st.markdown("#### 🔄 Pulihkan Cepat ke Saham Aktif & Paling Likuid:")
@@ -2089,7 +2108,7 @@ with tab_scalp:
                                     </div>
                                 </div>
                                 <div style="font-size: 11.5px; color: #E2E8F0; margin-bottom: 8px; line-height: 1.5; padding: 2px 0;">
-                                    🏆 <b style="color: #F8FAFC;">TP2 (Target Lanjutan):</b> <span style="color: #6EE7B7; font-weight: 600;">Rp {s['tp2']:,} ({s['tp2_net_pct']:+.2f}%)</span> | ⚖️ <b style="color: #F8FAFC;">RRR:</b> <span style="color: #38BDF8; font-weight: 600;">1:{s['rrr']}</span> | 🛡️ <b style="color: #F8FAFC;">Maksimal Lot Aman:</b> <span style="color: #FCD34D; font-weight: 600;">{s['safe_exit_lot']:,} Lot</span>
+                                    🏆 <b style="color: #F8FAFC;">TP2 (Target Lanjutan):</b> <span style="color: #6EE7B7; font-weight: 600;">Rp {s['tp2']:,} ({s['tp2_net_pct']:+.2f}%)</span> | ⚖️ <b style="color: #F8FAFC;">RRR:</b> <span style="color: #38BDF8; font-weight: 600;">1:{s.get('rrr', 1.5)}</span> | 🛡️ <b style="color: #F8FAFC;">Maksimal Lot Aman:</b> <span style="color: #FCD34D; font-weight: 600;">{s['safe_exit_lot']:,} Lot</span>
                                 </div>
                                 <div style="font-size: 11.5px; line-height: 1.5; margin-bottom: 8px; background: rgba(15, 23, 42, 0.8); padding: 8px 12px; border-radius: 8px; border: 1px solid #334155; border-left: 3px solid #38BDF8;">
                                     🏛️ <b style="color: #38BDF8;">Broker Penggerak:</b> <span style="color: #F8FAFC; font-weight: 600;">{s.get('lead_broker_code', 'CC')} — {s.get('lead_broker_name', 'PT Mandiri Sekuritas')}</span> <span style="color: #94A3B8;">({s.get('lead_broker_category', 'BUMN & Domestik')})</span><br>
@@ -2539,7 +2558,7 @@ with tab_chart:
             tp_clusters.append({"price": item["price"], "items": [item]})
 
     for i, cl in enumerate(tp_clusters):
-        pos = "top right" if i == 0 else "bottom right"
+        annot_pos = "top right" if i == 0 else "bottom right"
         if len(cl["items"]) == 1:
             item = cl["items"][0]
             pct_str = f" | {item['pct']:+.1f}%" if item.get('pct', 0) != 0 else ""
@@ -2563,7 +2582,7 @@ with tab_chart:
             line_dash=dash,
             line_color=color,
             annotation_text=label,
-            annotation_position=pos,
+            annotation_position=annot_pos,
             annotation_font=dict(size=10.5, color=color),
             annotation_bgcolor="rgba(15, 23, 42, 0.85)",
             annotation_bordercolor=color,
@@ -2593,7 +2612,7 @@ with tab_chart:
             sl_clusters.append({"price": item["price"], "items": [item]})
 
     for i, cl in enumerate(sl_clusters):
-        pos = "top right" if (len(sl_clusters) > 1 and i == 0) else "bottom right"
+        annot_pos = "top right" if (len(sl_clusters) > 1 and i == 0) else "bottom right"
         if len(cl["items"]) == 1:
             item = cl["items"][0]
             pct_str = f" | {item['pct']:+.1f}%" if item.get('pct', 0) != 0 else ""
@@ -2616,7 +2635,7 @@ with tab_chart:
             line_dash=dash,
             line_color=color,
             annotation_text=label,
-            annotation_position=pos,
+            annotation_position=annot_pos,
             annotation_font=dict(size=10.5, color=color),
             annotation_bgcolor="rgba(15, 23, 42, 0.85)",
             annotation_bordercolor=color,
