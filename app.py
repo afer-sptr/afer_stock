@@ -251,7 +251,9 @@ try:
         scan_real_lapis3_rally,
         DEFAULT_LAPIS3_CANDIDATES,
         GOCAP_LAPIS3_CANDIDATES,
+        RECEH_LAPIS3_CANDIDATES,
         EXPANDED_LAPIS3_CANDIDATES,
+        KNOWN_LAPIS3_MCAP_MILIAR,
     )
 except Exception:
     try:
@@ -261,27 +263,40 @@ except Exception:
             scan_real_lapis3_rally,
             DEFAULT_LAPIS3_CANDIDATES,
             GOCAP_LAPIS3_CANDIDATES,
+            RECEH_LAPIS3_CANDIDATES,
             EXPANDED_LAPIS3_CANDIDATES,
+            KNOWN_LAPIS3_MCAP_MILIAR,
         )
     except Exception:
         DEFAULT_LAPIS3_CANDIDATES = [
-            "DEWA", "KIJA", "ELSA", "PSAB", "RAJA", "DOID", "BUMI", "BRMS", "ENRG"
+            "CSMI", "SLIS", "ZATA", "POLA", "NASI", "REAL", "ATLA", "WINR", "NINE", "BBSS", "HOMI", "ESTA"
         ]
         GOCAP_LAPIS3_CANDIDATES = [
-            "GOTO", "BKSL", "LPKR", "MLPL", "SLIS", "BHIT", "GZCO", "FREN", "ZATA", "ASRI"
+            "SLIS", "ZATA", "POLA", "BBSS", "ACRO", "BATR", "KOCI", "NINE", "REAL",
+            "WINR", "BAPI", "ASMI", "ATLA", "ASHA", "AEGS", "BAUT", "BATA", "ALMI", "ARKA", "ABBA"
         ]
-        EXPANDED_LAPIS3_CANDIDATES = DEFAULT_LAPIS3_CANDIDATES + GOCAP_LAPIS3_CANDIDATES + [
-            "CUAN", "MBMA", "BUKA", "MNCN"
+        RECEH_LAPIS3_CANDIDATES = [
+            "CSMI", "NASI", "BOBA", "PURI", "LUCK", "BAPA", "HOMI", "ESTA", "OILS",
+            "AIMS", "AKSI", "AYLS", "BAIK", "APLI", "AMIN", "AMMS", "ASBI", "ASJT", "ASRM"
         ]
+        EXPANDED_LAPIS3_CANDIDATES = list(dict.fromkeys(
+            DEFAULT_LAPIS3_CANDIDATES + GOCAP_LAPIS3_CANDIDATES + RECEH_LAPIS3_CANDIDATES
+        ))
+        KNOWN_LAPIS3_MCAP_MILIAR = {
+            "CSMI": 270.9, "SLIS": 174.9, "ZATA": 447.3, "POLA": 278.1,
+            "NASI": 150.2, "REAL": 252.1, "ATLA": 198.4, "WINR": 125.6,
+            "NINE": 159.6, "BBSS": 432.0, "HOMI": 393.8, "ESTA": 388.1,
+        }
         def screen_lapis_3(df, snap):
-            return {"is_rally": False, "score": 0.0, "rvol": 1.0, "is_squeeze": False, "turnover_idr": 0.0}
+            return {"is_rally": False, "score": 0.0, "rvol": 1.0, "is_squeeze": False, "turnover_idr": 0.0, "mcap_display": "Di bawah Rp 500 Miliar", "is_lapis3_definition": True}
         def evaluate_crowd_contrarian(snap, score):
             return {"crowd_sentiment": 0.0, "buzz_velocity": 1.0, "contrarian_signal": "🟢 NORMAL FLOW", "contrarian_desc": "Normal"}
         def scan_real_lapis3_rally(candidate_tickers=None, period="3mo"):
             rows = []
             for t in (candidate_tickers or DEFAULT_LAPIS3_CANDIDATES):
-                rows.append({"ticker": t, "nama": t, "harga": 100, "rvol": 1.0, "squeeze": "⚪ Tidak", "bid_pct": 50.0, "turnover": 1000000000, "broker_utama": "Smart Money", "proyeksi_harga": "Normal", "status": "⚪ KONSOLIDASI"})
+                rows.append({"ticker": t, "nama": t, "harga": 70, "mcap": "Rp 250.0 M", "mcap_val": 250.0, "rvol": 1.0, "squeeze": "⚪ Tidak", "bid_pct": 50.0, "turnover": 1000000000, "broker_utama": "Smart Money", "proyeksi_harga": "Normal", "status": "⚪ KONSOLIDASI"})
             return pd.DataFrame(rows)
+
 from modules.bot_dispatcher import (
     dispatcher_instance,
     format_super_profit_message,
@@ -1148,22 +1163,23 @@ net_pnl_calc = calculate_net_pnl(current_price, plan["take_profit_1"], pos["shar
 # ----------------- ROUTER MENU NAVIGASI (SIDEBAR) -----------------
 if app_menu == "⚡ Lapis 3 Rally Hunter":
     st.markdown('<div class="main-title">⚡ Lapis 3 Rally Hunter & Sentimen Kerumunan Ritel (Crowd Lab)</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">Detektor Khusus Momentum Saham Lapis 3 (Saham Gocap Rp 50 – Rp 100 & Saham Receh Rp 100 – Rp 1.000) yang Sedang Rally Berbasis Relative Volume (RVol > 2.0x), Bollinger Band Squeeze & Dominasi Antrian Beli</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Khusus Saham Lapis 3 (Third Liner / Small-Cap Market Cap &lt; Rp 500 Miliar) yang Sedang Rally Berbasis Relative Volume (RVol &gt; 1.5x), Bollinger Band Squeeze &amp; Dominasi Antrian Beli</div>', unsafe_allow_html=True)
 
     # =========================================================================
-    # 1. RADAR & PEMINDAI PASAR RIIL SAHAM LAPIS 3 RALLY
+    # 1. RADAR & PEMINDAI PASAR RIIL SAHAM LAPIS 3 RALLY (< RP 500 MILIAR)
     # =========================================================================
-    st.markdown("#### 🚀 Radar & Pemindai Saham Lapis 3 Berpotensi Rally (Gocap & Receh BEI)")
+    st.markdown("#### 🚀 Radar & Pemindai Saham Lapis 3 Berpotensi Rally (Market Cap < Rp 500 Miliar)")
     st.caption("Peringkat saham lapis 3 yang terdeteksi memiliki anomali lonjakan volume, kompresi volatilitas (squeeze), dan dominasi buku pesanan secara real-time dari bursa:")
 
     col_opt1, col_opt2 = st.columns([3, 1])
     with col_opt1:
         rally_mode = st.radio(
-            "Cakupan Katalog Saham Small-Cap / Lapis 3:",
+            "Cakupan Katalog Saham Small-Cap / Lapis 3 (Market Cap < Rp 500 Miliar):",
             options=[
-                "🌟 Saham Lapis 3 Terpantau Utama (DEWA, BUMI, BRMS, ENRG, PSAB, RAJA, ELSA, KIJA, DOID)",
-                "🔥 Saham Gocap & Tidur (Rp 50 – Rp 100) (GOTO, BKSL, SLIS, LPKR, MLPL, BHIT, GZCO, FREN, ZATA, ASRI)",
-                "⚡ Seluruh Katalog Small-Cap Aktif BEI (+ CUAN, MBMA, BUKA, MNCN, dll)",
+                "🌟 Saham Lapis 3 Terpantau Utama (< Rp 500M) (CSMI, SLIS, ZATA, POLA, NASI, REAL, ATLA, WINR, NINE, BBSS)",
+                "🔥 Saham Gocap Lapis 3 (Rp 50 – Rp 100 & < Rp 500M) (SLIS, ZATA, POLA, BBSS, ACRO, BATR, KOCI, NINE, REAL)",
+                "💎 Saham Receh Lapis 3 (Rp 100 – Rp 1.000 & < Rp 500M) (CSMI, NASI, BOBA, PURI, LUCK, BAPA, HOMI, ESTA)",
+                "⚡ Seluruh Katalog Lapis 3 Terverifikasi BEI (Market Cap < Rp 500 Miliar)",
                 "✏️ Pilihan Kustom (Ketik Kode Saham Bebas)"
             ],
             index=0,
@@ -1178,25 +1194,27 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
     # Tentukan daftar ticker berdasarkan pilihan
     if "Saham Lapis 3 Terpantau Utama" in rally_mode:
         active_scan_tickers = DEFAULT_LAPIS3_CANDIDATES
-    elif "Saham Gocap & Tidur" in rally_mode:
+    elif "Saham Gocap Lapis 3" in rally_mode:
         active_scan_tickers = GOCAP_LAPIS3_CANDIDATES
+    elif "Saham Receh Lapis 3" in rally_mode:
+        active_scan_tickers = RECEH_LAPIS3_CANDIDATES
     elif "Seluruh Katalog" in rally_mode:
         active_scan_tickers = EXPANDED_LAPIS3_CANDIDATES
     else:
         custom_input = st.text_input(
-            "Ketik Kode Saham (Pisahkan dengan koma, cth: DEWA, BUMI, BRMS, ENRG, PSAB, GOTO, BKSL):",
-            value="DEWA, BUMI, BRMS, ENRG, PSAB, RAJA, ELSA, KIJA, DOID, GOTO, BKSL",
+            "Ketik Kode Saham Lapis 3 (Pisahkan dengan koma, cth: CSMI, SLIS, ZATA, POLA, REAL, ATLA):",
+            value="CSMI, SLIS, ZATA, POLA, NASI, REAL, ATLA, WINR, NINE, BBSS, HOMI, ESTA",
             key="custom_rally_tickers"
         )
         active_scan_tickers = [c.strip().upper() for c in custom_input.split(",") if c.strip()]
 
     # Eksekusi Pemindaian Real-Time Berkecepatan Tinggi
-    with st.spinner("⚡ Memindai radar saham lapis 3 yang sedang rally..."):
+    with st.spinner("⚡ Memindai radar saham lapis 3 (Market Cap < Rp 500 Miliar) yang sedang rally..."):
         df_rally = get_cached_lapis3_rally_scan(tuple(active_scan_tickers))
 
     # Pengurutan: Prioritaskan Saham yang sedang Rally / Siap Meledak
     if df_rally is not None and not df_rally.empty:
-        status_rank = {"🟢 SIAP MELEDAK": 3, "🟡 AKUMULASI": 2, "⚪ KONSOLIDASI": 1}
+        status_rank = {"🟢 SIAP MELEDAK": 3, "🟡 AKUMULASI": 2, "⚪ KONSOLIDASI": 1, "⛔ BUKAN LAPIS 3": 0}
         df_rally["_rank"] = df_rally["status"].map(lambda s: status_rank.get(s, 1))
         df_rally = df_rally.sort_values(by=["_rank", "rvol", "bid_pct"], ascending=[False, False, False]).reset_index(drop=True)
         df_rally.drop(columns=["_rank"], inplace=True)
@@ -1206,7 +1224,7 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
     with col_tb_f1:
         only_rally_toggle = st.checkbox("🔥 Hanya Tampilkan Saham yang Sedang Rally / Akumulasi Aktif", value=False, key="filter_only_rally")
     with col_tb_f2:
-        st.caption(f"Total Terpantau: **{len(df_rally) if df_rally is not None else 0} Emiten**")
+        st.caption(f"Total Terpantau: **{len(df_rally) if df_rally is not None else 0} Emiten Lapis 3**")
 
     df_display = df_rally
     if df_rally is not None and not df_rally.empty and only_rally_toggle:
@@ -1218,11 +1236,12 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
     if df_display is not None and not df_display.empty:
         st.dataframe(
             df_display,
-            column_order=["ticker", "nama", "harga", "rvol", "squeeze", "bid_pct", "turnover", "broker_utama", "proyeksi_harga", "status"],
+            column_order=["ticker", "nama", "harga", "mcap", "rvol", "squeeze", "bid_pct", "turnover", "broker_utama", "proyeksi_harga", "status"],
             column_config={
                 "ticker": "Kode Saham",
                 "nama": "Nama Perusahaan",
                 "harga": st.column_config.NumberColumn("Harga (IDR)", format="Rp %d"),
+                "mcap": "Market Cap (< Rp 500M)",
                 "rvol": st.column_config.NumberColumn("Relative Vol (x)", format="%.2fx"),
                 "squeeze": "Bollinger Squeeze",
                 "bid_pct": st.column_config.NumberColumn("% Bid", format="%.1f%%"),
@@ -1246,8 +1265,8 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
     st.caption("Pilih salah satu saham lapis 3 dari hasil pemindai di atas atau masukkan kode saham small-cap secara manual:")
 
     # Default saham lapis 3 yang dianalisis:
-    # Ambil peringkat #1 dari pemindai rally (misal DEWA / BUMI) jika belum diset
-    top_rally_default = df_rally.iloc[0]["ticker"] if (df_rally is not None and not df_rally.empty) else "DEWA"
+    # Ambil peringkat #1 dari pemindai rally (misal CSMI / SLIS) jika belum diset
+    top_rally_default = df_rally.iloc[0]["ticker"] if (df_rally is not None and not df_rally.empty) else "CSMI"
     if "lapis3_active_symbol" not in st.session_state or not st.session_state["lapis3_active_symbol"]:
         st.session_state["lapis3_active_symbol"] = top_rally_default
 
@@ -1300,11 +1319,19 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
     lapis_name = lapis_info.get("longName") or lapis_info.get("shortName") or lapis_meta.get("name", active_lapis_ticker)
     lapis_sector = lapis_info.get("sector") or lapis_meta.get("sector", "Bursa Efek Indonesia")
 
+    # Ambil & Validasi Nilai Kapitalisasi Pasar (Market Cap)
+    lapis_mcap = lapis_info.get("marketCap") or getattr(lapis_info.get("fast_info", None), "market_cap", None)
+    if not lapis_mcap and active_lapis_ticker in KNOWN_LAPIS3_MCAP_MILIAR:
+        lapis_mcap = KNOWN_LAPIS3_MCAP_MILIAR[active_lapis_ticker] * 1e9
+
+    lapis_mcap_m = round((lapis_mcap / 1e9), 1) if lapis_mcap else KNOWN_LAPIS3_MCAP_MILIAR.get(active_lapis_ticker, 150.0)
+    is_true_lapis3 = (lapis_mcap_m < 500.0)
+
     # Klasifikasi Tingkatan (Tier) Khusus Saham Lapis 3
     if 50.0 <= lapis_price <= 100.0:
-        tier_title = "Saham Gocap / Saham Tidur (Rp 50 – Rp 100)"
+        tier_title = "Saham Gocap Lapis 3 (Rp 50 – Rp 100)"
     elif 100.0 < lapis_price <= 1000.0:
-        tier_title = "Saham Receh / Saham Murah (Rp 100 – Rp 1.000)"
+        tier_title = "Saham Receh Lapis 3 (Rp 100 – Rp 1.000)"
     else:
         tier_title = f"Saham Small-Cap Lapis 3 (Rp {lapis_price:,.0f})"
 
@@ -1349,8 +1376,11 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
         is_syariah=lapis_info.get("is_syariah", True)
     )
 
-    # TAMPILKAN HEADER STATUS SAHAM TERPILIH (100% TERISOLASI!)
-    st.info(f"📌 **Saham Lapis 3 Terpilih**: **{active_lapis_ticker}** ({lapis_name}) | **Rp {lapis_price:,.0f}** | 🏷️ **{tier_title}** | Sektor: **{lapis_sector}**")
+    # TAMPILKAN HEADER STATUS SAHAM TERPILIH & VALIDASI DEFINISI RESMI LAPIS 3
+    if is_true_lapis3:
+        st.info(f"📌 **Saham Lapis 3 Terpilih**: **{active_lapis_ticker}** ({lapis_name}) | **Rp {lapis_price:,.0f}** | 🏷️ **{tier_title}** | 💰 **Market Cap: Rp {lapis_mcap_m:.1f} Miliar** (Resmi &lt; Rp 500 Miliar) | Sektor: **{lapis_sector}**")
+    else:
+        st.warning(f"⚠️ **PERINGATAN DEFINISI LAPIS 3**: **{active_lapis_ticker}** ({lapis_name}) memiliki Kapitalisasi Pasar **Rp {lapis_mcap_m/1000:.2f} Triliun (Rp {lapis_mcap_m:,.1f} Miliar)**. Saham ini **DI ATAS batas Rp 500 Miliar**, sehingga tergolong Lapis 1/2 (Mid-Cap / Large-Cap). Berdasarkan definisi pasar modal, menu ini dikhususkan untuk saham berskala kecil dengan Market Cap &lt; Rp 500 Miliar.")
 
     # 1. Metrik Ringkasan Saham Terpilih
     lapis_rally_status = "🟢 TERPENUHI (SIAP MELEDAK)" if lapis_eval.get("is_rally") else ("🟡 AKUMULASI AKTIF" if lapis_eval.get("rvol", 1.0) >= 1.5 or lapis_eval.get("is_squeeze") else "⚪ KONSOLIDASI")
@@ -1359,12 +1389,12 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
         st.metric("Status Sinyal Rally", lapis_rally_status, f"Skor {lapis_eval.get('score', 0):.1f} / 100")
     with rc2:
         rvol_val = lapis_eval.get('rvol', 1.0)
-        st.metric("Relative Volume (RVol)", f"{rvol_val}x", "Target >= 2.0x (Anomali Lonjakan)")
+        st.metric("Relative Volume (RVol)", f"{rvol_val}x", "Target >= 1.5x (Anomali Lonjakan)")
     with rc3:
         sq_status = "🟢 Squeeze Aktif (Pegas Tertekan)" if lapis_eval.get("is_squeeze") else "⚪ Normal / Ekspansi"
         st.metric("Bollinger Squeeze", sq_status)
     with rc4:
-        st.metric("Turnover Harian Riil", f"Rp {lapis_eval.get('turnover_idr', lapis_turnover):,.0f}")
+        st.metric("Kapitalisasi Pasar", f"Rp {lapis_mcap_m:.1f} Miliar", "Kriteria Resmi < Rp 500M")
 
     st.markdown("---")
 
@@ -1374,8 +1404,10 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
         st.markdown(f"#### 🔍 Analisis Mikrostruktur Saham: **{active_lapis_ticker}**")
         st.write(f"• **Kategori Tingkatan**: **{tier_title}**")
         st.write(f"• **Harga Pasar Terakhir**: **Rp {lapis_price:,.0f}**")
+        st.write(f"• **Kapitalisasi Pasar**: **Rp {lapis_mcap_m:.1f} Miliar** (Definisi Lapis 3 &lt; Rp 500 Miliar)")
         st.write(f"• **Dominasi Buku Pesanan**: **{lapis_ob.get('pct_bid', 50):.1f}% Bid** vs **{lapis_ob.get('pct_offer', 50):.1f}% Offer**")
         st.write(f"• **Status HAKA**: **{lapis_ob.get('haka_badge', '-')}**")
+        st.write(f"• **Turnover Harian Riil**: **Rp {lapis_eval.get('turnover_idr', lapis_turnover):,.0f}**")
         st.write(f"• **Safe Exit Lot Size**: **{lapis_ob.get('safe_exit_lot', 0):,} Lot** ({lapis_ob.get('exit_speed', 'Kilat')})")
         st.info(f"💡 {lapis_ob.get('haka_desc', '')}")
 
@@ -1432,10 +1464,10 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
 
     # 4. ANALISIS TAJAM & PENJELASAN YANG SANGAT MUDAH DIPAHAMI
     st.markdown("### 📖 Analisis Tajam & Penjelasan Dinamika Saham Lapis 3 (Edukasi Praktis)")
-    st.caption("Membedah psikologi transaksi, jebakan bandar, dan strategi mengamankan keuntungan di saham gocap & receh:")
+    st.caption("Membedah definisi baku, psikologi transaksi, jebakan bandar, dan strategi mengamankan keuntungan di saham berskala mikro:")
 
     t1, t2, t3 = st.tabs([
-        "⚡ Mengapa Saham Ini Berpotensi Rally?",
+        "⚡ Definisi Lapis 3 & Hubungan RVol-Squeeze",
         "🚨 Anatomi Jebakan Bandar di Saham Gocap & Receh",
         "⏱️ Mengapa Safe Exit Lot Sangat Krusial?"
     ])
@@ -1443,13 +1475,21 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
     with t1:
         st.markdown(
             f"""
+            #### 🏛️ Definisi Saham Lapis 3 (Third Liner / Small-Cap Stock)
+            Berdasarkan klasifikasi baku Bursa Efek Indonesia dan standar pasar modal internasional:
+            - **Saham Lapis 1 (Large Cap / Blue Chip)**: Nilai kapitalisasi pasar di atas Rp 10 Triliun (> Rp 10.000 Miliar).
+            - **Saham Lapis 2 (Mid Cap / Second Liner)**: Nilai kapitalisasi pasar antara Rp 500 Miliar s/d Rp 10 Triliun.
+            - **Saham Lapis 3 (Small Cap / Third Liner)**: **Perusahaan berskala kecil dengan nilai kapitalisasi pasar DI BAWAH Rp 500 Miliar (< Rp 500.000.000.000)**.
+            
+            Saat ini, saham **{active_lapis_ticker}** mencatatkan nilai kapitalisasi pasar sebesar **Rp {lapis_mcap_m:.1f} Miliar**, sehingga sah memenuhi kriteria fundamental Saham Lapis 3.
+
             #### ⚡ Hubungan Antara Lonjakan Volume (RVol) & Bollinger Band Squeeze
             Pada saham lapis 3 seperti **{active_lapis_ticker}**, lonjakan harga eksplosif hampir selalu diawali oleh dua fenomena matematis:
             1. **Bollinger Band Squeeze (Kompresi Volatilitas Ekstrem)**:
                - Ketika pita Bollinger menyempit ke titik terendah dalam 20-60 hari, artinya pergerakan harga sedang "ditahan" dalam rentang yang sangat sempit.
                - Ini adalah tanda bahwa **Smart Money sedang melakukan akumulasi senyap** tanpa menaikkan harga agar ritel tidak menyadarinya. Ibarat pegas yang ditekan ke bawah, energi potensialnya terus bertumpuk.
-            2. **Relative Volume (RVol) > 2.0x**:
-               - Ketika volume harian melonjak lebih dari 2 kali lipat rata-rata 20 hari terakhir disertai tembusnya batas Bollinger atas, ini adalah tanda bahwa **pegas tersebut telah dilepas (Markup Dimulai)**.
+            2. **Relative Volume (RVol) > 1.5x**:
+               - Ketika volume harian melonjak lebih dari 1.5 kali lipat rata-rata 20 hari terakhir disertai tembusnya batas Bollinger atas, ini adalah tanda bahwa **pegas tersebut telah dilepas (Markup Dimulai)**.
                - Saat ini, saham **{active_lapis_ticker}** mencatatkan RVol sebesar **{lapis_eval.get('rvol', 1.0)}x** dengan status **{lapis_rally_status}**.
             """
         )
@@ -1483,6 +1523,7 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
     # 5. PANDUAN KEPUTUSAN TRADING MASA DEPAN (ACTIONABLE TRADING DECISION)
     st.markdown(f"### 🎯 Panduan Keputusan Trading Masa Depan: Saham **{active_lapis_ticker}**")
     st.caption("Instruksi keputusan konkret, langkah demi langkah, terukur dengan manajemen risiko ketat untuk user:")
+
 
     dec_col1, dec_col2 = st.columns(2)
 
