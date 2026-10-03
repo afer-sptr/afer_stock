@@ -113,6 +113,10 @@ try:
     from modules.technical_analysis_page import render_technical_analysis_page
 except Exception:
     from technical_analysis_page import render_technical_analysis_page
+try:
+    from modules.visual_flow_strategy import render_visual_flow_strategy_page
+except Exception:
+    from visual_flow_strategy import render_visual_flow_strategy_page
 from modules.ihsg_market_driver import (
     get_cached_ihsg_data,
     calculate_emiten_market_beta,
@@ -779,6 +783,7 @@ app_menu = st.sidebar.radio(
     [
         "📊 Dashboard Analisis Saham",
         "📈 Analisis Teknikal",
+        "🔀 Visual Flow Strategy",
         "⚡ Lapis 3 Rally Hunter",
         "🏛️ Analisis Broker dan Emiten",
         "📊 Finance and Statistical Analysis"
@@ -1038,6 +1043,20 @@ price_diff_pct = float(info.get("price_diff_pct", ((current_price - prev_close) 
 # ----------------- ROUTING CEPAT MENU ANALISIS TEKNIKAL -----------------
 if app_menu == "📈 Analisis Teknikal":
     render_technical_analysis_page(
+        ticker=ticker_clean,
+        df_ohlcv=df_tech,
+        info=info,
+        current_price=current_price,
+        all_stocks=ALL_IDX_STOCKS,
+        chosen_tier=chosen_tier,
+        chosen_syariah=chosen_syariah,
+        chosen_sector=chosen_sector,
+    )
+    st.stop()
+
+# ----------------- ROUTING CEPAT MENU VISUAL FLOW STRATEGY -----------------
+elif "Visual Flow Strategy" in app_menu:
+    render_visual_flow_strategy_page(
         ticker=ticker_clean,
         df_ohlcv=df_tech,
         info=info,
