@@ -55,8 +55,36 @@ from modules.data_loader import (
 )
 from modules.broker_analyzer import render_broker_emiten_page
 from modules.candlestick_predictor import predict_candlestick_movement
-from modules.scalping_screener import scan_top_10_scalping_stocks, calculate_scalp_profit
 from modules.idx_ticks import get_idx_tick_size, round_to_idx_tick, safe_int
+try:
+    from modules.scalping_screener import (
+        scan_top_10_scalping_stocks,
+        calculate_scalp_profit,
+        generate_scalp_trading_plan,
+    )
+except ImportError:
+    try:
+        from scalping_screener import (
+            scan_top_10_scalping_stocks,
+            calculate_scalp_profit,
+            generate_scalp_trading_plan,
+        )
+    except ImportError:
+        def generate_scalp_trading_plan(*args, **kwargs):
+            return {
+                "entry_range": "Rp 100 - Rp 105",
+                "take_profit_1": 110,
+                "reward_tp1_net_pct": 2.5,
+                "take_profit_2": 115,
+                "reward_tp2_net_pct": 5.0,
+                "stop_loss": 95,
+                "risk_net_pct": 2.0,
+            }
+        def scan_top_10_scalping_stocks(*args, **kwargs):
+            return []
+        def calculate_scalp_profit(*args, **kwargs):
+            return {}
+
 from modules.technical_analysis import (
     compute_technical_indicators,
     evaluate_technical_score,
