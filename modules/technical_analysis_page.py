@@ -1385,13 +1385,13 @@ def render_technical_analysis_page(
             else:
                 st.warning("Pergerakan harga belum melewati ambang batas 1 box size untuk membentuk kolom Point & Figure.")
         else:
-            # Candlestick / Heikin-Ashi / Bar Chart Standar
+            st.markdown(f"###### 📈 Grafik Harga {clean_t} ({chart_type}) & Overlay Indikator")
             fig = make_subplots(
                 rows=3, cols=1,
                 shared_xaxes=True,
-                vertical_spacing=0.03,
+                vertical_spacing=0.04,
                 row_heights=[0.60, 0.20, 0.20],
-                subplot_titles=[f"Grafik Harga {clean_t} ({chart_type})", "Volume Transaksi & Aliran Dana", sub_indicator]
+                subplot_titles=["", "Volume Transaksi & Aliran Dana", sub_indicator]
             )
 
             # Main Chart
@@ -1436,13 +1436,14 @@ def render_technical_analysis_page(
             if "Parabolic SAR" in overlay_choice and "PSAR" in plot_df.columns:
                 fig.add_trace(go.Scatter(x=plot_df.index, y=plot_df["PSAR"], name="Parabolic SAR", mode="markers", marker=dict(color="#FCD34D", size=3)), row=1, col=1)
 
+            # Anotasi Garis: Pivot S/R di KANAN, Fibonacci di KIRI (Anti-Tabrakan)
             if "Pivot S/R" in overlay_choice:
-                fig.add_hline(y=pivots["r1"], line_dash="dot", line_color="#F87171", annotation_text=f"R1: {pivots['r1']:,}", row=1, col=1)
-                fig.add_hline(y=pivots["s1"], line_dash="dot", line_color="#34D399", annotation_text=f"S1: {pivots['s1']:,}", row=1, col=1)
+                fig.add_hline(y=pivots["r1"], line_dash="dot", line_color="#F87171", annotation_text=f"R1: Rp {pivots['r1']:,}", annotation_position="top right", annotation_font=dict(size=10.5, color="#F87171"), row=1, col=1)
+                fig.add_hline(y=pivots["s1"], line_dash="dot", line_color="#34D399", annotation_text=f"S1: Rp {pivots['s1']:,}", annotation_position="bottom right", annotation_font=dict(size=10.5, color="#34D399"), row=1, col=1)
 
             if "Fibonacci" in overlay_choice:
-                fig.add_hline(y=fibs["fib_618"], line_dash="dash", line_color="#C084FC", annotation_text=f"Fibo 61.8%: {fibs['fib_618']:,}", row=1, col=1)
-                fig.add_hline(y=fibs["fib_382"], line_dash="dash", line_color="#818CF8", annotation_text=f"Fibo 38.2%: {fibs['fib_382']:,}", row=1, col=1)
+                fig.add_hline(y=fibs["fib_618"], line_dash="dash", line_color="#C084FC", annotation_text=f"Fibo 61.8%: Rp {fibs['fib_618']:,}", annotation_position="top left", annotation_font=dict(size=10.5, color="#C084FC"), row=1, col=1)
+                fig.add_hline(y=fibs["fib_382"], line_dash="dash", line_color="#818CF8", annotation_text=f"Fibo 38.2%: Rp {fibs['fib_382']:,}", annotation_position="bottom left", annotation_font=dict(size=10.5, color="#818CF8"), row=1, col=1)
 
             # Row 2: Volume & CMF
             vol_cols = ['#22C55E' if c >= o else '#EF4444' for c, o in zip(plot_df["Close"], plot_df["Open"])]
@@ -1469,7 +1470,20 @@ def render_technical_analysis_page(
                     fig.add_hline(y=100, line_dash="dash", line_color="#EF4444", row=3, col=1)
                     fig.add_hline(y=-100, line_dash="dash", line_color="#10B981", row=3, col=1)
 
-            fig.update_layout(height=780, template="plotly_dark", margin=dict(l=20, r=20, t=30, b=20), xaxis_rangeslider_visible=False, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+            fig.update_layout(
+                height=780,
+                template="plotly_dark",
+                margin=dict(l=35, r=135, t=45, b=20),
+                xaxis_rangeslider_visible=False,
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="center",
+                    x=0.5,
+                    font=dict(size=11)
+                )
+            )
             st.plotly_chart(fig, use_container_width=True)
 
     # ==============================================================================

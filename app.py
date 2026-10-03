@@ -1967,12 +1967,13 @@ with tab_chart:
     with reg_col2:
         st.success(f"🎯 **Strategi Rekomendasi**: {tech_suite.get('recommended_strategy', 'Trend Following')}")
 
+    st.markdown(f"##### 📈 Grafik Interaktif Harga {ticker_clean} (Candlestick & Moving Average Ribbon)")
     fig = make_subplots(
         rows=2, cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.03,
+        vertical_spacing=0.04,
         row_heights=[0.75, 0.25],
-        subplot_titles=[f"Grafik Harga {ticker_clean} (Candlestick & MA Ribbon)", "Volume Transaksi"]
+        subplot_titles=["", "Volume Transaksi"]
     )
 
     # Candlestick
@@ -2001,28 +2002,132 @@ with tab_chart:
     if "SMA_200" in df_tech.columns:
         fig.add_trace(go.Scatter(x=df_tech.index, y=df_tech["SMA_200"], name="SMA 200", line=dict(color="#8B5CF6", width=2.0)), row=1, col=1)
 
-    # Garis Rekomendasi Candlestick Real-Time
-    fig.add_hline(y=candle_pred["tp1"], line_dash="dash", line_color="#10B981", annotation_text=f"TP1 Lilin (Rp {candle_pred['tp1']:,} | {candle_pred['tp1_net_pct']:+.1f}%)", row=1, col=1)
-    fig.add_hline(y=candle_pred["tp2"], line_dash="solid", line_color="#059669", annotation_text=f"TP2 Lilin (Rp {candle_pred['tp2']:,} | {candle_pred['tp2_net_pct']:+.1f}%)", row=1, col=1)
-    fig.add_hline(y=candle_pred["stop_loss"], line_dash="dash", line_color="#DC2626", annotation_text=f"Cut Loss Lilin (Rp {candle_pred['stop_loss']:,} | {candle_pred['sl_net_pct']:+.1f}%)", row=1, col=1)
-    fig.add_hline(y=candle_pred["entry_price"], line_dash="dot", line_color="#3B82F6", annotation_text=f"Entry Lilin (Rp {candle_pred['entry_price']:,})", row=1, col=1)
+    # 1. Garis Fibonacci 61.8% di sisi KIRI grafik (mencegah tabrakan dengan level target di sisi kanan)
+    fibo_618 = hl_eval.get("fib_levels", {}).get("fib_618", 0)
+    if fibo_618 > 0:
+        fig.add_hline(
+            y=fibo_618,
+            line_dash="dot",
+            line_color="#F59E0B",
+            annotation_text=f"Fib 61.8% (Rp {fibo_618:,})",
+            annotation_position="top left",
+            annotation_font=dict(size=10.5, color="#FBBF24"),
+            row=1, col=1
+        )
 
-    # Garis Rekomendasi Multi-Pilar TP / SL Berfraksi BEI
-    fig.add_hline(y=plan["take_profit_1"], line_dash="dot", line_color="#34D399", annotation_text=f"TP1 Sistem (Rp {plan['take_profit_1']:,})", row=1, col=1)
-    fig.add_hline(y=plan["stop_loss"], line_dash="dot", line_color="#F87171", annotation_text=f"SL Sistem (Rp {plan['stop_loss']:,})", row=1, col=1)
+    # 2. Garis Entry Lilin di sisi KIRI grafik
+    entry_c = candle_pred.get("entry_price", 0)
+    if entry_c > 0:
+        fig.add_hline(
+            y=entry_c,
+            line_dash="dot",
+            line_color="#38BDF8",
+            annotation_text=f"Entry Lilin (Rp {entry_c:,})",
+            annotation_position="bottom left",
+            annotation_font=dict(size=10.5, color="#38BDF8"),
+            row=1, col=1
+        )
 
-    # Garis Fibo 61.8%
-    fig.add_hline(y=hl_eval["fib_levels"]["fib_618"], line_dash="dot", line_color="#F59E0B", annotation_text=f"Fib 61.8% (Rp {hl_eval['fib_levels']['fib_618']:,})", row=1, col=1)
+    # 3. Take Profit 2 (TP2) di sisi KANAN ATAS
+    tp2_c = candle_pred.get("tp2", 0)
+    if tp2_c > 0:
+        fig.add_hline(
+            y=tp2_c,
+            line_dash="solid",
+            line_color="#059669",
+            annotation_text=f"TP2 Lilin (Rp {tp2_c:,} | {candle_pred.get('tp2_net_pct', 0):+.1f}%)",
+            annotation_position="top right",
+            annotation_font=dict(size=10.5, color="#34D399"),
+            row=1, col=1
+        )
+
+    # 4. Take Profit 1 (TP1) - Bersih dan Bebas Tabrakan
+    tp1_c = candle_pred.get("tp1", 0)
+    tp1_s = plan.get("take_profit_1", 0)
+    if tp1_c > 0 and (tp1_s == 0 or abs(tp1_c - tp1_s) <= 2):
+        # Gabungkan jika level harga sama/hampir sama persis
+        fig.add_hline(
+            y=tp1_c,
+            line_dash="dash",
+            line_color="#10B981",
+            annotation_text=f"TP1 Target (Rp {tp1_c:,} | {candle_pred.get('tp1_net_pct', 0):+.1f}%)",
+            annotation_position="bottom right",
+            annotation_font=dict(size=10.5, color="#10B981"),
+            row=1, col=1
+        )
+    else:
+        if tp1_c > 0:
+            fig.add_hline(
+                y=tp1_c,
+                line_dash="dash",
+                line_color="#10B981",
+                annotation_text=f"TP1 Lilin (Rp {tp1_c:,})",
+                annotation_position="bottom right",
+                annotation_font=dict(size=10.5, color="#10B981"),
+                row=1, col=1
+            )
+        if tp1_s > 0:
+            fig.add_hline(
+                y=tp1_s,
+                line_dash="dot",
+                line_color="#34D399",
+                annotation_text=f"TP1 Sistem (Rp {tp1_s:,})",
+                annotation_position="top right",
+                annotation_font=dict(size=10.5, color="#34D399"),
+                row=1, col=1
+            )
+
+    # 5. Cut Loss / Stop Loss (SL) - Bersih dan Bebas Tabrakan
+    sl_c = candle_pred.get("stop_loss", 0)
+    sl_s = plan.get("stop_loss", 0)
+    if sl_c > 0 and (sl_s == 0 or abs(sl_c - sl_s) <= 2):
+        fig.add_hline(
+            y=sl_c,
+            line_dash="dash",
+            line_color="#DC2626",
+            annotation_text=f"Cut Loss (Rp {sl_c:,} | {candle_pred.get('sl_net_pct', 0):+.1f}%)",
+            annotation_position="bottom right",
+            annotation_font=dict(size=10.5, color="#F87171"),
+            row=1, col=1
+        )
+    else:
+        if sl_c > 0:
+            fig.add_hline(
+                y=sl_c,
+                line_dash="dash",
+                line_color="#DC2626",
+                annotation_text=f"Cut Loss Lilin (Rp {sl_c:,})",
+                annotation_position="top right",
+                annotation_font=dict(size=10.5, color="#F87171"),
+                row=1, col=1
+            )
+        if sl_s > 0:
+            fig.add_hline(
+                y=sl_s,
+                line_dash="dot",
+                line_color="#EF4444",
+                annotation_text=f"SL Sistem (Rp {sl_s:,})",
+                annotation_position="bottom right",
+                annotation_font=dict(size=10.5, color="#EF4444"),
+                row=1, col=1
+            )
 
     # Volume Bar
     vol_colors = ['#22C55E' if c >= o else '#EF4444' for c, o in zip(df_tech["Close"], df_tech["Open"])]
     fig.add_trace(go.Bar(x=df_tech.index, y=df_tech["Volume"], name="Volume", marker_color=vol_colors), row=2, col=1)
 
     fig.update_layout(
-        height=640,
-        margin=dict(l=20, r=20, t=30, b=20),
+        height=660,
+        margin=dict(l=35, r=135, t=45, b=25),
         xaxis_rangeslider_visible=False,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=11)
+        )
     )
     st.plotly_chart(fig, use_container_width=True)
 
