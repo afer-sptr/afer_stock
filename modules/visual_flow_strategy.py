@@ -560,11 +560,14 @@ REPRESENTATIVE_SCANNER_TICKERS: List[str] = [
 
 def scan_visual_flow_universe(
     params: Dict[str, Any],
-    candidate_tickers: Optional[List[str]] = None
+    candidate_tickers: Optional[List[str]] = None,
+    tier_filter: str = "Semua Tingkatan",
+    syariah_filter: str = "Semua"
 ) -> List[Dict[str, Any]]:
     """
     Memindai semesta saham BEI terhadap 7 Filter Kuantitatif Visual Flow Strategy.
     Mengembalikan daftar lengkap saham dengan status lolos/gagal untuk tiap node.
+    Mendukung penyaringan Tingkatan (Tier) dan Status Syariah / Non-Syariah resmi OJK/DSN-MUI.
     Diproses sangat cepat menggunakan cache data harga & mikrostruktur.
     """
     tickers = candidate_tickers or REPRESENTATIVE_SCANNER_TICKERS
@@ -574,6 +577,31 @@ def scan_visual_flow_universe(
     for t in tickers:
         clean_t = t.replace(".JK", "").upper().strip()
         meta = get_stock_metadata(clean_t)
+
+        # Filter Tingkatan (Tier)
+        if tier_filter not in {"Semua", "Semua Tingkatan"}:
+            t_code = meta.get("tier_code", "")
+            if "Gocap" in tier_filter or "Tidur" in tier_filter or "Rp50" in tier_filter:
+                if t_code != "GOCAP":
+                    continue
+            elif "Receh" in tier_filter or "Murah" in tier_filter or "Rp100 – Rp1.000" in tier_filter:
+                if t_code != "RECEH":
+                    continue
+            elif "Menengah" in tier_filter or "Rp1.000 – Rp5.000" in tier_filter:
+                if t_code != "MENENGAH":
+                    continue
+            elif "Premium" in tier_filter or "Blue Chip" in tier_filter or "5.000" in tier_filter:
+                if t_code != "PREMIUM":
+                    continue
+
+        # Filter Syariah
+        if syariah_filter != "Semua":
+            is_s = meta.get("is_syariah", False)
+            if "Non-Syariah" in syariah_filter and is_s:
+                continue
+            elif "Syariah" in syariah_filter and not is_s:
+                continue
+
         price = float(idx_prices.get(clean_t, meta.get("price", 100.0)))
         if price <= 0:
             price = 100.0
@@ -628,6 +656,9 @@ def scan_visual_flow_universe(
             "name": meta.get("name", clean_t),
             "sector": meta.get("sector", "Bursa Efek Indonesia"),
             "tier": meta.get("tier_short", meta.get("tier", "Regular")),
+            "tier_full": meta.get("tier", "Regular"),
+            "is_syariah": meta.get("is_syariah", False),
+            "syariah": meta.get("syariah_label", "☪️ Syariah" if meta.get("is_syariah") else "⚪ Non-Syariah"),
             "price": price,
             "mola_lot": vol_lot,
             "rvol": rvol,
@@ -923,10 +954,47 @@ def render_visual_flow_strategy_page(
 
     # ----------------- KONTROL PILIH SAHAM (KATALOG & KETIK MANUAL) -----------------
     st.markdown("#### 🔍 Pilih Saham untuk Evaluasi Visual Flow:")
-    sel_col1, sel_col2 = st.columns([1.5, 3.5])
-    with sel_col1:
+
+    col_flt1, col_flt2, col_flt3 = st.columns([1.5, 1.5, 1.8])
+    with col_flt1:
+        flow_tier_options = [
+            "Semua Tingkatan",
+            "Saham Gocap / Saham Tidur (Rp50 – Rp100)",
+            "Saham Receh / Saham Murah (Rp100 – Rp1.000)",
+            "Saham Menengah (Rp1.000 – Rp5.000)",
+            "Saham Premium / Blue Chip (Di atas Rp5.000)",
+        ]
+        tier_def_idx = 0
+        if chosen_tier in flow_tier_options:
+            tier_def_idx = flow_tier_options.index(chosen_tier)
+        flow_chosen_tier = st.selectbox(
+            "Filter Tingkatan (Tier):",
+            flow_tier_options,
+            index=tier_def_idx,
+            key="flow_chosen_tier_box",
+            help="Saring emiten berdasarkan fraksi harga pasar nominal resmi BEI."
+        )
+
+    with col_flt2:
+        flow_syariah_options = [
+            "Semua",
+            "☪️ Hanya Syariah (ISSI)",
+            "⚪ Non-Syariah"
+        ]
+        syariah_def_idx = 0
+        if chosen_syariah in flow_syariah_options:
+            syariah_def_idx = flow_syariah_options.index(chosen_syariah)
+        flow_chosen_syariah = st.selectbox(
+            "Filter Syariah (OJK/DSN-MUI):",
+            flow_syariah_options,
+            index=syariah_def_idx,
+            key="flow_chosen_syariah_box",
+            help="Saring emiten sesuai fatwa DSN-MUI & Daftar Efek Syariah (DES) OJK."
+        )
+
+    with col_flt3:
         flow_input_mode = st.radio(
-            "Metode Pemilihan:",
+            "Metode Pemilihan Saham:",
             ["Pilih dari Katalog BEI", "Ketik Manual Ticker"],
             index=0,
             key="flow_stock_input_mode",
@@ -934,51 +1002,76 @@ def render_visual_flow_strategy_page(
         )
 
     current_flow_ticker = str(st.session_state.get("selected_ticker", ticker)).replace(".JK", "").upper().strip()
-    
-    with sel_col2:
-        if flow_input_mode == "Ketik Manual Ticker":
-            with st.form("flow_manual_ticker_form"):
-                f_c1, f_c2 = st.columns([3, 1])
-                with f_c1:
-                    manual_t = st.text_input(
-                        "Ketik Kode Saham BEI (contoh: BBCA, BBRI, BUMI, BRMS, CSMI, SLIS, ZATA):",
-                        value=current_flow_ticker,
-                        help="Ketik 4 digit kode emiten BEI lalu tekan Enter atau klik tombol Evaluasi Saham."
-                    ).strip().upper()
-                with f_c2:
-                    st.write("")
-                    btn_submit_manual = st.form_submit_button("🔍 Evaluasi Saham", type="primary", use_container_width=True)
-                if btn_submit_manual and manual_t:
-                    clean_m = manual_t.replace(".JK", "").strip()
-                    if len(clean_m) >= 2:
-                        st.session_state["selected_ticker"] = clean_m
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ Masukkan minimal 2-4 huruf kode emiten BEI.")
+
+    if flow_input_mode == "Ketik Manual Ticker":
+        with st.form("flow_manual_ticker_form"):
+            f_c1, f_c2 = st.columns([3.5, 1.5])
+            with f_c1:
+                manual_t = st.text_input(
+                    "Ketik Kode Saham BEI (contoh: BBCA, BBRI, BUMI, BRMS, CSMI, SLIS, ZATA):",
+                    value=current_flow_ticker,
+                    help="Ketik 4 digit kode emiten BEI lalu tekan Enter atau klik tombol Evaluasi Saham."
+                ).strip().upper()
+            with f_c2:
+                st.write("")
+                btn_submit_manual = st.form_submit_button("🔍 Evaluasi Saham", type="primary", use_container_width=True)
+            if btn_submit_manual and manual_t:
+                clean_m = manual_t.replace(".JK", "").strip()
+                if len(clean_m) >= 2:
+                    st.session_state["selected_ticker"] = clean_m
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Masukkan minimal 2-4 huruf kode emiten BEI.")
+    else:
+        # Saring katalog saham berdasarkan Tier & Syariah yang dipilih
+        filtered_flow_stocks = filter_idx_stocks(
+            tier_filter=flow_chosen_tier,
+            syariah_filter=flow_chosen_syariah,
+            sector_filter="Semua",
+            search_query=""
+        )
+
+        flow_stock_labels = [s.get("display_label", s.get("ticker", "")) for s in filtered_flow_stocks]
+        matching_flow_idx = None
+        for i, s in enumerate(filtered_flow_stocks):
+            if s.get("ticker") == current_flow_ticker:
+                matching_flow_idx = i
+                break
+
+        # Jika emiten yang sedang aktif saat ini tidak ada di hasil filter,
+        # sisipkan emiten aktif di baris pertama agar pilihan tidak ter-reset paksa
+        if matching_flow_idx is None:
+            active_flow_meta = get_stock_metadata(current_flow_ticker)
+            active_label = f"📌 [Aktif] {active_flow_meta.get('display_label', current_flow_ticker)}"
+            flow_stock_labels.insert(0, active_label)
+            selected_flow_idx = 0
         else:
-            all_labels = [s.get("display_label", s.get("ticker", "")) for s in all_stocks]
-            found_idx = 0
-            for i, s in enumerate(all_stocks):
-                if s.get("ticker") == current_flow_ticker:
-                    found_idx = i
-                    break
-            
-            def _on_flow_catalog_change():
-                chosen_val = st.session_state.get("flow_catalog_selector")
-                if chosen_val:
-                    clean_t = chosen_val.split(" [")[0].replace("📌 [Aktif] ", "").strip().upper()
-                    st.session_state["selected_ticker"] = clean_t
-            
-            chosen_cat_label = st.selectbox(
-                "Katalog Saham BEI:",
-                all_labels,
-                index=found_idx,
-                key="flow_catalog_selector",
-                on_change=_on_flow_catalog_change
-            )
+            selected_flow_idx = matching_flow_idx
+
+        def _on_flow_catalog_change():
+            chosen_val = st.session_state.get("flow_catalog_selector")
+            if chosen_val:
+                clean_t = chosen_val.replace("📌 [Aktif] ", "").split(" - ")[0].split(" [")[0].strip().upper()
+                st.session_state["selected_ticker"] = clean_t
+
+        chosen_cat_label = st.selectbox(
+            f"Katalog Saham BEI Terfilter ({len(filtered_flow_stocks)} Saham):",
+            flow_stock_labels,
+            index=selected_flow_idx,
+            key="flow_catalog_selector",
+            on_change=_on_flow_catalog_change
+        )
+        current_flow_ticker = chosen_cat_label.replace("📌 [Aktif] ", "").split(" - ")[0].split(" [")[0].strip().upper()
+        st.session_state["selected_ticker"] = current_flow_ticker
+
+    # Ambil metadata otoritatif saham terpilih
+    live_flow_meta = get_stock_metadata(current_flow_ticker)
+    live_tier = live_flow_meta.get("tier", chosen_tier)
+    live_syariah = live_flow_meta.get("syariah_label", "⚪ Non-Syariah" if not live_flow_meta.get("is_syariah") else "☪️ Syariah (ISSI)")
+    live_sector = live_flow_meta.get("sector", chosen_sector)
 
     # Info Badge Saham Aktif yang sedang diinspeksi
-    st.info(f"🎯 **Emiten Aktif Terpilih**: **{current_flow_ticker}** | Harga Terakhir: **Rp {current_price:,.0f}** | Sektor: **{chosen_sector}** | Kategori: **{chosen_tier}** | Syariah: **{chosen_syariah}**")
+    st.info(f"🎯 **Emiten Aktif Terpilih**: **{current_flow_ticker}** ({live_flow_meta.get('name', current_flow_ticker)}) | Harga Terakhir: **Rp {current_price:,.0f}** | Sektor: **{live_sector}** | Kategori: **{live_tier}** | Syariah: **{live_syariah}**")
 
     # ----------------- STOCK EVALUATION ENGINE -----------------
     clean_ticker = current_flow_ticker
@@ -1096,8 +1189,12 @@ def render_visual_flow_strategy_page(
 
     scan_tab1, scan_tab2 = st.tabs(["🌟 Saham Lolos Sempurna & Siap HAKA", "📋 Seluruh Hasil Pemindaian Semesta"])
     
-    # Jalankan pemindaian
-    scanner_results = scan_visual_flow_universe(params)
+    # Jalankan pemindaian sesuai Filter Tingkatan (Tier) & Syariah aktif
+    scanner_results = scan_visual_flow_universe(
+        params,
+        tier_filter=flow_chosen_tier,
+        syariah_filter=flow_chosen_syariah
+    )
     passed_stocks = [s for s in scanner_results if s["all_passed"]]
     approaching_stocks = [s for s in scanner_results if not s["all_passed"] and s["passed_count"] >= 5]
 
@@ -1129,7 +1226,7 @@ def render_visual_flow_strategy_page(
                         st.session_state["selected_ticker"] = p_stk["ticker"]
                         st.rerun()
         else:
-            st.info("ℹ️ Belum ada emiten yang memenuhi 100% dari ke-7 filter ketat saat ini. Menampilkan emiten dengan setup terdekat (Lolos ≥ 5 Filter):")
+            st.info(f"ℹ️ Belum ada emiten dengan filter ({flow_chosen_tier} | {flow_chosen_syariah}) yang memenuhi 100% dari ke-7 filter ketat saat ini. Menampilkan emiten dengan setup terdekat (Lolos ≥ 5 Filter):")
 
         if approaching_stocks:
             st.markdown("##### ⚡ Emiten Mendekati Kriteria (Lolos 5 - 6 Filter):")
@@ -1139,6 +1236,7 @@ def render_visual_flow_strategy_page(
                     "Nama Emiten": s["name"],
                     "Harga": f"Rp {s['price']:,.0f}",
                     "Tingkatan": s["tier"],
+                    "Syariah": s["syariah"],
                     "Lolos": f"{s['passed_count']}/8",
                     "Mola (Lot)": f"{s['mola_lot']:,.0f}",
                     "RVOL": f"{s['rvol']}x",
@@ -1159,6 +1257,8 @@ def render_visual_flow_strategy_page(
                 "Kode": s["ticker"],
                 "Nama Perusahaan": s["name"],
                 "Harga Terakhir": f"Rp {s['price']:,.0f}",
+                "Tingkatan": s["tier"],
+                "Syariah": s["syariah"],
                 "Sektor": s["sector"],
                 "Lolos Filter": f"{s['passed_count']}/8",
                 "Mola (Lot)": f"{s['mola_lot']:,.0f}",
