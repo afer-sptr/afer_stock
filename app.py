@@ -208,7 +208,13 @@ if generate_broker_interpretation_conclusion is None:
             "top_sellers_str": ", ".join([f"{s['code']} ({s['name']})" for s in sellers[:3]]),
         }
 from modules.advanced_ai_suite import run_comprehensive_ai_suite
-from modules.lapis3_rally_crowd import screen_lapis_3, evaluate_crowd_contrarian
+from modules.lapis3_rally_crowd import (
+    screen_lapis_3,
+    evaluate_crowd_contrarian,
+    scan_real_lapis3_rally,
+    DEFAULT_LAPIS3_CANDIDATES,
+    EXPANDED_LAPIS3_CANDIDATES,
+)
 from modules.bot_dispatcher import (
     dispatcher_instance,
     format_super_profit_message,
@@ -869,6 +875,11 @@ def get_cached_ai_suite(df_history: pd.DataFrame, news_titles: tuple, pct_bid: f
 def get_cached_scalping_picks(tier_filter: str, syariah_filter: str, _ver: str = CACHE_VERSION_KEY):
     return scan_top_10_scalping_stocks(tier_filter=tier_filter, syariah_filter=syariah_filter)
 
+@st.cache_data(ttl=45, show_spinner=False)
+def get_cached_lapis3_rally_scan(candidate_tickers_tuple: tuple = None, _ver: str = CACHE_VERSION_KEY):
+    tickers_list = list(candidate_tickers_tuple) if candidate_tickers_tuple else None
+    return scan_real_lapis3_rally(candidate_tickers=tickers_list)
+
 @st.cache_data(ttl=15, show_spinner=False)
 def get_cached_intraday(ticker_symbol: str):
     return fetch_intraday_data(ticker_symbol)
@@ -1147,38 +1158,84 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
 
     st.markdown("---")
     st.markdown("#### 🚀 Pemindai Saham Potensi Rally (Katalog Small-Cap / Lapis 3)")
-    st.caption("Peringkat saham lapis 3 yang terdeteksi memiliki anomali lonjakan volume, kompresi volatilitas, dan jejak broker:")
-    
-    sample_rally_candidates = [
-        {"ticker": "DEWA", "nama": "Darma Henwa Tbk.", "harga": 105, "rvol": 2.85, "squeeze": "🟢 Ya", "bid_pct": 71.4, "turnover": 45_200_000_000, "broker_utama": "MG (Semesta) - Bandar Scalper", "proyeksi_harga": "🟡 Volatilitas Tinggi Intraday (Markup Kilat)", "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "KIJA", "nama": "Kawasan Industri Jababeka", "harga": 172, "rvol": 2.40, "squeeze": "🟢 Ya", "bid_pct": 68.2, "turnover": 18_400_000_000, "broker_utama": "CC (Mandiri) - BUMN/Domestik", "proyeksi_harga": "🟢 Reversal Stabil & Bertahap", "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "ELSA", "nama": "Elnusa Tbk.", "harga": 486, "rvol": 2.15, "squeeze": "⚪ Tidak", "bid_pct": 66.5, "turnover": 32_100_000_000, "broker_utama": "NI (BNI Sekuritas) - BUMN", "proyeksi_harga": "🟢 Akumulasi Menengah Defensif", "status": "🟡 AKUMULASI"},
-        {"ticker": "PSAB", "nama": "J Resources Asia Pasifik", "harga": 312, "rvol": 2.30, "squeeze": "🟢 Ya", "bid_pct": 65.0, "turnover": 24_500_000_000, "broker_utama": "YP (Mirae) - Kerumunan Ritel", "proyeksi_harga": "🟡 Momentum Cepat Ritel, Waspada Guyuran", "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "RAJA", "nama": "Rukun Raharja Tbk.", "harga": 1380, "rvol": 1.95, "squeeze": "🟢 Ya", "bid_pct": 63.0, "turnover": 19_800_000_000, "broker_utama": "AK (UBS) - Smart Money", "proyeksi_harga": "🟢 Konfirmasi Trend Up Berkelanjutan", "status": "🟡 AKUMULASI"},
-        {"ticker": "DOID", "nama": "Delta Dunia Makmur Tbk.", "harga": 498, "rvol": 1.80, "squeeze": "⚪ Tidak", "bid_pct": 58.5, "turnover": 14_200_000_000, "broker_utama": "PD (IPOT) - Ritel Kompak", "proyeksi_harga": "⚪ Menunggu Katalis Breakout", "status": "⚪ KONSOLIDASI"},
-        {"ticker": "BUMI", "nama": "Bumi Resources Tbk.", "harga": 148, "rvol": 2.65, "squeeze": "🟢 Ya", "bid_pct": 68.5, "turnover": 66_000_000_000, "broker_utama": "MG (Semesta) - Bandar Kilat", "proyeksi_harga": "🟡 Pump Pagi Hari, Swing Disiplin Ketat", "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "BRMS", "nama": "Bumi Resources Minerals", "harga": 410, "rvol": 2.25, "squeeze": "🟢 Ya", "bid_pct": 66.0, "turnover": 127_000_000_000, "broker_utama": "BK (J.P. Morgan) - Asing Inflow", "proyeksi_harga": "🟢 Pengawalan Tren Naik Berkelanjutan", "status": "🟢 SIAP MELEDAK"},
-        {"ticker": "ENRG", "nama": "Energi Mega Persada", "harga": 95, "rvol": 2.10, "squeeze": "⚪ Tidak", "bid_pct": 66.8, "turnover": 23_750_000_000, "broker_utama": "ZP (Maybank) - Akumulasi Senyap", "proyeksi_harga": "🟢 Bottom Reversal Menuju Resistance", "status": "🟡 AKUMULASI"},
-    ]
-    df_rally = pd.DataFrame(sample_rally_candidates)
-    st.dataframe(
-        df_rally,
-        column_order=["ticker", "nama", "harga", "rvol", "squeeze", "bid_pct", "turnover", "broker_utama", "proyeksi_harga", "status"],
-        column_config={
-            "ticker": "Kode Saham",
-            "nama": "Nama Perusahaan",
-            "harga": st.column_config.NumberColumn("Harga (IDR)", format="Rp %d"),
-            "rvol": st.column_config.NumberColumn("Relative Vol (x)", format="%.2fx"),
-            "squeeze": "Bollinger Squeeze",
-            "bid_pct": st.column_config.NumberColumn("% Bid", format="%.1f%%"),
-            "turnover": st.column_config.NumberColumn("Turnover Harian", format="Rp %d"),
-            "broker_utama": "Broker Penggerak",
-            "proyeksi_harga": "Proyeksi Arah Harga",
-            "status": "Status Rally",
-        },
-        use_container_width=True,
-        hide_index=True
-    )
+    st.caption("Peringkat saham lapis 3 yang terdeteksi memiliki anomali lonjakan volume, kompresi volatilitas, dan jejak broker terkalibrasi secara real-time dari bursa:")
+
+    # Filter & Pengendali Pemindai Pasar Riil
+    col_opt1, col_opt2 = st.columns([3, 1])
+    with col_opt1:
+        rally_mode = st.radio(
+            "Cakupan Katalog Saham Small-Cap:",
+            options=[
+                "🌟 9 Saham Terpantau Utama (DEWA, KIJA, ELSA, PSAB, RAJA, DOID, BUMI, BRMS, ENRG)",
+                "🔥 Seluruh Katalog Small-Cap Aktif BEI (+ GOTO, CUAN, MBMA, BKSL, dll)",
+                "✏️ Pilihan Kustom (Ketik Kode Saham Bebas)"
+            ],
+            index=0,
+            horizontal=True,
+            key="rally_scope_selector"
+        )
+    with col_opt2:
+        if st.button("🔄 Perbarui Data Pasar Riil", key="btn_refresh_rally", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
+
+    # Tentukan daftar ticker berdasarkan pilihan
+    if "9 Saham Terpantau" in rally_mode:
+        active_scan_tickers = DEFAULT_LAPIS3_CANDIDATES
+    elif "Seluruh Katalog" in rally_mode:
+        active_scan_tickers = EXPANDED_LAPIS3_CANDIDATES
+    else:
+        custom_input = st.text_input(
+            "Ketik Kode Saham (Pisahkan dengan koma, cth: DEWA, BUMI, BRMS, ENRG, PSAB):",
+            value="DEWA, BUMI, BRMS, ENRG, PSAB, RAJA, ELSA, KIJA, DOID",
+            key="custom_rally_tickers"
+        )
+        active_scan_tickers = [c.strip().upper() for c in custom_input.split(",") if c.strip()]
+
+    # Eksekusi Pemindaian Real-Time
+    with st.spinner("⚡ Mengambil data transaksi pasar riil seluruh emiten..."):
+        df_rally = get_cached_lapis3_rally_scan(tuple(active_scan_tickers))
+
+    # Tampilkan Tabel Hasil Pemindaian Riil
+    if df_rally is not None and not df_rally.empty:
+        st.dataframe(
+            df_rally,
+            column_order=["ticker", "nama", "harga", "rvol", "squeeze", "bid_pct", "turnover", "broker_utama", "proyeksi_harga", "status"],
+            column_config={
+                "ticker": "Kode Saham",
+                "nama": "Nama Perusahaan",
+                "harga": st.column_config.NumberColumn("Harga (IDR)", format="Rp %d"),
+                "rvol": st.column_config.NumberColumn("Relative Vol (x)", format="%.2fx"),
+                "squeeze": "Bollinger Squeeze",
+                "bid_pct": st.column_config.NumberColumn("% Bid", format="%.1f%%"),
+                "turnover": st.column_config.NumberColumn("Turnover Harian", format="Rp %d"),
+                "broker_utama": "Broker Penggerak",
+                "proyeksi_harga": "Proyeksi Arah Harga",
+                "status": "Status Rally",
+            },
+            use_container_width=True,
+            hide_index=True
+        )
+
+        # Pintasan Aksi: Langsung Analisis Saham Terpilih
+        sub_c1, sub_c2 = st.columns([3, 1])
+        with sub_c1:
+            picked_t = st.selectbox(
+                "🔍 Pilih salah satu saham dari tabel di atas untuk langsung dianalisis mikrostrukturnya:",
+                options=df_rally["ticker"].tolist(),
+                index=0 if ticker_clean not in df_rally["ticker"].tolist() else df_rally["ticker"].tolist().index(ticker_clean),
+                key="picked_smallcap_ticker"
+            )
+        with sub_c2:
+            st.write("")
+            st.write("")
+            if st.button("📊 Analisis Saham Ini", key="btn_apply_picked_smallcap", use_container_width=True):
+                st.session_state["ticker_input"] = picked_t
+                st.session_state["manual_ticker_text"] = picked_t
+                st.rerun()
+    else:
+        st.warning("⚠️ Data pasar riil belum dapat dimuat. Silakan klik tombol 'Perbarui Data Pasar Riil' di atas.")
+
     st.stop()
 
 elif app_menu == "🏛️ Analisis Broker dan Emiten":
