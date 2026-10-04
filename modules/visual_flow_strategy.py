@@ -582,35 +582,30 @@ def select_stock_for_flow_evaluation(target_ticker: str) -> None:
     st.session_state["_prev_flow_active_ticker"] = clean_t
     st.session_state["_prev_sidebar_selected_ticker"] = clean_t
 
-    # Sinkronisasi Tier Filter
-    tier_option_matched = None
-    for opt in [
-        "Semua Tingkatan",
-        "Saham Lapis 1 (Top Tier / Blue Chip)",
-        "Saham Lapis 2 (Second Liner / Mid-Cap)",
-        "Saham Lapis 3 (Third Liner / Small-Cap)",
-        "Saham Gocap & Sleepers (Rp50)",
-        "Saham Receh & Murah (Rp100 – Rp1.000)",
-        "Saham Menengah (Rp1.000 – Rp5.000)",
-        "Saham Premium (≥ Rp5.000)"
-    ]:
-        if opt == tier_name or (tier_name != "Semua Tingkatan" and tier_name in opt):
-            tier_option_matched = opt
-            break
+    # Sinkronisasi Tier Filter sesuai opsi resmi
+    price = float(meta.get("price", 100.0))
+    if price < 100.0:
+        matched_tier = "Saham Gocap / Saham Tidur (Rp50 – Rp100)"
+    elif price <= 1000.0:
+        matched_tier = "Saham Receh / Saham Murah (Rp100 – Rp1.000)"
+    elif price <= 5000.0:
+        matched_tier = "Saham Menengah (Rp1.000 – Rp5.000)"
+    else:
+        matched_tier = "Saham Premium / Blue Chip (Di atas Rp5.000)"
 
-    if not tier_option_matched:
-        tier_option_matched = "Semua Tingkatan"
-
-    st.session_state["flow_chosen_tier_box"] = tier_option_matched
-    st.session_state["sidebar_chosen_tier_box"] = tier_option_matched
+    st.session_state["flow_chosen_tier_box"] = matched_tier
+    st.session_state["_last_synced_sidebar_tier"] = matched_tier
+    st.session_state["sidebar_chosen_tier_box"] = matched_tier
 
     # Sinkronisasi Syariah Filter jika bertolak belakang
     curr_s_filter = st.session_state.get("flow_chosen_syariah_box", "Semua")
     if "Syariah" in curr_s_filter and not is_syariah:
         st.session_state["flow_chosen_syariah_box"] = "Semua"
+        st.session_state["_last_synced_sidebar_syariah"] = "Semua"
         st.session_state["sidebar_chosen_syariah_box"] = "Semua"
     elif "Non-Syariah" in curr_s_filter and is_syariah:
         st.session_state["flow_chosen_syariah_box"] = "Semua"
+        st.session_state["_last_synced_sidebar_syariah"] = "Semua"
         st.session_state["sidebar_chosen_syariah_box"] = "Semua"
 
     # Bersihkan state selectbox agar langsung me-refresh opsi terpilih
@@ -1080,20 +1075,13 @@ def render_visual_flow_strategy_page(
         if current_flow_ticker in flow_tickers_list:
             selected_flow_idx = flow_tickers_list.index(current_flow_ticker)
         else:
-            # Jika emiten ini baru saja dipilih dari Scanner atau session state,
-            # pastikan emiten tidak dibuang secara sepihak!
-            if st.session_state.get("_flow_eval_just_loaded") == current_flow_ticker or st.session_state.get("flow_active_ticker") == current_flow_ticker:
-                st.session_state["flow_chosen_tier_box"] = "Semua Tingkatan"
-                st.session_state["flow_chosen_syariah_box"] = "Semua"
-                filtered_flow_stocks = filter_idx_stocks(tier_filter="Semua Tingkatan", syariah_filter="Semua")
-                flow_tickers_list = [s["ticker"] for s in filtered_flow_stocks]
-                flow_stock_labels = [s.get("display_label", s.get("ticker", "")) for s in filtered_flow_stocks]
-                selected_flow_idx = flow_tickers_list.index(current_flow_ticker) if current_flow_ticker in flow_tickers_list else 0
-            else:
-                selected_flow_idx = 0
-                current_flow_ticker = flow_tickers_list[0]
-                st.session_state["flow_active_ticker"] = current_flow_ticker
-                st.session_state["selected_ticker"] = current_flow_ticker
+            # Jika emiten aktif tidak ada di dalam daftar hasil filter saat ini,
+            # sisipkan ke dalam opsi katalog agar emiten tetap terpilih tanpa memodifikasi widget yang sudah diinstansiasi!
+            meta_cur = get_stock_metadata(current_flow_ticker)
+            cur_disp = meta_cur.get("display_label", f"{current_flow_ticker} - {meta_cur.get('name', current_flow_ticker)}")
+            flow_tickers_list = [current_flow_ticker] + [t for t in flow_tickers_list if t != current_flow_ticker]
+            flow_stock_labels = [cur_disp] + [lbl for lbl in flow_stock_labels if not lbl.startswith(current_flow_ticker)]
+            selected_flow_idx = 0
 
         cur_flow_label = st.session_state.get("flow_catalog_selector")
         # Pastikan widget flow_catalog_selector selalu sinkron dengan emiten terpilih
