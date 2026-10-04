@@ -309,26 +309,50 @@ from modules.bot_dispatcher import (
     dispatch_emergency_protection_alert,
 )
 
-# Konfigurasi Halaman Streamlit
+# Konfigurasi Halaman Streamlit (Responsif Otomatis Seluruh Perangkat)
 st.set_page_config(
     page_title="⚡ IDX Stock Analyzer & Institutional Quant Engine",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
 
-# Custom Styling Mengikuti Tampilan idx_stock_analyzer & Anti-Truncation Terpadu
+# Custom Styling Responsif Seluruh Perangkat & Anti-Truncation Terpadu
 st.markdown("""
 <style>
     /* =========================================================================
-       1. GLOBAL RESET & CEGAH SELURUH TULISAN TERPOTONG (ANTI-TRUNCATION)
+       1. GLOBAL RESET, VIEWPORT & ANTI-TRUNCATION FOR ALL DEVICES (WORLDWIDE)
        ========================================================================= */
     *, *::before, *::after {
         box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
     }
     
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+    html, body {
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden !important;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        touch-action: manipulation;
+    }
+
+    [data-testid="stAppViewContainer"], 
+    [data-testid="stMain"],
+    [data-testid="stMainBlockContainer"] {
+        width: 100% !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
         text-overflow: clip !important;
+    }
+
+    /* Padding Kontainer Utama Berdasarkan Ukuran Layar */
+    .block-container, [data-testid="stMainBlockContainer"] {
+        padding-top: clamp(1.2rem, 3vw, 2.5rem) !important;
+        padding-bottom: clamp(2rem, 5vw, 4rem) !important;
+        padding-left: clamp(0.5rem, 2.5vw, 2.5rem) !important;
+        padding-right: clamp(0.5rem, 2.5vw, 2.5rem) !important;
+        padding-bottom: calc(clamp(2rem, 5vw, 4rem) + env(safe-area-inset-bottom, 0px)) !important;
     }
 
     p, span, div, h1, h2, h3, h4, h5, h6, label, li, a {
@@ -337,11 +361,20 @@ st.markdown("""
         overflow-wrap: break-word !important;
     }
 
-    /* Mencegah Teks Metrik Streamlit Terpotong */
+    /* Mencegah Teks Metrik Streamlit Terpotong di Semua Layar */
     [data-testid="stMetric"],
     [data-testid="stMetric"] * {
         overflow: visible !important;
         text-overflow: clip !important;
+    }
+
+    [data-testid="stMetric"] {
+        background: rgba(30, 41, 59, 0.4) !important;
+        border: 1px solid rgba(148, 163, 184, 0.15) !important;
+        border-radius: 10px !important;
+        padding: 8px 12px !important;
+        width: 100% !important;
+        transition: all 0.2s ease !important;
     }
 
     [data-testid="stMetricLabel"],
@@ -351,7 +384,7 @@ st.markdown("""
         word-break: break-word !important;
         overflow: visible !important;
         text-overflow: clip !important;
-        font-size: 0.90rem !important;
+        font-size: clamp(0.74rem, 1.8vw, 0.90rem) !important;
         line-height: 1.3 !important;
         font-weight: 600 !important;
     }
@@ -363,8 +396,9 @@ st.markdown("""
         word-break: break-word !important;
         overflow: visible !important;
         text-overflow: clip !important;
-        font-size: 1.35rem !important;
+        font-size: clamp(1.05rem, 3.2vw, 1.45rem) !important;
         line-height: 1.25 !important;
+        font-weight: 800 !important;
     }
 
     [data-testid="stMetricDelta"],
@@ -374,6 +408,7 @@ st.markdown("""
         word-break: break-word !important;
         overflow: visible !important;
         text-overflow: clip !important;
+        font-size: clamp(0.70rem, 1.6vw, 0.85rem) !important;
         line-height: 1.2 !important;
     }
 
@@ -386,26 +421,30 @@ st.markdown("""
         overflow: visible !important;
         text-overflow: clip !important;
         line-height: 1.5 !important;
+        font-size: clamp(0.80rem, 2vw, 0.92rem) !important;
     }
 
-    /* Kolom & Kontainer */
+    /* Kolom & Kontainer Streamlit Universal */
     [data-testid="column"] {
         min-width: 0 !important;
         overflow: visible !important;
     }
 
-    /* Tabel Markdown & Dataframe BEI */
+    /* Tabel Markdown & Dataframe BEI Touch-Friendly */
     [data-testid="stDataFrame"],
     [data-testid="stTable"] {
         width: 100% !important;
+        max-width: 100% !important;
         overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
     }
 
     [data-testid="stMarkdownContainer"] table {
         width: 100% !important;
         border-collapse: collapse !important;
         overflow-x: auto !important;
-        display: table !important;
+        display: block !important;
+        -webkit-overflow-scrolling: touch !important;
     }
 
     [data-testid="stMarkdownContainer"] th,
@@ -414,7 +453,8 @@ st.markdown("""
         word-break: break-word !important;
         overflow: visible !important;
         text-overflow: clip !important;
-        padding: 8px 12px !important;
+        padding: clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 14px) !important;
+        font-size: clamp(0.76rem, 1.8vw, 0.90rem) !important;
     }
 
     /* Expanders & Captions */
@@ -423,6 +463,7 @@ st.markdown("""
         word-break: break-word !important;
         overflow: visible !important;
         text-overflow: clip !important;
+        font-size: clamp(0.82rem, 2vw, 0.95rem) !important;
     }
 
     [data-testid="stCaptionContainer"] p {
@@ -430,10 +471,12 @@ st.markdown("""
         word-break: break-word !important;
         overflow: visible !important;
         text-overflow: clip !important;
+        font-size: clamp(0.72rem, 1.6vw, 0.82rem) !important;
     }
 
     /* =========================================================================
        2. FITUR GESER KANAN-KIRI TAB (HORIZONTAL SCROLLABLE FEATURE TABS)
+          RESPONSIF TOUCH & MOBILE DI SELURUH PERANGKAT
        ========================================================================= */
     .stTabs {
         width: 100% !important;
@@ -451,18 +494,19 @@ st.markdown("""
         overflow-y: hidden !important;
         scroll-behavior: smooth !important;
         -webkit-overflow-scrolling: touch !important;
-        gap: 8px !important;
+        gap: clamp(4px, 1.2vw, 8px) !important;
         padding: 8px 4px 14px 4px !important;
         margin-bottom: 14px !important;
         border-bottom: 2px solid rgba(148, 163, 184, 0.25) !important;
         scrollbar-width: thin !important;
         scrollbar-color: #2563EB #F1F5F9 !important;
+        scroll-snap-type: x proximity !important;
     }
 
     /* Scrollbar Khusus untuk Geser Kanan-Kiri */
     .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar,
     .stTabs [role="tablist"]::-webkit-scrollbar {
-        height: 8px !important;
+        height: 6px !important;
     }
 
     .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar-track,
@@ -478,12 +522,7 @@ st.markdown("""
         border-radius: 12px !important;
     }
 
-    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar-thumb:hover,
-    .stTabs [role="tablist"]::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(90deg, #2563EB, #1E40AF) !important;
-    }
-
-    /* Tombol Tab: Teks Utuh & Fleksibel */
+    /* Tombol Tab: Teks Utuh & Fleksibel (Optimasi Touch Target Minimal 42px) */
     .stTabs [data-baseweb="tab"],
     .stTabs [role="tab"] {
         flex-shrink: 0 !important;
@@ -491,9 +530,10 @@ st.markdown("""
         overflow: visible !important;
         text-overflow: clip !important;
         word-break: keep-all !important;
-        font-size: 0.94rem !important;
+        font-size: clamp(0.80rem, 2.2vw, 0.94rem) !important;
         font-weight: 700 !important;
-        padding: 9px 18px !important;
+        padding: clamp(7px, 1.8vw, 10px) clamp(12px, 2.5vw, 18px) !important;
+        min-height: 42px !important;
         border-radius: 10px !important;
         background-color: #F8FAFC !important;
         border: 1.5px solid #CBD5E1 !important;
@@ -501,6 +541,10 @@ st.markdown("""
         cursor: pointer !important;
         transition: all 0.2s ease-in-out !important;
         user-select: none !important;
+        scroll-snap-align: start !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
     .stTabs [data-baseweb="tab"]:hover,
@@ -509,7 +553,6 @@ st.markdown("""
         color: #1D4ED8 !important;
         border-color: #60A5FA !important;
         box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2) !important;
-        transform: translateY(-2px) !important;
     }
 
     .stTabs [aria-selected="true"],
@@ -527,15 +570,6 @@ st.markdown("""
         font-weight: 800 !important;
     }
 
-    .stTabs [data-baseweb="tab"] p,
-    .stTabs [data-baseweb="tab"] span,
-    .stTabs [data-baseweb="tab"] div {
-        white-space: nowrap !important;
-        overflow: visible !important;
-        text-overflow: clip !important;
-        word-break: keep-all !important;
-    }
-
     /* Hilangkan seluruh garis merah dan border bawaan BaseWeb Streamlit yang tumpang tindih */
     .stTabs [data-baseweb="tab-highlight"],
     div[data-baseweb="tab-highlight"],
@@ -549,61 +583,62 @@ st.markdown("""
         width: 0px !important;
         visibility: hidden !important;
         background: transparent !important;
-        background-color: transparent !important;
         border: none !important;
     }
 
     /* =========================================================================
-       3. TAMPILAN ELEMEN KARTU & BADGE ASLI (DIPERTAHANKAN LENGKAP)
+       3. TAMPILAN ELEMEN KARTU & BADGE RESPONSIF
        ========================================================================= */
     .main-title {
-        font-size: 2.2rem;
+        font-size: clamp(1.4rem, 4.5vw, 2.2rem) !important;
         font-weight: 800;
         color: #1E3A8A;
         margin-bottom: 0.1rem;
+        line-height: 1.25 !important;
     }
     .sub-title {
-        font-size: 0.95rem;
+        font-size: clamp(0.78rem, 2vw, 0.95rem) !important;
         color: #64748B;
         margin-bottom: 0.8rem;
+        line-height: 1.4 !important;
     }
     .badge-buy {
         background-color: #DCFCE7;
         color: #15803D;
-        padding: 8px 18px;
-        border-radius: 20px;
+        padding: clamp(4px, 1.2vw, 8px) clamp(10px, 2.5vw, 18px);
+        border-radius: 9999px;
         font-weight: 800;
-        font-size: 1.3rem;
+        font-size: clamp(0.90rem, 2.6vw, 1.3rem);
         display: inline-block;
         border: 2px solid #86EFAC;
     }
     .badge-sell {
         background-color: #FEE2E2;
         color: #B91C1C;
-        padding: 8px 18px;
-        border-radius: 20px;
+        padding: clamp(4px, 1.2vw, 8px) clamp(10px, 2.5vw, 18px);
+        border-radius: 9999px;
         font-weight: 800;
-        font-size: 1.3rem;
+        font-size: clamp(0.90rem, 2.6vw, 1.3rem);
         display: inline-block;
         border: 2px solid #FCA5A5;
     }
     .badge-hold {
         background-color: #FEF9C3;
         color: #A16207;
-        padding: 8px 18px;
-        border-radius: 20px;
+        padding: clamp(4px, 1.2vw, 8px) clamp(10px, 2.5vw, 18px);
+        border-radius: 9999px;
         font-weight: 800;
-        font-size: 1.3rem;
+        font-size: clamp(0.90rem, 2.6vw, 1.3rem);
         display: inline-block;
         border: 2px solid #FDE047;
     }
     .badge-veto {
         background-color: #450A0A;
         color: #F87171;
-        padding: 8px 18px;
-        border-radius: 20px;
+        padding: clamp(4px, 1.2vw, 8px) clamp(10px, 2.5vw, 18px);
+        border-radius: 9999px;
         font-weight: 800;
-        font-size: 1.3rem;
+        font-size: clamp(0.90rem, 2.6vw, 1.3rem);
         display: inline-block;
         border: 2px solid #EF4444;
     }
@@ -611,21 +646,21 @@ st.markdown("""
         background-color: #F0FDF4;
         border-left: 5px solid #22C55E;
         border-radius: 8px;
-        padding: 12px;
+        padding: clamp(8px, 2vw, 12px);
         margin-bottom: 12px;
     }
     .news-card-neg {
         background-color: #FEF2F2;
         border-left: 5px solid #EF4444;
         border-radius: 8px;
-        padding: 12px;
+        padding: clamp(8px, 2vw, 12px);
         margin-bottom: 12px;
     }
     .news-card-neu {
         background-color: #F8FAFC;
         border-left: 5px solid #94A3B8;
         border-radius: 8px;
-        padding: 12px;
+        padding: clamp(8px, 2vw, 12px);
         margin-bottom: 12px;
     }
     .live-badge {
@@ -635,7 +670,7 @@ st.markdown("""
         padding: 4px 10px;
         border-radius: 12px;
         font-weight: 600;
-        font-size: 0.85rem;
+        font-size: clamp(0.72rem, 1.8vw, 0.85rem);
         display: inline-block;
     }
     .ob-bar-container {
@@ -650,7 +685,7 @@ st.markdown("""
     .ob-bar-bid {
         background: linear-gradient(90deg, #10B981, #059669);
         color: white;
-        font-size: 0.75rem;
+        font-size: clamp(0.65rem, 1.8vw, 0.75rem);
         font-weight: 700;
         display: flex;
         align-items: center;
@@ -659,7 +694,7 @@ st.markdown("""
     .ob-bar-offer {
         background: linear-gradient(90deg, #DC2626, #EF4444);
         color: white;
-        font-size: 0.75rem;
+        font-size: clamp(0.65rem, 1.8vw, 0.75rem);
         font-weight: 700;
         display: flex;
         align-items: center;
@@ -669,18 +704,21 @@ st.markdown("""
         background: #1E293B !important;
         border: 1px solid #334155 !important;
         border-radius: 12px !important;
-        padding: 16px !important;
+        padding: clamp(10px, 2.5vw, 16px) !important;
         margin-bottom: 12px !important;
         color: #F8FAFC !important;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.25) !important;
+        width: 100% !important;
     }
     .quant-box h1, .quant-box h2, .quant-box h3, .quant-box h4, .quant-box h5, .quant-box h6 {
         color: #F8FAFC !important;
         margin-top: 0 !important;
+        font-size: clamp(0.95rem, 2.5vw, 1.25rem) !important;
     }
     .quant-box p, .quant-box small, .quant-box b, .quant-box strong, .quant-box i {
         color: #F1F5F9;
         line-height: 1.5;
+        font-size: clamp(0.78rem, 2vw, 0.90rem);
     }
     .quant-box code {
         background: #0F172A !important;
@@ -689,6 +727,167 @@ st.markdown("""
         border-radius: 6px !important;
         border: 1px solid #1E293B !important;
         font-weight: 700 !important;
+    }
+
+    /* =========================================================================
+       4. MEDIA QUERIES UNTUK ADAPTASI SELURUH PERANGKAT DI DUNIA
+          (MOBILE, IPHONE, IPAD, TABLET, LAPTOP, PC, 4K MONITOR)
+       ========================================================================= */
+
+    /* TABLET & IPAD (Layar 768px - 1024px: iPad Mini, iPad Air, iPad Pro, Android Tablet) */
+    @media (max-width: 1024px) {
+        .block-container, [data-testid="stMainBlockContainer"] {
+            padding-left: 1.25rem !important;
+            padding-right: 1.25rem !important;
+            padding-top: 1.5rem !important;
+        }
+
+        /* Kolom Streamlit membungkus dengan rapi (2 kolom per baris) */
+        [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+            gap: 10px !important;
+        }
+
+        [data-testid="column"] {
+            min-width: calc(50% - 10px) !important;
+            flex: 1 1 calc(50% - 10px) !important;
+        }
+
+        /* Sidebar agar tidak menutupi seluruh ruang */
+        [data-testid="stSidebar"] {
+            width: 320px !important;
+            min-width: 280px !important;
+        }
+
+        /* Grafik Plotly otomatis menyesuaikan lebar layar */
+        .js-plotly-plot, .plot-container {
+            width: 100% !important;
+        }
+
+        .flow-node-card {
+            flex: 1 1 calc(50% - 14px) !important;
+            max-width: calc(50% - 14px) !important;
+        }
+    }
+
+    /* SMARTPHONE & PHABLET (Layar <= 768px: iPhone 12/13/14/15/16 Pro Max, Samsung Galaxy, Xiaomi) */
+    @media (max-width: 768px) {
+        .block-container, [data-testid="stMainBlockContainer"] {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            padding-top: 1.2rem !important;
+            padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px)) !important;
+        }
+
+        /* Kolom Streamlit beralih ke layout mobile fleksibel */
+        [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+        }
+
+        [data-testid="column"] {
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+
+        /* Khusus metrik KPI dan mini-cards: 2 kolom berdampingan agar ringkas */
+        [data-testid="column"]:has([data-testid="stMetric"]) {
+            min-width: calc(50% - 6px) !important;
+            flex: 1 1 calc(50% - 6px) !important;
+        }
+
+        /* Mencegah iOS Safari auto-zoom saat klik input teks / selectbox */
+        input, select, textarea, [data-baseweb="select"] input {
+            font-size: 16px !important;
+        }
+
+        /* Tombol Touch Target nyaman untuk jari jemari (minimal 44px) */
+        .stButton > button,
+        [data-testid="stBaseButton-secondary"],
+        [data-testid="stBaseButton-primary"] {
+            min-height: 44px !important;
+            padding: 8px 16px !important;
+            width: 100% !important;
+            font-size: 0.90rem !important;
+            touch-action: manipulation !important;
+        }
+
+        /* Tombol buka/tutup sidebar ramah jemari */
+        [data-testid="stSidebarCollapsedControl"],
+        [data-testid="stSidebarCollapseButton"] {
+            min-width: 44px !important;
+            min-height: 44px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        /* Sidebar di perangkat seluler mengambil 85% lebar layar */
+        [data-testid="stSidebar"] {
+            width: 85vw !important;
+            max-width: 340px !important;
+        }
+
+        /* Node Visual Flow Card responsif di layar ponsel */
+        .flow-node-card {
+            min-width: 100% !important;
+            max-width: 100% !important;
+            margin: 6px 0 !important;
+        }
+        .flow-arrow-h, .flow-arrow-v {
+            display: none !important;
+        }
+    }
+
+    /* COMPACT SMARTPHONE & IPHONE KECIL (Layar <= 480px: iPhone SE, iPhone Mini, Layar 360px-414px) */
+    @media (max-width: 480px) {
+        .block-container, [data-testid="stMainBlockContainer"] {
+            padding-left: 0.45rem !important;
+            padding-right: 0.45rem !important;
+            padding-top: 0.8rem !important;
+        }
+
+        /* Header & Judul Ringkas */
+        .main-title {
+            font-size: 1.35rem !important;
+        }
+        .sub-title {
+            font-size: 0.78rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+
+        /* Metrik tetap rapi dalam 2 kolom */
+        [data-testid="column"]:has([data-testid="stMetric"]) {
+            min-width: calc(50% - 4px) !important;
+            flex: 1 1 calc(50% - 4px) !important;
+            padding: 0 !important;
+        }
+
+        [data-testid="stMetric"] {
+            padding: 6px 8px !important;
+        }
+
+        /* Badge disesuaikan */
+        .badge-buy, .badge-sell, .badge-hold, .badge-veto {
+            font-size: 0.95rem !important;
+            padding: 4px 12px !important;
+        }
+
+        /* Tab Bar di layar super kecil */
+        .stTabs [data-baseweb="tab"],
+        .stTabs [role="tab"] {
+            font-size: 0.80rem !important;
+            padding: 6px 12px !important;
+            min-height: 38px !important;
+        }
+    }
+
+    /* DESKTOP LEBAR, PC & MONITOR 4K (Layar >= 1440px) */
+    @media (min-width: 1440px) {
+        .block-container, [data-testid="stMainBlockContainer"] {
+            max-width: 1680px !important;
+            margin: 0 auto !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1617,7 +1816,7 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
         f"""
         <div style="background-color: #FFFBEB; border: 1.5px solid #FCD34D; border-radius: 12px; padding: 16px;">
             <h4 style="color: #92400E; margin-top: 0;">🛡️ 3 ATURAN EMAS MANAJEMEN MODAL KHUSUS SAHAM LAPIS 3</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; font-size: 0.85rem; color: #78350F;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; font-size: 0.85rem; color: #78350F;">
                 <div>
                     <b>1. Alokasi Modal Maksimal</b><br>
                     Maksimal <b>5% s/d 10%</b> dari total dana portofolio Anda. Jangan pernah menaruh modal besar pada saham berkapitalisasi mikro.
@@ -2099,7 +2298,7 @@ with tab_scalp:
                                 <p style="margin: 0 0 10px 0; font-size: 12px; color: #CBD5E1; line-height: 1.4;">
                                     🏷️ <b style="color: #F8FAFC;">{s['tier']}</b> | <span style="color: #94A3B8;">{s['sector']}</span> | <span style="color: {'#34D399' if s['is_syariah'] else '#94A3B8'};">{'☪️ Syariah' if s['is_syariah'] else '⚪ Non-Syariah'}</span>
                                 </p>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; text-align: center;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-bottom: 10px; text-align: center;">
                                     <div style="background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.4); padding: 8px 4px; border-radius: 8px;">
                                         <div style="font-size: 10px; font-weight: 700; color: #38BDF8; letter-spacing: 0.5px;">ZONA ENTRY</div>
                                         <div style="font-weight: 800; color: #F0F9FF; font-size: 15px; margin-top: 2px;">Rp {s['entry_price']:,}</div>

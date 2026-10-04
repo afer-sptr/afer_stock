@@ -1070,6 +1070,36 @@ def render_technical_analysis_page(
             color: #FFFFFF !important;
             font-weight: 700 !important;
         }
+
+        /* Responsif Seluruh Layar (Ponsel, iPad, Tablet, Laptop, PC) */
+        @media (max-width: 768px) {
+            [data-testid="stHorizontalBlock"] {
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+            }
+            [data-testid="column"] {
+                min-width: calc(50% - 6px) !important;
+                flex: 1 1 calc(50% - 6px) !important;
+            }
+            div[data-baseweb="tab"] {
+                padding: 8px 12px !important;
+                font-size: 12px !important;
+            }
+        }
+        @media (max-width: 480px) {
+            [data-testid="column"] {
+                min-width: 100% !important;
+                flex: 1 1 100% !important;
+            }
+            [data-testid="column"]:has([data-testid="stMetric"]) {
+                min-width: calc(50% - 4px) !important;
+                flex: 1 1 calc(50% - 4px) !important;
+            }
+            div[data-baseweb="tab"] {
+                padding: 6px 10px !important;
+                font-size: 11px !important;
+            }
+        }
         </style>
         """,
         unsafe_allow_html=True

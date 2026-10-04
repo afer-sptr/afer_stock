@@ -733,7 +733,7 @@ def render_visual_flow_canvas_html(eval_data: Dict[str, Any], active_strategy_na
             card_glow = "0 0 20px rgba(56, 189, 248, 0.4)" if all_passed else "0 0 15px rgba(239, 68, 68, 0.3)"
 
         html = f"""
-        <div style="flex: 1 1 210px; min-width: 200px; max-width: 250px; background: #0f172a; border: 1px solid {pass_border}; border-radius: 10px; padding: 12px 14px; box-shadow: {card_glow}; position: relative; margin: 6px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="flow-node-card" style="flex: 1 1 210px; min-width: 190px; max-width: 250px; background: #0f172a; border: 1px solid {pass_border}; border-radius: 10px; padding: 12px 14px; box-shadow: {card_glow}; position: relative; margin: 6px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
             <div>
                 <!-- Header Card: Label & Audit Badge -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -770,14 +770,14 @@ def render_visual_flow_canvas_html(eval_data: Dict[str, Any], active_strategy_na
         # Connector arrow
         if not is_end_of_row:
             html += """
-            <div style="display: flex; align-items: center; justify-content: center; width: 24px; color: #38bdf8; font-size: 1.2rem; font-weight: 900; user-select: none;">
+            <div class="flow-arrow-h" style="display: flex; align-items: center; justify-content: center; width: 24px; color: #38bdf8; font-size: 1.2rem; font-weight: 900; user-select: none;">
                 ➔
             </div>
             """
         return html
 
     canvas_html = f"""
-    <div style="background: radial-gradient(circle, #1e293b 1.5px, transparent 1.5px) 0 0 / 22px 22px, #0b1120; border: 1px solid #334155; border-radius: 14px; padding: 18px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #f8fafc; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    <div class="flow-canvas-container" style="background: radial-gradient(circle, #1e293b 1.5px, transparent 1.5px) 0 0 / 22px 22px, #0b1120; border: 1px solid #334155; border-radius: 14px; padding: 18px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #f8fafc; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-x: auto; -webkit-overflow-scrolling: touch;">
         
         <!-- Header Kanvas Bar -->
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; border-bottom: 1px solid #1e293b; padding-bottom: 14px; margin-bottom: 18px; gap: 10px;">
@@ -809,7 +809,7 @@ def render_visual_flow_canvas_html(eval_data: Dict[str, Any], active_strategy_na
         </div>
 
         <!-- Connector Row 1 to Row 2 -->
-        <div style="display: flex; justify-content: flex-end; padding-right: 110px; margin: 2px 0;">
+        <div class="flow-arrow-v" style="display: flex; justify-content: flex-end; padding-right: 110px; margin: 2px 0;">
             <div style="color: #38bdf8; font-size: 1.3rem; font-weight: 900; line-height: 1;">
                 ⤵
             </div>
@@ -824,7 +824,7 @@ def render_visual_flow_canvas_html(eval_data: Dict[str, Any], active_strategy_na
         </div>
 
         <!-- Connector Row 2 to Row 3 -->
-        <div style="display: flex; justify-content: flex-end; padding-right: 110px; margin: 2px 0;">
+        <div class="flow-arrow-v" style="display: flex; justify-content: flex-end; padding-right: 110px; margin: 2px 0;">
             <div style="color: #38bdf8; font-size: 1.3rem; font-weight: 900; line-height: 1;">
                 ⤵
             </div>
