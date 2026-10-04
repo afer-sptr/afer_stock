@@ -12,7 +12,10 @@ import math
 from datetime import datetime
 from typing import Tuple, Dict, Any, Optional, List
 import pandas as pd
-import yfinance as yf
+try:
+    import yfinance as yf
+except Exception:
+    yf = None
 
 from modules.idx_ticks import round_to_idx_tick, get_idx_tick_size
 from modules.idx_universe import (
@@ -91,6 +94,9 @@ def fetch_stock_data(
         cached_time, c_df, c_info = _STOCK_CACHE[cache_key]
         if (now - cached_time) < CACHE_TTL_SECONDS:
             return c_df.copy(), copy.deepcopy(c_info), None
+
+    if yf is None:
+        return None, None, "SDK yfinance tidak tersedia pada runtime ini."
 
     try:
         stock = yf.Ticker(ticker_clean)

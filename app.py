@@ -846,9 +846,15 @@ if mode_input == "Pilih dari Katalog":
         # Jika emiten yang aktif saat ini tidak ada di kombinasi filter (misal user ubah filter tier),
         # otomatis pilih emiten pertama yang benar-benar memenuhi kriteria filter pengguna
         if matching_idx is None:
-            selected_idx = 0
-            current_target_ticker = filtered_stocks[0]["ticker"]
-            st.session_state["selected_ticker"] = current_target_ticker
+            # Pengecekan aman: Jika user sedang berada di menu Visual Flow Strategy dan flow_active_ticker aktif,
+            # pertahankan flow_active_ticker dan jangan timpa secara sepihak!
+            if "Visual Flow Strategy" in app_menu and st.session_state.get("flow_active_ticker") == current_target_ticker:
+                selected_idx = 0
+                selected_ticker = current_target_ticker
+            else:
+                selected_idx = 0
+                current_target_ticker = filtered_stocks[0]["ticker"]
+                st.session_state["selected_ticker"] = current_target_ticker
         else:
             selected_idx = matching_idx
 
