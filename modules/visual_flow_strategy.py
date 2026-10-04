@@ -582,7 +582,8 @@ def select_stock_for_flow_evaluation(target_ticker: str) -> None:
     st.session_state["_prev_flow_active_ticker"] = clean_t
     st.session_state["_prev_sidebar_selected_ticker"] = clean_t
 
-    # Sinkronisasi Tier Filter sesuai opsi resmi
+    # Jadwalkan pembaruan Tier & Syariah via staging key (_pending_*)
+    # agar dieksekusi SEBELUM widget dirender pada siklus rerun berikutnya
     price = float(meta.get("price", 100.0))
     if price < 100.0:
         matched_tier = "Saham Gocap / Saham Tidur (Rp50 – Rp100)"
@@ -593,26 +594,22 @@ def select_stock_for_flow_evaluation(target_ticker: str) -> None:
     else:
         matched_tier = "Saham Premium / Blue Chip (Di atas Rp5.000)"
 
-    st.session_state["flow_chosen_tier_box"] = matched_tier
+    st.session_state["_pending_flow_tier"] = matched_tier
     st.session_state["_last_synced_sidebar_tier"] = matched_tier
     st.session_state["sidebar_chosen_tier_box"] = matched_tier
 
-    # Sinkronisasi Syariah Filter jika bertolak belakang
     curr_s_filter = st.session_state.get("flow_chosen_syariah_box", "Semua")
     if "Syariah" in curr_s_filter and not is_syariah:
-        st.session_state["flow_chosen_syariah_box"] = "Semua"
+        st.session_state["_pending_flow_syariah"] = "Semua"
         st.session_state["_last_synced_sidebar_syariah"] = "Semua"
         st.session_state["sidebar_chosen_syariah_box"] = "Semua"
     elif "Non-Syariah" in curr_s_filter and is_syariah:
-        st.session_state["flow_chosen_syariah_box"] = "Semua"
+        st.session_state["_pending_flow_syariah"] = "Semua"
         st.session_state["_last_synced_sidebar_syariah"] = "Semua"
         st.session_state["sidebar_chosen_syariah_box"] = "Semua"
 
-    # Bersihkan state selectbox agar langsung me-refresh opsi terpilih
-    for k in ["flow_catalog_selector", "catalog_stock_selector", "_last_flow_filter_sig"]:
-        if k in st.session_state:
-            del st.session_state[k]
-
+    # Reset sinyal agar selectbox langsung me-refresh opsi terpilih
+    st.session_state["_prev_flow_active_ticker"] = ""
     st.session_state["_flow_eval_just_loaded"] = clean_t
 
 
@@ -974,15 +971,18 @@ def render_visual_flow_strategy_page(
             "Saham Menengah (Rp1.000 – Rp5.000)",
             "Saham Premium / Blue Chip (Di atas Rp5.000)",
         ]
-        # Sinkronkan nilai filter dari sidebar jika pengguna memilih di sidebar
-        if st.session_state.get("_last_synced_sidebar_tier") != chosen_tier:
+        # Konsumsi perubahan tertunda dari evaluasi emiten atau sinkronkan dari sidebar
+        if "_pending_flow_tier" in st.session_state:
+            pending_tier = st.session_state.pop("_pending_flow_tier")
+            if pending_tier in flow_tier_options:
+                st.session_state["flow_chosen_tier_box"] = pending_tier
+        elif st.session_state.get("_last_synced_sidebar_tier") != chosen_tier:
             st.session_state["_last_synced_sidebar_tier"] = chosen_tier
             if chosen_tier in flow_tier_options:
                 st.session_state["flow_chosen_tier_box"] = chosen_tier
 
-        tier_def_idx = 0
-        if chosen_tier in flow_tier_options:
-            tier_def_idx = flow_tier_options.index(chosen_tier)
+        tier_cur = st.session_state.get("flow_chosen_tier_box", chosen_tier)
+        tier_def_idx = flow_tier_options.index(tier_cur) if tier_cur in flow_tier_options else 0
         flow_chosen_tier = st.selectbox(
             "Filter Tingkatan (Tier):",
             flow_tier_options,
@@ -997,15 +997,18 @@ def render_visual_flow_strategy_page(
             "☪️ Hanya Syariah (ISSI)",
             "⚪ Non-Syariah"
         ]
-        # Sinkronkan nilai filter syariah dari sidebar jika dipilih di sidebar
-        if st.session_state.get("_last_synced_sidebar_syariah") != chosen_syariah:
+        # Konsumsi perubahan tertunda syariah dari evaluasi emiten atau sinkronkan dari sidebar
+        if "_pending_flow_syariah" in st.session_state:
+            pending_syariah = st.session_state.pop("_pending_flow_syariah")
+            if pending_syariah in flow_syariah_options:
+                st.session_state["flow_chosen_syariah_box"] = pending_syariah
+        elif st.session_state.get("_last_synced_sidebar_syariah") != chosen_syariah:
             st.session_state["_last_synced_sidebar_syariah"] = chosen_syariah
             if chosen_syariah in flow_syariah_options:
                 st.session_state["flow_chosen_syariah_box"] = chosen_syariah
 
-        syariah_def_idx = 0
-        if chosen_syariah in flow_syariah_options:
-            syariah_def_idx = flow_syariah_options.index(chosen_syariah)
+        syariah_cur = st.session_state.get("flow_chosen_syariah_box", chosen_syariah)
+        syariah_def_idx = flow_syariah_options.index(syariah_cur) if syariah_cur in flow_syariah_options else 0
         flow_chosen_syariah = st.selectbox(
             "Filter Syariah (OJK/DSN-MUI):",
             flow_syariah_options,
