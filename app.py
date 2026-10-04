@@ -1124,7 +1124,7 @@ style_type_eval = evaluate_trading_style_and_type(
     pct_offer=info.get("pct_offer", 50.0),
     atr_val=tech_eval.get("atr", 50.0),
     adx_val=tech_suite.get("adx", 24.0),
-    is_sharia=info.get("is_syariah", True),
+    is_sharia=info.get("is_syariah", False),
     sector=info.get("sector", "Umum")
 )
 
@@ -1417,7 +1417,7 @@ if app_menu == "⚡ Lapis 3 Rally Hunter":
         turnover_idr=lapis_turnover,
         sector=lapis_sector,
         tier=tier_title,
-        is_syariah=lapis_info.get("is_syariah", True)
+        is_syariah=lapis_info.get("is_syariah", False)
     )
 
     # TAMPILKAN HEADER STATUS SAHAM TERPILIH & VALIDASI DEFINISI RESMI LAPIS 3

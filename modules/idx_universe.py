@@ -76,7 +76,72 @@ ISLAMIC_FINANCIAL_TICKERS: Set[str] = {
     "BRIS", "BTPS", "BANK", "PNBS", "JMAS"
 }
 
-# Seluruh Ticker Non-Syariah Tergabung
+# Daftar Resmi Seluruh 597+ Saham Syariah Terdaftar di BEI Sesuai Keputusan Resmi OJK / ISSI
+# Keputusan Dewan Komisioner Otoritas Jasa Keuangan (OJK) No. KEP-21/D.04/2026
+OFFICIAL_DES_SYARIAH_TICKERS: Set[str] = {
+    "AADI", "AALI", "ABMM", "ACES", "ADCP", "ADES", "ADMG", "ADMR", "ADRO", "AEGS",
+    "AGAR", "AGII", "AISA", "AKPI", "AKRA", "AKSI", "ALDO", "ALKA", "AMAN", "AMFG",
+    "AMIN", "AMMS", "ANTM", "APII", "APLI", "APLN", "ARCI", "AREA", "ARII", "ARNA",
+    "ASGR", "ASHA", "ASLC", "ASLI", "ASPI", "ASRI", "ASSA", "ATAP", "ATIC", "ATLA",
+    "AUTO", "AVIA", "AWAN", "AXIO", "AYAM", "AYLS", "BABY", "BAIK", "BALI", "BANK",
+    "BAPI", "BATR", "BAUT", "BAYU", "BBRM", "BBSS", "BCIP", "BDKR", "BELI", "BELL",
+    "BESS", "BEST", "BIKE", "BINO", "BIPP", "BIRD", "BISI", "BKDP", "BKSL", "BLES",
+    "BLTA", "BLTZ", "BLUE", "BMBL", "BMHS", "BMSR", "BMTR", "BOAT", "BOBA", "BOGA",
+    "BOLT", "BRAM", "BRIS", "BRMS", "BRNA", "BSBK", "BSDE", "BSML", "BSSR", "BTPS",
+    "BUAH", "BUDI", "BULL", "BUMI", "BWPT", "BYAN", "CAKK", "CAMP", "CANI", "CARE",
+    "CASH", "CASS", "CCSI", "CEKA", "CGAS", "CHEM", "CHIP", "CINT", "CITA", "CITY",
+    "CLEO", "CLPI", "CMNP", "CMPP", "CMRY", "CNMA", "COAL", "CPIN", "CPRO", "CRSN",
+    "CSAP", "CSIS", "CSMI", "CSRA", "CTBN", "CTRA", "CYBR", "DADA", "DATA", "DAYA",
+    "DCII", "DEFI", "DEPO", "DEWA", "DEWI", "DGIK", "DGNS", "DILD", "DIVA", "DKFT",
+    "DMAS", "DMMX", "DMND", "DOOH", "DOSS", "DRMA", "DSFI", "DSNG", "DSSA", "DUTI",
+    "DVLA", "DWGL", "DYAN", "EAST", "ECII", "EKAD", "ELIT", "ELPI", "ELSA", "ELTY",
+    "EMDE", "ENAK", "ENRG", "EPAC", "EPMT", "ERAA", "ERAL", "ERTX", "ESIP", "ESSA",
+    "ESTA", "EURO", "EXCL", "FAST", "FASW", "FILM", "FIMP", "FIRE", "FISH", "FLMC",
+    "FMII", "FOLK", "FOOD", "FPNI", "FWCT", "GDST", "GDYR", "GEMA", "GEMS", "GGRP",
+    "GHON", "GIAA", "GJTL", "GLVA", "GMTD", "GOLD", "GOLF", "GOOD", "GPRA", "GPSO",
+    "GRIA", "GRPH", "GRPM", "GTRA", "GULA", "GUNA", "GWSA", "GZCO", "HADE", "HAIS",
+    "HAJJ", "HALO", "HATM", "HBAT", "HDIT", "HEAL", "HELI", "HERO", "HEXA", "HOKI",
+    "HOMI", "HOPE", "HRTA", "HRUM", "HYGN", "IATA", "IBST", "ICBP", "ICON", "IDEA",
+    "IDPR", "IFII", "IFSH", "IGAR", "IIKP", "IKAI", "IKAN", "IKBI", "IKPM", "IMPC",
+    "INCI", "INDF", "INDR", "INDS", "INDY", "INET", "INKP", "INPP", "INTD", "INTP",
+    "IOTF", "IPAC", "IPCM", "IPOL", "IPTV", "IRRA", "IRSX", "ISAP", "ISAT", "ISSP",
+    "ITMA", "ITMG", "JARR", "JAST", "JATI", "JAWA", "JAYA", "JECC", "JGLE", "JIHD",
+    "JKON", "JMAS", "JPFA", "JRPT", "JSMR", "JTPE", "KARW", "KBAG", "KBLI", "KBLM",
+    "KDSI", "KEEN", "KEJU", "KETR", "KIAS", "KICI", "KIJA", "KING", "KINO", "KIOS",
+    "KJEN", "KKES", "KKGI", "KLAS", "KLBF", "KLIN", "KMDS", "KOBX", "KOCI", "KOIN",
+    "KOKA", "KONI", "KOPI", "KOTA", "KPIG", "KREN", "KUAS", "LABS", "LAJU", "LAND",
+    "LFLO", "LION", "LIVE", "LMAX", "LMPI", "LMSH", "LOPI", "LPCK", "LPIN", "LPLI",
+    "LPPF", "LRNA", "LSIP", "LTLS", "LUCK", "MAHA", "MAIN", "MANG", "MAPA", "MAPB",
+    "MAPI", "MARK", "MAXI", "MBAP", "MBMA", "MBTO", "MCAS", "MCOL", "MDIA", "MDKA",
+    "MDKI", "MEDC", "MEDS", "MEJA", "MERK", "META", "MFMI", "MGLV", "MHKI", "MICE",
+    "MIKA", "MIRA", "MITI", "MKAP", "MKNT", "MKPI", "MKTR", "MLIA", "MLPL", "MLPT",
+    "MMIX", "MMLP", "MNCN", "MORA", "MPIX", "MPMX", "MPOW", "MPPA", "MRAT", "MSIE",
+    "MSIN", "MSJA", "MSKY", "MSTI", "MTDL", "MTEL", "MTLA", "MTMH", "MTPS", "MTSM",
+    "MUTU", "MYOH", "MYOR", "NAIK", "NANO", "NASI", "NAYZ", "NELY", "NEST", "NFCX",
+    "NICE", "NICL", "NIKL", "NRCA", "NSSS", "NTBK", "NZIA", "OBMD", "OKAS", "OLIV",
+    "OMED", "PACK", "PADA", "PALM", "PAMG", "PANR", "PART", "PBID", "PCAR", "PDES",
+    "PDPP", "PEHA", "PEVE", "PGAS", "PGJO", "PGLI", "PGUN", "PICO", "PJAA", "PKPK",
+    "PLAN", "PLIN", "PMJS", "PNBS", "PNGO", "POLI", "POLU", "PORT", "POWR", "PPGL",
+    "PPRE", "PPRI", "PRAY", "PRDA", "PRIM", "PSAB", "PSDN", "PSGO", "PSKT", "PSSI",
+    "PTBA", "PTIS", "PTMP", "PTMR", "PTPP", "PTPS", "PTPW", "PTSN", "PTSP", "PURA",
+    "PURI", "PZZA", "RAAM", "RAJA", "RALS", "RANC", "RBMS", "RCCC", "REAL", "RELF",
+    "RGAS", "RISE", "RMKE", "RMKO", "ROCK", "RODA", "ROTI", "RSCH", "RSGK", "RUIS",
+    "RUNS", "SAFE", "SAGE", "SAME", "SAMF", "SAPX", "SATU", "SBMA", "SCCO", "SCNP",
+    "SCPI", "SDPC", "SEMA", "SGER", "SGRO", "SHID", "SICO", "SIDO", "SILO", "SIMP",
+    "SIPD", "SKBM", "SKLT", "SKRN", "SLIS", "SMAR", "SMBR", "SMCB", "SMDM", "SMDR",
+    "SMGA", "SMGR", "SMIL", "SMKL", "SMKM", "SMLE", "SMMT", "SMRA", "SMSM", "SNLK",
+    "SOCI", "SOFA", "SOHO", "SOLA", "SOSS", "SOTS", "SPMA", "SPRE", "SPTO", "SRTG",
+    "SSIA", "SSTM", "STAA", "STTP", "SULI", "SUNI", "SUPR", "SURI", "SWID", "TALF",
+    "TAMA", "TAPG", "TAXI", "TBMS", "TCID", "TCPI", "TEBE", "TFAS", "TFCO", "TGKA",
+    "TGUK", "TINS", "TIRA", "TIRT", "TKIM", "TLDN", "TLKM", "TMAS", "TMPO", "TNCA",
+    "TOBA", "TOOL", "TOSK", "TOTL", "TOTO", "TPIA", "TPMA", "TRIS", "TRJA", "TRON",
+    "TRST", "TRUK", "TSPC", "TYRE", "UANG", "UCID", "UDNG", "UFOE", "ULTJ", "UNIC",
+    "UNIQ", "UNTR", "UNVR", "URBN", "UVCR", "VAST", "VERN", "VICI", "VISI", "VKTR",
+    "VOKS", "WAPO", "WEGE", "WEHA", "WGSH", "WIDI", "WIFI", "WINR", "WINS", "WIRG",
+    "WOOD", "WOWS", "WTON", "YELO", "YPAS", "ZONE", "ZYRX",
+}
+
+# Seluruh Ticker Non-Syariah Tergabung (semua emiten di luar DES OJK)
 NON_SHARIA_TICKERS: Set[str] = (
     CONVENTIONAL_BANKS |
     CONVENTIONAL_INSURANCE |
@@ -93,27 +158,14 @@ _PRICES_PATH = os.path.join(os.path.dirname(__file__), "idx_prices.json")
 def is_sharia_compliant(ticker: str, sector: str = "", name: str = "") -> bool:
     """
     Validasi Kepatuhan Syariah OJK / DSN-MUI secara ketat & permanen.
-    - Semua bank/keuangan konvensional, asuransi konvensional, multifinance, sekuritas: Non-Syariah
-    - Semua produsen rokok/tembakau (HMSP, GGRM, WIIM, ITIC, RMBA): Non-Syariah
-    - Semua produsen minuman beralkohol (MLBI, DLTA, WINE, BEER, STRK): Non-Syariah
-    - Emiten keuangan yang berprinsip Syariah (BRIS, BTPS, BANK, PNBS, JMAS): Syariah
+    Berdasarkan Keputusan Dewan Komisioner Otoritas Jasa Keuangan (OJK)
+    tentang Daftar Efek Syariah (DES) / Indeks Saham Syariah Indonesia (ISSI)
+    Nomor KEP-21/D.04/2026 dan Pembaruan Resmi OJK.
+    Emiten diklasifikasikan sebagai Saham Syariah jika dan hanya jika
+    terdaftar secara resmi dalam Daftar Efek Syariah (DES) OJK.
     """
     clean = ticker.replace(".JK", "").upper().strip()
-    if clean in ISLAMIC_FINANCIAL_TICKERS:
-        return True
-    if clean in NON_SHARIA_TICKERS:
-        return False
-    if sector.strip().lower() in {"financials", "keuangan"}:
-        return False
-
-    name_lower = name.lower()
-    for kw in ["bank", "asuransi", "insurance", "finance", "multifinance", "securities", "sekuritas", "brewery", "beer", "wine", "tobacco", "rokok", "tembakau"]:
-        if kw in name_lower:
-            if any(sharia_kw in name_lower for sharia_kw in ["syariah", "sharia", "aladin"]):
-                return True
-            return False
-
-    return True
+    return clean in OFFICIAL_DES_SYARIAH_TICKERS
 
 
 @lru_cache(maxsize=1)

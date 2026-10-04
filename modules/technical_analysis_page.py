@@ -50,7 +50,12 @@ from modules.technical_analysis import (
     compute_technical_suite,
     evaluate_technical_score,
 )
-from modules.idx_universe import filter_idx_stocks, TIER_OPTIONS
+from modules.idx_universe import (
+    filter_idx_stocks,
+    TIER_OPTIONS,
+    is_sharia_compliant,
+    get_stock_metadata,
+)
 from modules.recommendation_engine import calculate_trading_levels
 
 
@@ -876,7 +881,7 @@ def scan_technical_screener(tier: str, syariah: str, sector: str, setup_filter: 
             "name": stock["name"],
             "tier": stock.get("tier", "Saham BEI"),
             "sector": stock.get("sector", "Industri"),
-            "is_syariah": stock.get("is_syariah", True),
+            "is_syariah": stock.get("is_syariah", is_sharia_compliant(stock.get("ticker", stock["code"]))),
             "setup_tag": setup_obj["tag"],
             "setup_desc": setup_obj["desc"],
             "tech_score": sc,
@@ -907,7 +912,8 @@ def render_technical_analysis_page(
     clean_t = ticker.replace(".JK", "").upper().strip()
     company_name = info.get("longName") or info.get("shortName") or clean_t
     sector_name = info.get("sector", "Bursa Efek Indonesia")
-    is_syariah = info.get("is_syariah", True)
+    meta_live = get_stock_metadata(clean_t)
+    is_syariah = meta_live.get("is_syariah", is_sharia_compliant(clean_t))
 
     # 1. Pastikan seluruh fitur teknikal terhitung
     if "RSI_14" not in df_ohlcv.columns or "EMA_20" not in df_ohlcv.columns:

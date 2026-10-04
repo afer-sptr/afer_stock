@@ -315,7 +315,7 @@ def evaluate_trading_style_and_type(
     pct_offer: float,
     atr_val: float,
     adx_val: float,
-    is_sharia: bool = True,
+    is_sharia: bool = False,
     market_cap: Optional[float] = None,
     sector: str = "Umum",
 ) -> Dict[str, Any]:
